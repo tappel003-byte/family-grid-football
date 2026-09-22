@@ -361,9 +361,20 @@ export function RosterTable({
                   <div className="text-xs text-muted-foreground">proj {s.projected.toFixed(1)}</div>
                 </div>
                 {editable && (
-                  <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
-                    Start
-                  </Button>
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
+                      Start
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive"
+                      disabled={pending}
+                      onClick={() => setDropTarget(p)}
+                    >
+                      Drop
+                    </Button>
+                  </>
                 )}
               </div>
             </li>
