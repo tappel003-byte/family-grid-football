@@ -139,7 +139,7 @@ function Side({
       <div className={cn("shrink-0", align === "right" ? "text-left" : "text-right")}>
         <div className="font-display text-2xl font-bold tabular-nums">{s.actual.toFixed(1)}</div>
         <div className="text-xs text-muted-foreground">
-          proj {s.projected.toFixed(1)} · {s.status}
+          proj {s.projected.toFixed(1)}{s.status === "Scheduled" ? "" : ` · ${s.status}`}
         </div>
       </div>
     </div>

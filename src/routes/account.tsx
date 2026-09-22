@@ -37,12 +37,12 @@ export const Route = createFileRoute("/account")({
       { title: "My Account — La Familia Fantasy Football" },
       {
         name: "description",
-        content: "Change your name, your team name and your team colour in the family league.",
+        content: "Change your name, team, colour and preferred game-time zone in the family league.",
       },
       { property: "og:title", content: "My Account — La Familia Fantasy Football" },
       {
         property: "og:description",
-        content: "Change your name, your team name and your team colour in the family league.",
+        content: "Change your name, team, colour and preferred game-time zone in the family league.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
