@@ -108,6 +108,7 @@ export type Database = {
         Row: {
           bench: Json
           color: string
+          division: string
           id: string
           league_id: string
           name: string
@@ -120,6 +121,7 @@ export type Database = {
         Insert: {
           bench?: Json
           color?: string
+          division?: string
           id?: string
           league_id: string
           name?: string
@@ -132,6 +134,7 @@ export type Database = {
         Update: {
           bench?: Json
           color?: string
+          division?: string
           id?: string
           league_id?: string
           name?: string

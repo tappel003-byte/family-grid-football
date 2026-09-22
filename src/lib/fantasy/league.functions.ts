@@ -10,6 +10,7 @@ type TeamRow = {
   starters: Array<string | null>;
   bench: string[];
   userId?: string | null;
+  division?: string;
 };
 
 export type LeaguePayload = {
@@ -34,6 +35,7 @@ export function toPayload(league: League): LeaguePayload {
       starters: t.starters,
       bench: t.bench,
       userId: t.userId ?? null,
+      division: t.division ?? "",
     })),
   };
 }
@@ -125,6 +127,7 @@ export const saveLeague = createServerFn({ method: "POST" })
       starters: t.starters,
       bench: t.bench,
       user_id: t.userId ?? null,
+      division: t.division ?? "",
       updated_at: new Date().toISOString(),
     }));
 
