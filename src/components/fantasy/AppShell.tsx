@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 const NAV = [
   { to: "/", label: "Matchups" },
+  { to: "/standings", label: "Standings" },
   { to: "/teams", label: "Teams" },
   { to: "/players", label: "Players" },
   { to: "/settings", label: "Commissioner" },
