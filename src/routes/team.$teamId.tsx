@@ -51,6 +51,7 @@ function TeamPage() {
 
   const activeWeek = week ?? league.currentWeek;
   const totals = teamTotals(team, activeWeek, league, byId);
+  const canEdit = isCommissioner || (!!user && team.userId === user.id);
 
   return (
     <>
