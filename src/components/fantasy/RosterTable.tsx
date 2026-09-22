@@ -338,6 +338,16 @@ export function RosterTable({
                           <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
                             Bench
                           </Button>
+                          {irOpen && isInactive(player.injury) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={pending}
+                              onClick={() => void moveToIR(player, true)}
+                            >
+                              Injured reserve
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -394,6 +404,16 @@ export function RosterTable({
                     <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
                       Start
                     </Button>
+                    {irOpen && isInactive(p.injury) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => void moveToIR(p, true)}
+                      >
+                        IR
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
