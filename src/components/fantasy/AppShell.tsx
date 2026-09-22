@@ -1,18 +1,24 @@
 import { Link } from "@tanstack/react-router";
-import { Trophy } from "lucide-react";
+import { LogOut, Trophy } from "lucide-react";
 import type { ReactNode } from "react";
+import { AuthGate } from "./AuthGate";
+import { signOut, useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 
 const NAV = [
-  { to: "/", label: "Matchups" },
-  { to: "/standings", label: "Standings" },
-  { to: "/teams", label: "Teams" },
-  { to: "/players", label: "Players" },
-  { to: "/history", label: "History" },
-  { to: "/import", label: "Import" },
-  { to: "/settings", label: "Commissioner" },
+  { to: "/", label: "Matchups", commissionerOnly: false },
+  { to: "/standings", label: "Standings", commissionerOnly: false },
+  { to: "/teams", label: "Teams", commissionerOnly: false },
+  { to: "/players", label: "Players", commissionerOnly: false },
+  { to: "/history", label: "History", commissionerOnly: false },
+  { to: "/import", label: "Import", commissionerOnly: true },
+  { to: "/settings", label: "Commissioner", commissionerOnly: true },
 ] as const;
 
-export function AppShell({ children }: { children: ReactNode }) {
+function Shell({ children }: { children: ReactNode }) {
+  const { isCommissioner, displayName } = useAuth();
+  const nav = NAV.filter((item) => !item.commissionerOnly || isCommissioner);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
@@ -26,7 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
           <nav className="col-span-2 flex flex-wrap items-center gap-1 sm:gap-2">
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -37,6 +43,24 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
+            <span className="ml-auto flex items-center gap-2 sm:ml-2">
+              {displayName && (
+                <span className="hidden max-w-[10rem] truncate text-base font-semibold text-muted-foreground sm:inline">
+                  {displayName}
+                  {isCommissioner ? " · Commissioner" : ""}
+                </span>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void signOut()}
+                className="font-semibold"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">Sign out</span>
+              </Button>
+            </span>
           </nav>
         </div>
       </header>
@@ -45,6 +69,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         Private family league · Player data from the free Sleeper NFL API
       </footer>
     </div>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <AuthGate>
+      <Shell>{children}</Shell>
+    </AuthGate>
   );
 }
 
