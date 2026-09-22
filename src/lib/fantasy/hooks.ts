@@ -88,10 +88,14 @@ export type PlayerScore = {
 };
 
 export function scoreFor(player: SlimPlayer, week: number, league: League): PlayerScore {
+  const data = weekCache.get(week);
+  const projected = scoreStats(data?.projections[player.id] ?? ZERO, league.scoring);
+  const actual = scoreStats(data?.stats[player.id] ?? ZERO, league.scoring);
+  const game = data?.games[player.team];
   return {
-    projected: scoreStats(projectedStats(player, week), league.scoring),
-    actual: scoreStats(actualStats(player, week, league.currentWeek), league.scoring),
-    status: gameStatusLabel(player, week, league.currentWeek),
+    projected,
+    actual,
+    status: game ? game.label : "Bye",
   };
 }
 
