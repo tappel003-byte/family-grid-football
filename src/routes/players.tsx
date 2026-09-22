@@ -29,7 +29,7 @@ const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"];
 
 export const Route = createFileRoute("/players")({
   validateSearch: (search: Record<string, unknown>) => ({
-    f: typeof search.f === "string" ? search.f : undefined,
+    f: typeof search["f"] === "string" ? search["f"] : undefined,
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
