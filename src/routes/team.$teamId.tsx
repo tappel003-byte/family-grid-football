@@ -5,6 +5,7 @@ import { RosterTable } from "@/components/fantasy/RosterTable";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague } from "@/lib/fantasy/hooks";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/team/$teamId")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
