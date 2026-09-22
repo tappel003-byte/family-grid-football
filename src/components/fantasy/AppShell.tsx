@@ -39,10 +39,10 @@ function Shell({ children }: { children: ReactNode }) {
         <div className="mx-auto grid max-w-[1400px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:flex sm:justify-between">
           <Link to="/" className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
-              <Trophy className="h-5 w-5" />
+              <Football className="h-5 w-5" />
             </span>
             <span className="truncate font-display text-xl font-bold tracking-tight sm:text-2xl">
-              Family Football
+              La Familia
             </span>
           </Link>
           <nav className="col-span-2 flex flex-wrap items-center gap-1 sm:gap-2">
