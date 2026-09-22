@@ -86,7 +86,7 @@ function MatchupsPage() {
           return (
             <button
               key={i}
-              onClick={() => setSelected(i)}
+              onClick={() => setPicked(i)}
               className={cn(
                 "rounded-2xl border bg-card p-3 text-left shadow-sm transition-colors hover:bg-secondary/50",
                 i === Math.min(selected, pairs.length - 1) && "ring-2 ring-primary",
