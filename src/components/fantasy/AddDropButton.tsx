@@ -87,7 +87,13 @@ export function AddDropButton({
         <Button
           variant="outline"
           disabled={pending}
-          onClick={() => setConfirmDrop(true)}
+          onClick={() => {
+            if (locked) {
+              toast.error(`${player.name}'s game has already started — he's locked this week.`);
+              return;
+            }
+            setConfirmDrop(true);
+          }}
           className="font-semibold"
         >
           Drop
