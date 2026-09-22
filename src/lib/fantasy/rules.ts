@@ -7,10 +7,15 @@ export type LeagueRules = {
   rosterLimit: number;
   /** Most players a team may carry at each position. 0 means no cap. */
   positionLimits: Record<string, number>;
-  /** "free" = grab anybody anytime. "locked" = nobody can be added or dropped once their game has started. */
-  waiverMode: "free" | "locked";
+  /**
+   * "free" = grab anybody anytime. "locked" = nobody can be added or dropped once their
+   * game has started. "waivers" = pickups go into a queue that processes in claim order.
+   */
+  waiverMode: "free" | "locked" | "waivers";
   /** Last week trades are allowed. 0 means trades never close. */
   tradeDeadlineWeek: number;
+  /** Team slots in waiver priority order (first entry picks first). */
+  waiverOrder: number[];
 };
 
 export const DEFAULT_RULES: LeagueRules = {
@@ -18,6 +23,7 @@ export const DEFAULT_RULES: LeagueRules = {
   positionLimits: { QB: 4, RB: 8, WR: 8, TE: 4, K: 3, DEF: 3 },
   waiverMode: "free",
   tradeDeadlineWeek: 12,
+  waiverOrder: [],
 };
 
 export const RULE_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"] as const;
@@ -32,12 +38,17 @@ export function normalizeRules(raw: unknown): LeagueRules {
   }
   const size = Number(r.rosterLimit);
   const deadline = Number(r.tradeDeadlineWeek);
+  const order = Array.isArray(r.waiverOrder)
+    ? r.waiverOrder.map(Number).filter((n) => Number.isFinite(n) && n >= 0)
+    : [];
   return {
     rosterLimit: Number.isFinite(size) && size > 0 ? size : DEFAULT_RULES.rosterLimit,
     positionLimits: limits,
-    waiverMode: r.waiverMode === "locked" ? "locked" : "free",
+    waiverMode:
+      r.waiverMode === "locked" || r.waiverMode === "waivers" ? r.waiverMode : "free",
     tradeDeadlineWeek:
       Number.isFinite(deadline) && deadline >= 0 ? deadline : DEFAULT_RULES.tradeDeadlineWeek,
+    waiverOrder: order,
   };
 }
 

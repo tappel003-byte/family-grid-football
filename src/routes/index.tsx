@@ -49,7 +49,7 @@ function MatchupsPage() {
   const [week, setWeek] = useState<number | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
   const activeWeek = week ?? league?.currentWeek ?? 1;
-  useWeekData(activeWeek);
+  const weekData = useWeekData(activeWeek);
 
   if (!league) return <LoadingScreen label="Drafting your family league…" />;
 
@@ -64,6 +64,12 @@ function MatchupsPage() {
 
   return (
     <>
+      {weekData.stale && (
+        <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-base font-semibold text-amber-900">
+          The live NFL feed is retrying — showing the last scores we received. Everything
+          updates itself once the feed answers again.
+        </div>
+      )}
       <div className="mb-5 grid grid-cols-1 gap-3 sm:flex sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">

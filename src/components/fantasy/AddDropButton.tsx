@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { rosterIds, type League } from "@/lib/fantasy/league";
 import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
+import { placeClaim } from "@/lib/fantasy/waivers.functions";
 import { reloadLeague } from "@/lib/fantasy/store";
 import { gameStatusFor } from "@/lib/fantasy/hooks";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
@@ -30,6 +31,7 @@ export function AddDropButton({
 }) {
   const { user } = useAuth();
   const move = useServerFn(makeRosterMove);
+  const claim = useServerFn(placeClaim);
   const [pending, setPending] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
@@ -40,6 +42,7 @@ export function AddDropButton({
   const myIds = rosterIds(myTeam);
   const onMyTeam = myIds.includes(player.id);
   const rules = league.rules;
+  const claimMode = rules.waiverMode === "waivers";
   const locked =
     rules.waiverMode === "locked" &&
     ["live", "final"].includes(gameStatusFor(player.team, league.currentWeek));
@@ -81,6 +84,34 @@ export function AddDropButton({
     }
   }
 
+  /** Waiver mode: put a pickup request in the queue instead of adding right away. */
+  async function runClaim(dropId: string | null, dropName: string) {
+    setPending(true);
+    try {
+      await claim({
+        data: {
+          playerId: player.id,
+          playerName: player.name,
+          playerPos: player.pos,
+          playerTeam: player.team,
+          dropId,
+          dropName,
+        },
+      });
+      toast.success(
+        `Claim placed for ${player.name}. Waivers process in order — the team with the worse record picks first.`,
+      );
+      setDropOpen(false);
+      onDone?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "That claim did not go through.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const submit = claimMode ? runClaim : run;
+
   if (onMyTeam) {
     return (
       <>
@@ -103,7 +134,9 @@ export function AddDropButton({
             <DialogHeader>
               <DialogTitle>Drop {player.name}?</DialogTitle>
               <DialogDescription>
-                They will go back on the free agent list, and any family can pick them up.
+                {claimMode
+                  ? "They will go back on the free agent list, and families can put in a claim for them."
+                  : "They will go back on the free agent list, and any family can pick them up."}
               </DialogDescription>
             </DialogHeader>
             <div className="mt-2 flex justify-end gap-3">
@@ -141,18 +174,19 @@ export function AddDropButton({
             return;
           }
           if (rosterFull) setDropOpen(true);
-          else void run(null, "");
+          else void submit(null, "");
         }}
         className="font-semibold"
       >
-        Add
+        {claimMode ? "Claim" : "Add"}
       </Button>
       <Dialog open={dropOpen} onOpenChange={setDropOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Who comes off the roster?</DialogTitle>
             <DialogDescription>
-              Your roster is full, so pick one player to drop for {player.name}.
+              Your roster is full, so pick one player to{" "}
+              {claimMode ? "let go if your claim wins" : "drop for"} {player.name}.
             </DialogDescription>
           </DialogHeader>
           <ul className="divide-y">
@@ -166,9 +200,9 @@ export function AddDropButton({
                   <Button
                     variant="outline"
                     disabled={pending}
-                    onClick={() => void run(id, p?.name ?? "")}
+                    onClick={() => void submit(id, p?.name ?? "")}
                   >
-                    Drop
+                    {claimMode ? "Claim" : "Drop"}
                   </Button>
                 </li>
               );

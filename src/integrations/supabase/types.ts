@@ -349,6 +349,109 @@ export type Database = {
         }
         Relationships: []
       }
+      waiver_claims: {
+        Row: {
+          actor_id: string | null
+          actor_name: string
+          created_at: string
+          drop_player_id: string | null
+          drop_player_name: string
+          id: string
+          league_id: string
+          player_id: string
+          player_name: string
+          player_pos: string
+          player_team: string
+          resolved_at: string | null
+          status: string
+          team_name: string
+          team_slot: number
+          week: number
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string
+          created_at?: string
+          drop_player_id?: string | null
+          drop_player_name?: string
+          id?: string
+          league_id: string
+          player_id: string
+          player_name?: string
+          player_pos?: string
+          player_team?: string
+          resolved_at?: string | null
+          status?: string
+          team_name?: string
+          team_slot: number
+          week?: number
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string
+          created_at?: string
+          drop_player_id?: string | null
+          drop_player_name?: string
+          id?: string
+          league_id?: string
+          player_id?: string
+          player_name?: string
+          player_pos?: string
+          player_team?: string
+          resolved_at?: string | null
+          status?: string
+          team_name?: string
+          team_slot?: number
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waiver_claims_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_results: {
+        Row: {
+          created_at: string
+          id: string
+          league_id: string
+          points: number
+          team_slot: number
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          league_id: string
+          points?: number
+          team_slot: number
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          league_id?: string
+          points?: number
+          team_slot?: number
+          updated_at?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_results_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

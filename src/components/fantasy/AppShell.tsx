@@ -19,12 +19,15 @@ import { signOut, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
-  { to: "/", label: "Matchups", commissionerOnly: false },
-  { to: "/my-team", label: "My Team", commissionerOnly: false },
-  { to: "/standings", label: "Standings", commissionerOnly: false },
+  { to: "/", label: "Matchups" },
+  { to: "/my-team", label: "My Team" },
+  { to: "/players", label: "Players" },
+  { to: "/standings", label: "Standings" },
+] as const;
+
+const NAV_MORE = [
   { to: "/playoffs", label: "Playoffs", commissionerOnly: false },
   { to: "/teams", label: "Teams", commissionerOnly: false },
-  { to: "/players", label: "Players", commissionerOnly: false },
   { to: "/trades", label: "Trades", commissionerOnly: false },
   { to: "/history", label: "History", commissionerOnly: false },
   { to: "/settings", label: "Commissioner", commissionerOnly: true },
@@ -64,9 +67,43 @@ function ChipLegend() {
   );
 }
 
+/** Secondary pages tucked into a "More" menu so the top bar stays tidy. */
+function MoreNav({
+  items,
+}: {
+  items: ReadonlyArray<{ to: string; label: string }>;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="sm" className="px-3 text-base font-semibold text-muted-foreground">
+          More
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-48 p-1.5">
+        <div className="flex flex-col">
+          {items.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="rounded-md px-3 py-2 text-base font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground [&.bg-secondary]:text-foreground"
+              activeProps={{ className: "bg-secondary text-foreground" }}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function Shell({ children }: { children: ReactNode }) {
   const { isCommissioner, displayName } = useAuth();
-  const nav = NAV.filter((item) => !item.commissionerOnly || isCommissioner);
+  const more = NAV_MORE.filter((item) => !item.commissionerOnly || isCommissioner);
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,7 +118,7 @@ function Shell({ children }: { children: ReactNode }) {
             </span>
           </Link>
           <nav className="col-span-2 flex flex-wrap items-center gap-1 sm:gap-2">
-            {nav.map((item) => (
+            {NAV.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -92,6 +129,7 @@ function Shell({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
+            <MoreNav items={more} />
             <span className="ml-auto flex items-center gap-2 sm:ml-2">
               <ChipLegend />
               <Link
