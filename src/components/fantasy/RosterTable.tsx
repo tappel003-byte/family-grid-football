@@ -393,6 +393,29 @@ export function RosterTable({
           <li className="px-4 py-6 text-muted-foreground">Bench is empty.</li>
         )}
       </ul>
+
+      <Dialog open={!!dropTarget} onOpenChange={(o) => !o && setDropTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Drop {dropTarget?.name}?</DialogTitle>
+            <DialogDescription>
+              They will go back on the free agent list, and any family can pick them up.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 flex justify-end gap-3">
+            <Button variant="outline" disabled={pending} onClick={() => setDropTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={pending}
+              onClick={() => dropTarget && void dropPlayer(dropTarget)}
+            >
+              {pending ? "Dropping…" : "Yes, drop them"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
