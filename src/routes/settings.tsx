@@ -192,6 +192,49 @@ function SettingsPage() {
               </li>
             ))}
           </ul>
+
+          <h2 className="mt-8 font-display text-2xl font-bold">Family members</h2>
+          <p className="mt-1 text-base text-muted-foreground">
+            Everyone who has signed in. Commissioners can change scoring, weeks and rosters.
+          </p>
+          <ul className="mt-3 divide-y rounded-xl border">
+            {members.length === 0 && (
+              <li className="p-3 text-base text-muted-foreground">Nobody has signed in yet.</li>
+            )}
+            {members.map((m) => {
+              const theirTeam = league.teams.find((t) => t.userId === m.id);
+              return (
+                <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-base font-semibold">{m.display_name}</div>
+                    <div className="truncate text-sm text-muted-foreground">
+                      {m.email} · {theirTeam ? theirTeam.name : "no team yet"}
+                    </div>
+                  </div>
+                  <Button
+                    variant={m.role === "commissioner" ? "default" : "outline"}
+                    size="sm"
+                    disabled={m.id === user?.id}
+                    onClick={() => {
+                      const role = m.role === "commissioner" ? "member" : "commissioner";
+                      void changeRole({ data: { userId: m.id, role } })
+                        .then(async () => {
+                          await refetchMembers();
+                          toast.success(
+                            role === "commissioner"
+                              ? `${m.display_name} is now a commissioner`
+                              : `${m.display_name} is now a regular member`,
+                          );
+                        })
+                        .catch((err: Error) => toast.error(err.message));
+                    }}
+                  >
+                    {m.role === "commissioner" ? "Commissioner" : "Make commissioner"}
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
         </section>
 
         <section className="rounded-2xl border bg-card p-5 shadow-sm">
