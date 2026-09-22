@@ -132,6 +132,11 @@ export function MatchupBoard({
           <div className="text-xs uppercase tracking-widest text-muted-foreground sm:text-sm">
             Week {week} · proj {h.projected.toFixed(0)}–{a.projected.toFixed(0)}
           </div>
+          {(h.corrected || a.corrected) && (
+            <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              Final score set by the commissioner
+            </div>
+          )}
         </div>
         <Link
           to="/team/$teamId"
