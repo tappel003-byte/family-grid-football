@@ -20,7 +20,9 @@
 13. [x] Give commissioner controls only to Tim and the co-commissioner
 14. [x] Assign each family member to a team and restrict lineup changes to that team
 15. [x] Replace simulated projections, scores, game clocks, and standings with real NFL data
-16. [x] Import and verify all ten real rosters, team names, owners, and league scoring (owner names still blank)
+16. [x] Import and verify all ten real rosters, team names, owners, and league scoring
+16b. [ ] Match remaining ESPN scoring detail: field goals by distance, defense fumble recoveries, safeties, points-allowed tiers
+16c. [ ] Add Division A / Division B and the 15-week regular season + 4-team playoff setup
 17. [x] Add waiver/free-agent transactions so roster moves are recorded and conflict-safe
 18. [ ] Test the complete experience on phones, tablets, and laptops with family accounts
 19. [ ] Choose, buy, and connect the domain
