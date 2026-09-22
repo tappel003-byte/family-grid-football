@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Trophy, Pencil, Trash2, Plus } from "lucide-react";
+import { Trophy, Pencil, Trash2, Plus, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { AppShell, PageTitle } from "@/components/fantasy/AppShell";
@@ -88,6 +88,7 @@ export const Route = createFileRoute("/history")({
 function HistoryPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<SeasonRow | null>(null);
+  const [openSeason, setOpenSeason] = useState<number | null>(null);
 
   const { data: seasons = [], isLoading } = useQuery({
     queryKey: ["season-history"],
