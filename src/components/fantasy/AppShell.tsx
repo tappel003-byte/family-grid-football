@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { HelpCircle, LogOut, Settings, UserRound } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function Football({ className }: { className?: string }) {
@@ -17,7 +18,7 @@ import type { ReactNode } from "react";
 import { AuthGate } from "./AuthGate";
 import { signOut, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { useLeague } from "@/lib/fantasy/hooks";
+import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
   { to: "/", label: "Matchups" },
@@ -106,7 +107,7 @@ function ProfileNav({
   isCommissioner,
 }: {
   displayName: string;
-  teamName?: string;
+  teamName: string | undefined;
   isCommissioner: boolean;
 }) {
   const firstName = displayName.trim().split(/\s+/)[0] || "Account";
@@ -143,8 +144,15 @@ function ProfileNav({
 
 function Shell({ children }: { children: ReactNode }) {
   const { isCommissioner, displayName, user } = useAuth();
-  const { league } = useLeague();
-  const teamName = league?.teams.find((team) => team.userId === user?.id)?.name;
+  const { data: teamName } = useQuery({
+    queryKey: ["my-header-team", user?.id],
+    enabled: Boolean(user),
+    queryFn: async () => {
+      if (!user) return undefined;
+      const { data } = await supabase.from("teams").select("name").eq("user_id", user.id).maybeSingle();
+      return data?.name;
+    },
+  });
 
   return (
     <div className="min-h-screen bg-background">

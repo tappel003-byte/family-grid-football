@@ -178,21 +178,21 @@ function BracketGame({
   league: League;
   byId: Map<string, SlimPlayer>;
   week: number;
-  home?: RecordRow;
-  away?: RecordRow;
-  seedHome?: number;
-  seedAway?: number;
+  home?: RecordRow | undefined;
+  away?: RecordRow | undefined;
+  seedHome?: number | undefined;
+  seedAway?: number | undefined;
   placeholder?: string;
 }) {
-  const rows: Array<{ team?: FantasyTeam; seed?: number }> = [
+  const rows: Array<{ team: FantasyTeam | undefined; seed: number | undefined }> = [
     { team: home ? league.teams[home.index] : undefined, seed: seedHome },
     { team: away ? league.teams[away.index] : undefined, seed: seedAway },
   ];
   const scores = rows.map((row) =>
     row.team && league.currentWeek >= week ? teamTotals(row.team, week, league, byId).actual : null,
   );
-  const firstScore = scores[0];
-  const secondScore = scores[1];
+  const firstScore = scores[0] ?? null;
+  const secondScore = scores[1] ?? null;
   const leader =
     firstScore !== null && secondScore !== null && firstScore !== secondScore
       ? firstScore > secondScore ? 0 : 1
