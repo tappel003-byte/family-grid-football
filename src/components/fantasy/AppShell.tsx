@@ -69,7 +69,7 @@ function ChipLegend() {
 
 function Shell({ children }: { children: ReactNode }) {
   const { isCommissioner, displayName } = useAuth();
-  const nav = NAV.filter((item) => !item.commissionerOnly || isCommissioner);
+  const more = NAV_MORE.filter((item) => !item.commissionerOnly || isCommissioner);
 
   return (
     <div className="min-h-screen bg-background">

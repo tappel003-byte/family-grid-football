@@ -16,6 +16,9 @@ export type WeekData = {
 
 const EMPTY: StatLine = ZERO_STATS;
 
+/** Last good payload per season-week, served when the live feed goes down. */
+const lastGoodCache = new Map<string, WeekData>();
+
 type Raw = Record<string, Record<string, number>>;
 
 function toStatLine(raw: Record<string, number> | undefined): StatLine | null {
