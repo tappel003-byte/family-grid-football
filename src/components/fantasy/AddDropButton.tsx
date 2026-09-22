@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
-import { rosterIds, type League } from "@/lib/fantasy/league";
+import { rosterIds, ownedIds, type League } from "@/lib/fantasy/league";
 import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
 import { placeClaim } from "@/lib/fantasy/waivers.functions";
 import { reloadLeague } from "@/lib/fantasy/store";
@@ -51,9 +51,11 @@ export function AddDropButton({
     cap > 0 &&
     myIds.filter((id) => byId.get(id)?.pos === player.pos).length >= cap;
   const ownedElsewhere = league.teams.some(
-    (t) => t.id !== myTeam.id && rosterIds(t).includes(player.id),
+    (t) => t.id !== myTeam.id && ownedIds(t).includes(player.id),
   );
   if (ownedElsewhere) return null;
+  // Players parked on injured reserve are managed from the My Team page.
+  if ((myTeam.ir ?? []).includes(player.id)) return null;
 
   async function run(dropId: string | null, dropName: string) {
     setPending(true);

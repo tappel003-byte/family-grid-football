@@ -23,6 +23,7 @@ import { SLOTS, rosterIds, slotAccepts } from "@/lib/fantasy/league";
 import { scoreFor } from "@/lib/fantasy/hooks";
 import { isPlayable } from "@/lib/fantasy/projections";
 import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
+import { setInjuredReserve } from "@/lib/fantasy/ir.functions";
 import { updateLeague, reloadLeague } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle, CalendarOff } from "lucide-react";
@@ -95,6 +96,25 @@ export function RosterTable({
   const move = useServerFn(makeRosterMove);
   const [pending, setPending] = useState(false);
   const [dropTarget, setDropTarget] = useState<SlimPlayer | null>(null);
+  const irMove = useServerFn(setInjuredReserve);
+
+  const irSlots = league.rules.irSlots ?? 0;
+  const irIds = team.ir ?? [];
+  const irPlayers = irIds.map((id) => byId.get(id)).filter((p): p is SlimPlayer => !!p);
+  const irOpen = irSlots > 0 && irIds.length < irSlots;
+
+  const moveToIR = async (p: SlimPlayer, toIR: boolean) => {
+    setPending(true);
+    try {
+      await irMove({ data: { playerId: p.id, playerName: p.name, toIR } });
+      await reloadLeague();
+      toast.success(toIR ? `${p.name} moved to injured reserve` : `${p.name} is back on your bench`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "That move did not go through.");
+    } finally {
+      setPending(false);
+    }
+  };
 
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
@@ -318,6 +338,16 @@ export function RosterTable({
                           <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
                             Bench
                           </Button>
+                          {irOpen && isInactive(player.injury) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={pending}
+                              onClick={() => void moveToIR(player, true)}
+                            >
+                              Injured reserve
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -374,6 +404,16 @@ export function RosterTable({
                     <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
                       Start
                     </Button>
+                    {irOpen && isInactive(p.injury) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => void moveToIR(p, true)}
+                      >
+                        IR
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -393,6 +433,58 @@ export function RosterTable({
           <li className="px-4 py-6 text-muted-foreground">Bench is empty.</li>
         )}
       </ul>
+
+      {irSlots > 0 && (
+        <>
+          <div className="border-t bg-secondary/40 px-4 py-3">
+            <h3 className="font-display text-lg font-bold">
+              Injured Reserve{" "}
+              <span className="font-sans text-sm font-semibold text-muted-foreground">
+                {irIds.length} of {irSlots}
+              </span>
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Park a hurt starter here to free up a roster spot. They score nothing while on IR.
+            </p>
+          </div>
+          <ul className="divide-y">
+            {irPlayers.map((p) => (
+              <li
+                key={p.id}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
+              >
+                <PlayerCell player={p} compact week={week} />
+                {editable && (
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => void moveToIR(p, false)}
+                    >
+                      Activate
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive"
+                      disabled={pending}
+                      onClick={() => setDropTarget(p)}
+                    >
+                      Drop
+                    </Button>
+                  </div>
+                )}
+              </li>
+            ))}
+            {irPlayers.length === 0 && (
+              <li className="px-4 py-6 text-muted-foreground">
+                Nobody on injured reserve. Use the IR button next to a player who is out.
+              </li>
+            )}
+          </ul>
+        </>
+      )}
 
       <Dialog open={!!dropTarget} onOpenChange={(o) => !o && setDropTarget(null)}>
         <DialogContent>

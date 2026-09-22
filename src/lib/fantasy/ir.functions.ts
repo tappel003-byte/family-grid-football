@@ -1,27 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { SLOTS, slotAccepts } from "./league";
 import { normalizeRules } from "./rules";
 
-export type MoveInput = {
-  /** Player being picked up, if any. */
-  addId: string | null;
-  addName: string;
-  addPos: string;
-  /** Player being released, if any. */
-  dropId: string | null;
-  dropName: string;
+export type IrInput = {
+  playerId: string;
+  playerName: string;
+  /** true = park them on injured reserve, false = bring them back to the bench. */
+  toIR: boolean;
   /** Commissioners may act for another team. */
   slot?: number | null;
 };
 
-/**
- * Adds and/or drops a player for one team. Checks ownership, roster size and
- * that nobody else already grabbed the player, then records the move.
- */
-export const makeRosterMove = createServerFn({ method: "POST" })
+/** Moves one player between a team's active roster and its injured-reserve spot(s). */
+export const setInjuredReserve = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: MoveInput) => data)
+  .inputValidator((data: IrInput) => data)
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -37,7 +30,8 @@ export const makeRosterMove = createServerFn({ method: "POST" })
       .eq("slug", "main")
       .maybeSingle();
     if (!leagueRow) throw new Error("The league is not set up yet.");
-    const ROSTER_LIMIT = normalizeRules(leagueRow.rules).rosterLimit;
+    const rules = normalizeRules(leagueRow.rules);
+    if (rules.irSlots <= 0) throw new Error("Injured reserve is turned off in this league.");
 
     const { data: teamRows, error: teamsError } = await supabaseAdmin
       .from("teams")
@@ -57,54 +51,32 @@ export const makeRosterMove = createServerFn({ method: "POST" })
     const bench = ((target.bench as string[]) ?? []).slice();
     const ir = (((target as { ir?: string[] }).ir as string[]) ?? []).slice();
 
-    if (data.addId) {
-      const taken = teams.find((t) => {
-        const ids = [
-          ...(((t.starters as Array<string | null>) ?? []).filter(Boolean) as string[]),
-          ...(((t.bench as string[]) ?? []) as string[]),
-          ...((((t as { ir?: string[] }).ir as string[]) ?? []) as string[]),
-        ];
-        return ids.includes(data.addId!);
-      });
-      if (taken) {
+    if (data.toIR) {
+      if (ir.includes(data.playerId)) throw new Error(`${data.playerName} is already on IR.`);
+      if (ir.length >= rules.irSlots) {
         throw new Error(
-          taken.id === target.id
-            ? `${data.addName} is already on your roster.`
-            : `${data.addName} was just picked up by ${taken.name}.`,
+          rules.irSlots === 1
+            ? "You only get one injured-reserve spot. Take someone off IR first."
+            : `Your ${rules.irSlots} injured-reserve spots are full.`,
         );
       }
-    }
-
-    let freedSlot = -1;
-    if (data.dropId) {
-      const si = starters.indexOf(data.dropId);
-      const bi = bench.indexOf(data.dropId);
-      const ii = ir.indexOf(data.dropId);
-      if (si === -1 && bi === -1 && ii === -1)
-        throw new Error(`${data.dropName} is not on this roster.`);
-      if (si >= 0) {
-        starters[si] = null;
-        freedSlot = si;
-      } else if (bi >= 0) {
-        bench.splice(bi, 1);
-      } else {
-        ir.splice(ii, 1);
-      }
-    }
-
-    if (data.addId) {
+      const si = starters.indexOf(data.playerId);
+      const bi = bench.indexOf(data.playerId);
+      if (si === -1 && bi === -1) throw new Error(`${data.playerName} is not on this roster.`);
+      if (si >= 0) starters[si] = null;
+      else bench.splice(bi, 1);
+      ir.push(data.playerId);
+    } else {
+      const ii = ir.indexOf(data.playerId);
+      if (ii === -1) throw new Error(`${data.playerName} is not on injured reserve.`);
       const size = starters.filter(Boolean).length + bench.length;
-      if (size >= ROSTER_LIMIT) {
+      if (size >= rules.rosterLimit) {
         throw new Error(
-          `Your roster is full (${ROSTER_LIMIT} players). Drop someone to add ${data.addName}.`,
+          `Your roster is full (${rules.rosterLimit} players). Drop someone before activating ${data.playerName}.`,
         );
       }
-      const slotName = freedSlot >= 0 ? SLOTS[freedSlot] : undefined;
-      if (freedSlot >= 0 && slotName && slotAccepts(slotName, data.addPos)) {
-        starters[freedSlot] = data.addId;
-      } else {
-        bench.push(data.addId);
-      }
+      ir.splice(ii, 1);
+      bench.push(data.playerId);
     }
 
     const { error: updateError } = await supabaseAdmin
@@ -123,15 +95,15 @@ export const makeRosterMove = createServerFn({ method: "POST" })
       league_id: leagueRow.id,
       team_slot: target.slot,
       team_name: target.name,
-      kind: data.addId && data.dropId ? "add_drop" : data.addId ? "add" : "drop",
-      added_player_id: data.addId,
-      added_player_name: data.addName,
-      dropped_player_id: data.dropId,
-      dropped_player_name: data.dropName,
+      kind: data.toIR ? "ir" : "activate",
+      added_player_id: data.toIR ? null : data.playerId,
+      added_player_name: data.toIR ? "" : data.playerName,
+      dropped_player_id: data.toIR ? data.playerId : null,
+      dropped_player_name: data.toIR ? data.playerName : "",
       actor_id: context.userId,
       actor_name: profile?.display_name || profile?.email || "",
       week: leagueRow.current_week,
     });
 
-    return { ok: true, teamSlot: target.slot };
+    return { ok: true };
   });

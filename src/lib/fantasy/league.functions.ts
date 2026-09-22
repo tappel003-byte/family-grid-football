@@ -9,6 +9,7 @@ type TeamRow = {
   color: string;
   starters: Array<string | null>;
   bench: string[];
+  ir: string[];
   userId?: string | null;
   division?: string;
 };
@@ -36,6 +37,7 @@ export function toPayload(league: League): LeaguePayload {
       color: t.color,
       starters: t.starters,
       bench: t.bench,
+      ir: t.ir ?? [],
       userId: t.userId ?? null,
       division: t.division ?? "",
     })),
@@ -85,6 +87,7 @@ export const saveLeague = createServerFn({ method: "POST" })
         .update({
           starters: mine.starters,
           bench: mine.bench,
+          ir: mine.ir ?? [],
           updated_at: new Date().toISOString(),
         })
         .eq("id", myTeam.id);
@@ -130,6 +133,7 @@ export const saveLeague = createServerFn({ method: "POST" })
       color: t.color,
       starters: t.starters,
       bench: t.bench,
+      ir: t.ir ?? [],
       user_id: t.userId ?? null,
       division: t.division ?? "",
       updated_at: new Date().toISOString(),

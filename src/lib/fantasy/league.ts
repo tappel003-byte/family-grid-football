@@ -14,6 +14,8 @@ export type FantasyTeam = {
   color: string;
   starters: Array<string | null>;
   bench: string[];
+  /** Players parked on injured reserve. They do not count against the roster limit. */
+  ir?: string[];
   /** The family member's account that owns this team, if assigned. */
   userId?: string | null;
   /** Division label, e.g. "A" or "B". Empty when the league has no divisions. */
@@ -155,6 +157,11 @@ export function slotAccepts(slot: string, pos: string): boolean {
 
 export function rosterIds(team: FantasyTeam): string[] {
   return [...team.starters.filter((x): x is string => !!x), ...team.bench];
+}
+
+/** Everyone a team controls, including players parked on injured reserve. */
+export function ownedIds(team: FantasyTeam): string[] {
+  return [...rosterIds(team), ...(team.ir ?? [])];
 }
 
 export { NEEDS };

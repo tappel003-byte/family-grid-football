@@ -154,6 +154,7 @@ export type Database = {
           color: string
           division: string
           id: string
+          ir: Json
           league_id: string
           name: string
           owner: string
@@ -167,6 +168,7 @@ export type Database = {
           color?: string
           division?: string
           id?: string
+          ir?: Json
           league_id: string
           name?: string
           owner?: string
@@ -180,6 +182,7 @@ export type Database = {
           color?: string
           division?: string
           id?: string
+          ir?: Json
           league_id?: string
           name?: string
           owner?: string
