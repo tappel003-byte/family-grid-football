@@ -4,6 +4,7 @@ import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { MatchupBoard, TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -44,15 +45,20 @@ export const Route = createFileRoute("/")({
 
 function MatchupsPage() {
   const { league, byId } = useLeague();
+  const { user } = useAuth();
   const [week, setWeek] = useState<number | null>(null);
-  const [selected, setSelected] = useState(0);
+  const [picked, setPicked] = useState<number | null>(null);
   const activeWeek = week ?? league?.currentWeek ?? 1;
   useWeekData(activeWeek);
 
   if (!league) return <LoadingScreen label="Drafting your family league…" />;
 
   const pairs = league.schedule[activeWeek - 1] ?? [];
-  const pair = pairs[Math.min(selected, pairs.length - 1)];
+  const myIdx = league.teams.findIndex((t) => !!user && t.userId === user.id);
+  const found = pairs.findIndex((p) => p[0] === myIdx || p[1] === myIdx);
+  const myIndex = myIdx >= 0 && found >= 0 ? found : 0;
+  const selected = Math.min(picked ?? myIndex, Math.max(0, pairs.length - 1));
+  const pair = pairs[selected];
   const home = pair ? league.teams[pair[0]] : undefined;
   const away = pair ? league.teams[pair[1]] : undefined;
 
@@ -67,7 +73,7 @@ function MatchupsPage() {
             Week {activeWeek} matchups
           </p>
         </div>
-        <WeekSelector week={activeWeek} onChange={(w) => setWeek(w)} />
+        <WeekSelector week={activeWeek} onChange={(w) => { setWeek(w); setPicked(null); }} />
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -80,7 +86,7 @@ function MatchupsPage() {
           return (
             <button
               key={i}
-              onClick={() => setSelected(i)}
+              onClick={() => setPicked(i)}
               className={cn(
                 "rounded-2xl border bg-card p-3 text-left shadow-sm transition-colors hover:bg-secondary/50",
                 i === Math.min(selected, pairs.length - 1) && "ring-2 ring-primary",
