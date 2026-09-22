@@ -3,7 +3,8 @@ import type { League, FantasyTeam } from "@/lib/fantasy/league";
 import { SLOTS } from "@/lib/fantasy/league";
 import { scoreFor } from "@/lib/fantasy/hooks";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
-import { PlayerCell } from "./PlayerCell";
+import { AlertTriangle } from "lucide-react";
+import { PlayerCell, isInactive } from "./PlayerCell";
 import { cn } from "@/lib/utils";
 
 export function teamTotals(team: FantasyTeam, week: number, league: League, byId: Map<string, SlimPlayer>) {
@@ -91,6 +92,13 @@ export function MatchupBoard({
   const h = teamTotals(home, week, league, byId);
   const a = teamTotals(away, week, league, byId);
 
+  const inactiveNames = [home, away].flatMap((team) =>
+    team.starters
+      .map((id) => (id ? byId.get(id) : undefined))
+      .filter((p): p is SlimPlayer => !!p && isInactive(p.injury))
+      .map((p) => `${p.name} (${team.name})`),
+  );
+
   return (
     <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <header className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b bg-secondary/60 p-4 sm:p-5">
@@ -128,14 +136,31 @@ export function MatchupBoard({
         </Link>
       </header>
 
+      {inactiveNames.length > 0 && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 border-b-2 border-injury-out bg-injury-out/15 px-4 py-3"
+        >
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-injury-out" />
+          <p className="text-base font-semibold leading-snug">
+            <span className="text-injury-out">Inactive players in starting slots:</span>{" "}
+            {inactiveNames.join(", ")}
+          </p>
+        </div>
+      )}
+
       <div className="divide-y">
         {SLOTS.map((slot, i) => {
           const hp = home.starters[i] ? byId.get(home.starters[i]!) : undefined;
           const ap = away.starters[i] ? byId.get(away.starters[i]!) : undefined;
+          const flagged = (hp && isInactive(hp.injury)) || (ap && isInactive(ap.injury));
           return (
             <div
               key={`${slot}-${i}`}
-              className="grid grid-cols-1 items-center gap-2 p-3 md:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)] md:gap-4 md:p-4"
+              className={cn(
+                "grid grid-cols-1 items-center gap-2 p-3 md:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)] md:gap-4 md:p-4",
+                flagged && "bg-injury-out/10",
+              )}
             >
               <div className="md:hidden">
                 <span className="rounded bg-secondary px-2 py-0.5 text-xs font-bold uppercase tracking-widest">

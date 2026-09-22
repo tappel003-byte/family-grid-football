@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as ImportRouteImport } from './routes/import'
 import { Route as PlayersRouteImport } from './routes/players'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StandingsRouteImport } from './routes/standings'
@@ -19,6 +21,16 @@ import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImportRoute = ImportRouteImport.update({
+  id: '/import',
+  path: '/import',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayersRoute = PlayersRouteImport.update({
@@ -49,6 +61,8 @@ const TeamTeamIdRoute = TeamTeamIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/history': typeof HistoryRoute
+  '/import': typeof ImportRoute
   '/players': typeof PlayersRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
@@ -57,6 +71,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/history': typeof HistoryRoute
+  '/import': typeof ImportRoute
   '/players': typeof PlayersRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
@@ -66,6 +82,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/history': typeof HistoryRoute
+  '/import': typeof ImportRoute
   '/players': typeof PlayersRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
@@ -75,12 +93,29 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/players' | '/settings' | '/standings' | '/teams' | '/team/$teamId'
+    | '/'
+    | '/history'
+    | '/import'
+    | '/players'
+    | '/settings'
+    | '/standings'
+    | '/teams'
+    | '/team/$teamId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/players' | '/settings' | '/standings' | '/teams' | '/team/$teamId'
+  to:
+    | '/'
+    | '/history'
+    | '/import'
+    | '/players'
+    | '/settings'
+    | '/standings'
+    | '/teams'
+    | '/team/$teamId'
   id:
     | '__root__'
     | '/'
+    | '/history'
+    | '/import'
     | '/players'
     | '/settings'
     | '/standings'
@@ -90,6 +125,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HistoryRoute: typeof HistoryRoute
+  ImportRoute: typeof ImportRoute
   PlayersRoute: typeof PlayersRoute
   SettingsRoute: typeof SettingsRoute
   StandingsRoute: typeof StandingsRoute
@@ -104,6 +141,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/import': {
+      id: '/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof ImportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/players': {
@@ -146,6 +197,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HistoryRoute: HistoryRoute,
+  ImportRoute: ImportRoute,
   PlayersRoute: PlayersRoute,
   SettingsRoute: SettingsRoute,
   StandingsRoute: StandingsRoute,

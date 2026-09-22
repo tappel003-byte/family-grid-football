@@ -61,6 +61,12 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-injury-out: var(--injury-out);
+  --color-injury-out-foreground: var(--injury-out-foreground);
+  --color-injury-doubtful: var(--injury-doubtful);
+  --color-injury-doubtful-foreground: var(--injury-doubtful-foreground);
+  --color-injury-questionable: var(--injury-questionable);
+  --color-injury-questionable-foreground: var(--injury-questionable-foreground);
 }
 
 :root {
@@ -97,6 +103,12 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+  --injury-out: oklch(0.55 0.23 27);
+  --injury-out-foreground: oklch(0.99 0.01 95);
+  --injury-doubtful: oklch(0.65 0.19 42);
+  --injury-doubtful-foreground: oklch(0.99 0.01 95);
+  --injury-questionable: oklch(0.83 0.17 82);
+  --injury-questionable-foreground: oklch(0.24 0.05 60);
 }
 
 .dark {
@@ -132,6 +144,12 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+  --injury-out: oklch(0.62 0.22 27);
+  --injury-out-foreground: oklch(0.99 0.01 95);
+  --injury-doubtful: oklch(0.7 0.18 42);
+  --injury-doubtful-foreground: oklch(0.18 0.03 60);
+  --injury-questionable: oklch(0.85 0.17 82);
+  --injury-questionable-foreground: oklch(0.2 0.04 60);
 }
 
 @layer base {
