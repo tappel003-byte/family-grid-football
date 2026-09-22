@@ -81,6 +81,7 @@ async function fetchLeague(): Promise<League | null> {
     name: row.name,
     currentWeek: row.current_week,
     scoring: { ...PPR_SCORING, ...((row.scoring ?? {}) as Partial<Scoring>) },
+    rules: normalizeRules(row.rules),
     teams,
     schedule: (row.schedule as Array<Array<[number, number]>>) ?? [],
   };
@@ -95,6 +96,7 @@ function bindRealtime() {
     .channel("league-sync")
     .on("postgres_changes", { event: "*", schema: "public", table: "league" }, onRemoteChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "teams" }, onRemoteChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "score_overrides" }, onRemoteChange)
     .subscribe();
 }
 
