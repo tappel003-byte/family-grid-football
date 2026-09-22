@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
-import { rosterIds, type League } from "@/lib/fantasy/league";
+import { rosterIds, ownedIds, type League } from "@/lib/fantasy/league";
 import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
 import { placeClaim } from "@/lib/fantasy/waivers.functions";
 import { reloadLeague } from "@/lib/fantasy/store";
