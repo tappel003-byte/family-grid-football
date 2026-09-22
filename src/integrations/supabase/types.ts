@@ -14,7 +14,119 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      league: {
+        Row: {
+          current_week: number
+          id: string
+          name: string
+          schedule: Json
+          scoring: Json
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          current_week?: number
+          id?: string
+          name?: string
+          schedule?: Json
+          scoring?: Json
+          slug?: string
+          updated_at?: string
+        }
+        Update: {
+          current_week?: number
+          id?: string
+          name?: string
+          schedule?: Json
+          scoring?: Json
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      season_history: {
+        Row: {
+          champion: string
+          champion_owner: string
+          id: string
+          notes: string
+          regular_season_best: string
+          runner_up: string
+          runner_up_owner: string
+          season: number
+          standings: Json
+          updated_at: string
+        }
+        Insert: {
+          champion?: string
+          champion_owner?: string
+          id?: string
+          notes?: string
+          regular_season_best?: string
+          runner_up?: string
+          runner_up_owner?: string
+          season: number
+          standings?: Json
+          updated_at?: string
+        }
+        Update: {
+          champion?: string
+          champion_owner?: string
+          id?: string
+          notes?: string
+          regular_season_best?: string
+          runner_up?: string
+          runner_up_owner?: string
+          season?: number
+          standings?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teams: {
+        Row: {
+          bench: Json
+          color: string
+          id: string
+          league_id: string
+          name: string
+          owner: string
+          slot: number
+          starters: Json
+          updated_at: string
+        }
+        Insert: {
+          bench?: Json
+          color?: string
+          id?: string
+          league_id: string
+          name?: string
+          owner?: string
+          slot: number
+          starters?: Json
+          updated_at?: string
+        }
+        Update: {
+          bench?: Json
+          color?: string
+          id?: string
+          league_id?: string
+          name?: string
+          owner?: string
+          slot?: number
+          starters?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
