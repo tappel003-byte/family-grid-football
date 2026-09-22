@@ -148,12 +148,56 @@ function PlayersPage() {
                 </Button>
               ))}
             </div>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["ALL", "All players"],
+                  ["FA", "Free agents"],
+                  ["ROSTERED", "On a team"],
+                ] as const
+              ).map(([v, label]) => (
+                <Button
+                  key={v}
+                  variant={avail === v ? "default" : "outline"}
+                  onClick={() => setAvail(v)}
+                  className="font-semibold"
+                >
+                  {label}
+                </Button>
+              ))}
+              <Button
+                variant="secondary"
+                onClick={() => setSort(sort === "PROJ" ? "RANK" : "PROJ")}
+                className="font-semibold"
+              >
+                <ArrowUpDown className="mr-1.5 h-4 w-4" />
+                {sort === "PROJ" ? "Top projected" : "Overall rank"}
+              </Button>
+            </div>
           </div>
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <ul className="divide-y">
-              {results.map((p) => (
-                <li key={p.id} className="px-4 py-3">
-                  <PlayerCell player={p} />
+              {results.map(({ player, owner, proj }) => (
+                <li
+                  key={player.id}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <PlayerCell player={player} />
+                    <div className="mt-1 text-sm">
+                      {owner ? (
+                        <span className="text-muted-foreground">On {owner}</span>
+                      ) : (
+                        <span className="font-semibold text-accent-foreground">Free agent</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="font-display text-xl font-bold tabular-nums">
+                      {proj.toFixed(1)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">proj wk {week}</div>
+                  </div>
                 </li>
               ))}
               {!results.length && (
