@@ -181,16 +181,17 @@ export function MatchupBoard({
           <div className="min-w-0">
             <div className="truncate font-display text-lg font-bold sm:text-xl">{home.name}</div>
             <div className="truncate text-sm text-muted-foreground">{home.owner}</div>
+            <div className="mt-1 font-display text-sm font-bold text-primary">Projected {h.projected.toFixed(1)}</div>
           </div>
         </Link>
-        <div className="text-center">
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-1 rounded-md border bg-card px-2.5 py-1 font-display text-sm font-bold uppercase tracking-wider text-foreground shadow-sm">
+            Week {week}
+          </div>
           <div className="font-display text-3xl font-bold tabular-nums sm:text-5xl">
             {h.actual.toFixed(1)}
             <span className="mx-2 text-muted-foreground">–</span>
             {a.actual.toFixed(1)}
-          </div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground sm:text-sm">
-            Week {week} · proj {h.projected.toFixed(0)}–{a.projected.toFixed(0)}
           </div>
           {(h.corrected || a.corrected) && (
             <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">
@@ -207,6 +208,7 @@ export function MatchupBoard({
           <div className="min-w-0">
             <div className="truncate font-display text-lg font-bold sm:text-xl">{away.name}</div>
             <div className="truncate text-sm text-muted-foreground">{away.owner}</div>
+            <div className="mt-1 font-display text-sm font-bold text-primary">Projected {a.projected.toFixed(1)}</div>
           </div>
         </Link>
       </header>

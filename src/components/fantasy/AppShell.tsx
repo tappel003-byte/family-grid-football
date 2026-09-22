@@ -20,6 +20,7 @@ import { AuthGate } from "./AuthGate";
 import { signOut, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { getMyAccount } from "@/lib/fantasy/account.functions";
+import { TimeZoneProvider } from "@/lib/timezone";
 
 const NAV = [
   { to: "/", label: "Matchups" },
@@ -188,7 +189,9 @@ function Shell({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-[1400px] px-4 py-6 sm:py-8">{children}</main>
+      <TimeZoneProvider value={account?.timeZone}>
+        <main className="mx-auto max-w-[1400px] px-4 py-6 sm:py-8">{children}</main>
+      </TimeZoneProvider>
       <footer className="mx-auto max-w-[1400px] px-4 pb-10 pt-4 text-sm text-muted-foreground">
         Private family league · Player data from the free Sleeper NFL API
       </footer>
