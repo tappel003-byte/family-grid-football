@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
+import { HelpCircle, LogOut } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function Football({ className }: { className?: string }) {
   return (
