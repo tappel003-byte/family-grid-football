@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { BENCH_SIZE, SLOTS, slotAccepts } from "./league";
-
-const ROSTER_LIMIT = SLOTS.length + BENCH_SIZE;
+import { SLOTS, slotAccepts } from "./league";
+import { normalizeRules } from "./rules";
 
 export type MoveInput = {
   /** Player being picked up, if any. */
