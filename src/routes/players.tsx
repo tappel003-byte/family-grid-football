@@ -82,10 +82,14 @@ function PlayersPage() {
   const [query, setQuery] = useState("");
   const [pos, setPos] = useState("ALL");
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">("ALL");
-  const [sort, setSort] = useState<"PROJ" | "RANK">("PROJ");
+  const [sort, setSort] = useState<"PROJ" | "RANK" | "HOT">("PROJ");
 
   const week = league?.currentWeek ?? 1;
   useWeekData(week);
+  const { data: insights } = useQuery({
+    ...insightsQueryOptions(week, league?.scoring ?? STANDARD_SCORING),
+    enabled: !!league,
+  });
 
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();
@@ -106,12 +110,13 @@ function PlayersPage() {
         player: p,
         owner: ownerByPlayer.get(p.id) ?? null,
         proj: league ? scoreFor(p, week, league).projected : 0,
+        hot: insights?.players[p.id]?.last3Avg ?? 0,
       }));
     list.sort((a, b) =>
-      sort === "PROJ" ? b.proj - a.proj : a.player.rank - b.player.rank,
+      sort === "PROJ" ? b.proj - a.proj : sort === "HOT" ? b.hot - a.hot : a.player.rank - b.player.rank,
     );
     return list.slice(0, 100);
-  }, [players, query, pos, avail, sort, ownerByPlayer, league, week]);
+  }, [players, query, pos, avail, sort, ownerByPlayer, league, week, insights]);
 
   return (
     <>
