@@ -100,6 +100,12 @@ function SettingsPage() {
         subtitle="Only the commissioner should change these — they affect everyone's scores."
       />
 
+      <div className="mb-5">
+        <Button asChild variant="outline" className="text-base font-semibold">
+          <Link to="/import">Import rosters</Link>
+        </Button>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="rounded-2xl border bg-card p-5 shadow-sm">
           <h2 className="font-display text-2xl font-bold">League</h2>
