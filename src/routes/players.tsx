@@ -11,6 +11,7 @@ import {
   playersQueryOptions,
   trendingQueryOptions,
   useLeague,
+  useWeekData,
   scoreFor,
 } from "@/lib/fantasy/hooks";
 import { rosterIds } from "@/lib/fantasy/league";
