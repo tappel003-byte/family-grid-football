@@ -99,7 +99,7 @@ export function gameStatusLabel(player: SlimPlayer, week: number, currentWeek: n
   if (p <= 0) {
     const r = seeded(`${player.team}-${week}-slot`);
     const slots = ["Sun 1:00", "Sun 4:05", "Sun 4:25", "Sun 8:20", "Mon 8:15", "Thu 8:15"];
-    return slots[Math.floor(r * slots.length)];
+    return slots[Math.floor(r * slots.length)] ?? "Sun 1:00";
   }
   const q = Math.min(4, Math.max(1, Math.ceil(p * 4)));
   return `Q${q} live`;
