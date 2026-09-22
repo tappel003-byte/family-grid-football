@@ -72,10 +72,12 @@ export function PlayerCell({
   player,
   align = "left",
   compact = false,
+  week,
 }: {
   player: SlimPlayer;
   align?: "left" | "right";
   compact?: boolean;
+  week?: number;
 }) {
   const info = injuryInfo(player.injury);
   return (
@@ -119,6 +121,7 @@ export function PlayerCell({
             {player.name}
           </span>
           <InjuryBadge injury={player.injury} size={compact ? "sm" : "md"} />
+          {week !== undefined && <ByeBadge player={player} week={week} size={compact ? "sm" : "md"} />}
         </div>
         <div
           className={cn(
