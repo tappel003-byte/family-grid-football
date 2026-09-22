@@ -28,6 +28,9 @@ import type { SlimPlayer } from "@/lib/sleeper.functions";
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"];
 
 export const Route = createFileRoute("/players")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    f: typeof search["f"] === "string" ? search["f"] : undefined,
+  }),
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
@@ -84,9 +87,10 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
 
 function PlayersPage() {
   const { league, players, byId } = useLeague();
+  const { f } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [pos, setPos] = useState("ALL");
-  const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">("ALL");
+  const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
   const [sort, setSort] = useState<"PROJ" | "RANK" | "HOT">("PROJ");
 
   const week = league?.currentWeek ?? 1;

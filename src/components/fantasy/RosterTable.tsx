@@ -1,7 +1,16 @@
 import { useState } from "react";
-import { ArrowLeftRight, Wand2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeftRight, UserPlus, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +22,8 @@ import type { FantasyTeam, League } from "@/lib/fantasy/league";
 import { SLOTS, rosterIds, slotAccepts } from "@/lib/fantasy/league";
 import { scoreFor } from "@/lib/fantasy/hooks";
 import { isPlayable } from "@/lib/fantasy/projections";
-import { updateLeague } from "@/lib/fantasy/store";
+import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
+import { updateLeague, reloadLeague } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle, CalendarOff } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
@@ -82,6 +92,9 @@ export function RosterTable({
 }) {
   const [flash, setFlash] = useState<string | null>(null);
   const insights = useInsights();
+  const move = useServerFn(makeRosterMove);
+  const [pending, setPending] = useState(false);
+  const [dropTarget, setDropTarget] = useState<SlimPlayer | null>(null);
 
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
@@ -124,6 +137,22 @@ export function RosterTable({
       return;
     }
     swapIn(target, benchId);
+  };
+
+  const dropPlayer = async (p: SlimPlayer) => {
+    setPending(true);
+    try {
+      await move({
+        data: { addId: null, addName: p.name, addPos: p.pos, dropId: p.id, dropName: p.name },
+      });
+      await reloadLeague();
+      toast.success(`Dropped ${p.name}`);
+      setDropTarget(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "That move did not go through.");
+    } finally {
+      setPending(false);
+    }
   };
 
   const optimize = () => {
@@ -285,9 +314,20 @@ export function RosterTable({
                         </DropdownMenuContent>
                       </DropdownMenu>
                       {player && (
-                        <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
-                          Bench
-                        </Button>
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
+                            Bench
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            disabled={pending}
+                            onClick={() => setDropTarget(player)}
+                          >
+                            Drop
+                          </Button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -298,8 +338,17 @@ export function RosterTable({
         </tbody>
       </table>
 
-      <div className="border-t bg-secondary/40 px-4 py-3">
+      <div className="border-t bg-secondary/40 px-4 py-3 sm:flex sm:items-center sm:justify-between">
         <h3 className="font-display text-lg font-bold">Bench</h3>
+        {editable && (
+          <Link
+            to="/players"
+            search={{ f: "FA" }}
+            className="mt-2 inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-semibold hover:bg-accent sm:mt-0"
+          >
+            <UserPlus className="mr-1.5 h-4 w-4" /> Pick up a free agent
+          </Link>
+        )}
       </div>
       <ul className="divide-y">
         {benchPlayers.map((p) => {
@@ -321,9 +370,20 @@ export function RosterTable({
                   <div className="text-xs text-muted-foreground">proj {s.projected.toFixed(1)}</div>
                 </div>
                 {editable && (
-                  <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
-                    Start
-                  </Button>
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
+                      Start
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive"
+                      disabled={pending}
+                      onClick={() => setDropTarget(p)}
+                    >
+                      Drop
+                    </Button>
+                  </>
                 )}
               </div>
             </li>
@@ -333,6 +393,29 @@ export function RosterTable({
           <li className="px-4 py-6 text-muted-foreground">Bench is empty.</li>
         )}
       </ul>
+
+      <Dialog open={!!dropTarget} onOpenChange={(o) => !o && setDropTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Drop {dropTarget?.name}?</DialogTitle>
+            <DialogDescription>
+              They will go back on the free agent list, and any family can pick them up.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 flex justify-end gap-3">
+            <Button variant="outline" disabled={pending} onClick={() => setDropTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={pending}
+              onClick={() => dropTarget && void dropPlayer(dropTarget)}
+            >
+              {pending ? "Dropping…" : "Yes, drop them"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
