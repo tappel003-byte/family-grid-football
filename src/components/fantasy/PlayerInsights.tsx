@@ -81,7 +81,10 @@ export function PlayerInsightChips({
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1.5">
       {bye && (
-        <span className={cn(CHIP, "bg-injury-questionable text-injury-questionable-foreground")}>
+        <span
+          className={cn(CHIP, "bg-injury-questionable text-injury-questionable-foreground")}
+          title={`${player.team} does not play in week ${week} — this player scores 0 points`}
+        >
           <CalendarOff className="h-3 w-3" /> BYE week {week}
         </span>
       )}
