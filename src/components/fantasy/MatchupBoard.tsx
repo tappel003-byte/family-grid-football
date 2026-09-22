@@ -7,6 +7,8 @@ import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle } from "lucide-react";
 import { PlayerCell, isInactive } from "./PlayerCell";
 import { cn } from "@/lib/utils";
+import { teamLogo } from "@/lib/fantasy/logos";
+
 
 export function teamTotals(team: FantasyTeam, week: number, league: League, byId: Map<string, SlimPlayer>) {
   let actual = 0;
@@ -28,6 +30,18 @@ export function teamTotals(team: FantasyTeam, week: number, league: League, byId
 }
 
 function TeamCrest({ team, size = "md" }: { team: FantasyTeam; size?: "md" | "lg" }) {
+  const logo = teamLogo(team.name);
+  const box = size === "lg" ? "h-14 w-14" : "h-11 w-11";
+  if (logo) {
+    return (
+      <img
+        src={logo}
+        alt={`${team.name} logo`}
+        className={cn("shrink-0 object-contain", box)}
+        loading="lazy"
+      />
+    );
+  }
   const initials = team.name
     .split(" ")
     .slice(0, 2)
@@ -37,7 +51,8 @@ function TeamCrest({ team, size = "md" }: { team: FantasyTeam; size?: "md" | "lg
     <div
       className={cn(
         "grid shrink-0 place-items-center rounded-2xl font-display font-bold text-white",
-        size === "lg" ? "h-14 w-14 text-2xl" : "h-11 w-11 text-lg",
+        box,
+        size === "lg" ? "text-2xl" : "text-lg",
       )}
       style={{ backgroundColor: team.color }}
     >
@@ -45,6 +60,7 @@ function TeamCrest({ team, size = "md" }: { team: FantasyTeam; size?: "md" | "lg
     </div>
   );
 }
+
 
 function Side({
   player,

@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth, useSession } from "@/lib/auth";
 import { claimTeam, listClaimTeams } from "@/lib/fantasy/claim.functions";
+import { teamLogo } from "@/lib/fantasy/logos";
+
 
 function ClaimScreen() {
   const [slot, setSlot] = useState<number | null>(null);
@@ -79,12 +81,21 @@ function ClaimScreen() {
                     active ? "border-primary ring-2 ring-primary" : "hover:bg-accent"
                   }`}
                 >
-                  <span
-                    className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-primary-foreground"
-                    style={{ backgroundColor: t.color }}
-                  >
-                    <Shield className="h-6 w-6" />
-                  </span>
+                  {teamLogo(t.name, t.slot) ? (
+                    <img
+                      src={teamLogo(t.name, t.slot)}
+                      alt={`${t.name} logo`}
+                      className="h-14 w-14 shrink-0 object-contain"
+                    />
+                  ) : (
+                    <span
+                      className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-primary-foreground"
+                      style={{ backgroundColor: t.color }}
+                    >
+                      <Shield className="h-6 w-6" />
+                    </span>
+                  )}
+
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-lg font-semibold">{t.name}</span>
                     <span className="block truncate text-base text-muted-foreground">
