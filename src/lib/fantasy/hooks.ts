@@ -1,4 +1,4 @@
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { getPlayers, getTrending, type SlimPlayer } from "../sleeper.functions";
 import { buildLeague, type League } from "./league";
@@ -38,6 +38,17 @@ export const weekDataQueryOptions = (week: number) =>
 export function useWeekData(week: number): WeekData {
   const { data } = useSuspenseQuery(weekDataQueryOptions(week));
   weekCache.set(week, data);
+  return data;
+}
+
+/** Loads real week data for weeks 1..count (used by standings). */
+export function useWeeksData(count: number): WeekData[] {
+  const weeks = Array.from({ length: Math.max(0, Math.min(18, count)) }, (_, i) => i + 1);
+  const results = useSuspenseQueries({
+    queries: weeks.map((w) => weekDataQueryOptions(w)),
+  });
+  const data = results.map((r) => r.data);
+  for (const d of data) weekCache.set(d.week, d);
   return data;
 }
 
