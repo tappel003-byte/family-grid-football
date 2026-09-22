@@ -22,7 +22,7 @@ import { BENCH_SIZE, SLOTS, slotAccepts, rosterIds, type FantasyTeam } from "@/l
 import { buildPlayerIndex, matchRoster, type MatchResult } from "@/lib/fantasy/import";
 import { readRosterImage } from "@/lib/fantasy/ocr.functions";
 import { projectedStats } from "@/lib/fantasy/projections";
-import { PPR, scoreStats } from "@/lib/fantasy/scoring";
+import { PPR_SCORING, scoreStats } from "@/lib/fantasy/scoring";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 
 export const Route = createFileRoute("/import")({
@@ -65,7 +65,7 @@ function layoutRoster(ids: string[], byId: Map<string, SlimPlayer>, week: number
     .filter((p): p is SlimPlayer => !!p)
     .sort(
       (a, b) =>
-        scoreStats(projectedStats(b, week), PPR) - scoreStats(projectedStats(a, week), PPR),
+        scoreStats(projectedStats(b, week), PPR_SCORING) - scoreStats(projectedStats(a, week), PPR_SCORING),
     );
   const starters: (string | null)[] = SLOTS.map(() => null);
   const used = new Set<string>();
