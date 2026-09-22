@@ -33,10 +33,11 @@ export const makeRosterMove = createServerFn({ method: "POST" })
 
     const { data: leagueRow } = await supabaseAdmin
       .from("league")
-      .select("id, current_week")
+      .select("id, current_week, rules")
       .eq("slug", "main")
       .maybeSingle();
     if (!leagueRow) throw new Error("The league is not set up yet.");
+    const ROSTER_LIMIT = normalizeRules(leagueRow.rules).rosterLimit;
 
     const { data: teamRows, error: teamsError } = await supabaseAdmin
       .from("teams")
