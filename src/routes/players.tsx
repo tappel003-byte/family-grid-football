@@ -185,11 +185,13 @@ function PlayersPage() {
               ))}
               <Button
                 variant="secondary"
-                onClick={() => setSort(sort === "PROJ" ? "RANK" : "PROJ")}
+                onClick={() =>
+                  setSort(sort === "PROJ" ? "HOT" : sort === "HOT" ? "RANK" : "PROJ")
+                }
                 className="font-semibold"
               >
                 <ArrowUpDown className="mr-1.5 h-4 w-4" />
-                {sort === "PROJ" ? "Top projected" : "Overall rank"}
+                {sort === "PROJ" ? "Top projected" : sort === "HOT" ? "Hot last 3 weeks" : "Overall rank"}
               </Button>
             </div>
           </div>
