@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { toast } from "sonner";
 import { CommissionerOnly } from "@/components/fantasy/AuthGate";
@@ -99,6 +99,12 @@ function SettingsPage() {
         title="Commissioner Settings"
         subtitle="Only the commissioner should change these — they affect everyone's scores."
       />
+
+      <div className="mb-5">
+        <Button asChild variant="outline" className="text-base font-semibold">
+          <Link to="/import">Import rosters</Link>
+        </Button>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="rounded-2xl border bg-card p-5 shadow-sm">
