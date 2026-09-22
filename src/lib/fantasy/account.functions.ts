@@ -65,24 +65,16 @@ export const saveMyAccount = createServerFn({ method: "POST" })
     const teamName = data.teamName?.trim().slice(0, 40);
     const color = /^#[0-9a-fA-F]{6}$/.test(data.color ?? "") ? data.color : undefined;
 
-    if (teamName || color) {
-      const update: Record<string, string> = {
+    const { error } = await supabaseAdmin
+      .from("teams")
+      .update({
         owner: displayName,
+        ...(teamName ? { name: teamName } : {}),
+        ...(color ? { color } : {}),
         updated_at: new Date().toISOString(),
-      };
-      if (teamName) update["name"] = teamName;
-      if (color) update["color"] = color;
-      const { error } = await supabaseAdmin
-        .from("teams")
-        .update(update)
-        .eq("user_id", context.userId);
-      if (error) throw new Error(error.message);
-    } else {
-      await supabaseAdmin
-        .from("teams")
-        .update({ owner: displayName, updated_at: new Date().toISOString() })
-        .eq("user_id", context.userId);
-    }
+      })
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
 
     return { ok: true as const };
   });
