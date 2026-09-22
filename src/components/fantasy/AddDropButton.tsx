@@ -75,14 +75,38 @@ export function AddDropButton({
 
   if (onMyTeam) {
     return (
-      <Button
-        variant="outline"
-        disabled={pending}
-        onClick={() => void run(player.id, player.name)}
-        className="font-semibold"
-      >
-        Drop
-      </Button>
+      <>
+        <Button
+          variant="outline"
+          disabled={pending}
+          onClick={() => setConfirmDrop(true)}
+          className="font-semibold"
+        >
+          Drop
+        </Button>
+        <Dialog open={confirmDrop} onOpenChange={setConfirmDrop}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Drop {player.name}?</DialogTitle>
+              <DialogDescription>
+                They will go back on the free agent list, and any family can pick them up.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-2 flex justify-end gap-3">
+              <Button variant="outline" disabled={pending} onClick={() => setConfirmDrop(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={pending}
+                onClick={() => void run(player.id, player.name)}
+              >
+                {pending ? "Dropping…" : "Yes, drop them"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
