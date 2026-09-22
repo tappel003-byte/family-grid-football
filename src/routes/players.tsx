@@ -6,6 +6,12 @@ import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShel
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { AddDropButton } from "@/components/fantasy/AddDropButton";
 import { ActivityFeed } from "@/components/fantasy/ActivityFeed";
+import {
+  InsightsProvider,
+  PlayerInsightChips,
+  insightsQueryOptions,
+} from "@/components/fantasy/PlayerInsights";
+import { STANDARD_SCORING } from "@/lib/fantasy/scoring";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -81,10 +87,14 @@ function PlayersPage() {
   const [query, setQuery] = useState("");
   const [pos, setPos] = useState("ALL");
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">("ALL");
-  const [sort, setSort] = useState<"PROJ" | "RANK">("PROJ");
+  const [sort, setSort] = useState<"PROJ" | "RANK" | "HOT">("PROJ");
 
   const week = league?.currentWeek ?? 1;
   useWeekData(week);
+  const { data: insights } = useQuery({
+    ...insightsQueryOptions(week, league?.scoring ?? STANDARD_SCORING),
+    enabled: !!league,
+  });
 
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();
@@ -105,16 +115,17 @@ function PlayersPage() {
         player: p,
         owner: ownerByPlayer.get(p.id) ?? null,
         proj: league ? scoreFor(p, week, league).projected : 0,
+        hot: insights?.players[p.id]?.last3Avg ?? 0,
       }));
     list.sort((a, b) =>
-      sort === "PROJ" ? b.proj - a.proj : a.player.rank - b.player.rank,
+      sort === "PROJ" ? b.proj - a.proj : sort === "HOT" ? b.hot - a.hot : a.player.rank - b.player.rank,
     );
     return list.slice(0, 100);
-  }, [players, query, pos, avail, sort, ownerByPlayer, league, week]);
+  }, [players, query, pos, avail, sort, ownerByPlayer, league, week, insights]);
 
   return (
-    <>
-      <PageTitle title="Player Research" subtitle="Live NFL rosters, injuries and waiver trends" />
+    <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
+      <PageTitle title="Player Research" subtitle="Recent form, matchups, byes and waiver trends" />
       <Tabs defaultValue="search">
         <TabsList className="h-11">
           <TabsTrigger value="search" className="text-base">
@@ -174,11 +185,13 @@ function PlayersPage() {
               ))}
               <Button
                 variant="secondary"
-                onClick={() => setSort(sort === "PROJ" ? "RANK" : "PROJ")}
+                onClick={() =>
+                  setSort(sort === "PROJ" ? "HOT" : sort === "HOT" ? "RANK" : "PROJ")
+                }
                 className="font-semibold"
               >
                 <ArrowUpDown className="mr-1.5 h-4 w-4" />
-                {sort === "PROJ" ? "Top projected" : "Overall rank"}
+                {sort === "PROJ" ? "Top projected" : sort === "HOT" ? "Hot last 3 weeks" : "Overall rank"}
               </Button>
             </div>
           </div>
@@ -198,6 +211,7 @@ function PlayersPage() {
                         <span className="font-semibold text-accent-foreground">Free agent</span>
                       )}
                     </div>
+                    <PlayerInsightChips player={player} week={week} />
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <div className="text-right">
@@ -246,6 +260,6 @@ function PlayersPage() {
           </div>
         </TabsContent>
       </Tabs>
-    </>
+    </InsightsProvider>
   );
 }

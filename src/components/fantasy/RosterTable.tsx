@@ -15,8 +15,9 @@ import { scoreFor } from "@/lib/fantasy/hooks";
 import { isPlayable } from "@/lib/fantasy/projections";
 import { updateLeague } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CalendarOff } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
+import { PlayerInsightChips, useInsights, isOnBye } from "./PlayerInsights";
 import { cn } from "@/lib/utils";
 
 function setTeam(league: League, teamId: string, fn: (t: FantasyTeam) => FantasyTeam): League {
@@ -64,6 +65,7 @@ export function RosterTable({
   editable?: boolean;
 }) {
   const [flash, setFlash] = useState<string | null>(null);
+  const insights = useInsights();
 
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
@@ -129,6 +131,10 @@ export function RosterTable({
     .map((r) => r.player)
     .filter((p): p is SlimPlayer => !!p && isInactive(p.injury));
 
+  const byeStarters = rows
+    .map((r) => r.player)
+    .filter((p): p is SlimPlayer => !!p && isOnBye(insights, p, week));
+
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b bg-secondary/60 px-4 py-3 sm:flex sm:justify-between">
@@ -157,6 +163,20 @@ export function RosterTable({
           </p>
         </div>
       )}
+
+      {byeStarters.length > 0 && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 border-b-2 border-injury-questionable bg-injury-questionable/20 px-4 py-3"
+        >
+          <CalendarOff className="mt-0.5 h-5 w-5 shrink-0 text-injury-questionable" />
+          <p className="text-base font-semibold leading-snug">
+            On bye this week and still starting:{" "}
+            {byeStarters.map((p) => p.name).join(", ")}. They will score zero.
+          </p>
+        </div>
+      )}
+
 
       <table className="w-full">
         <thead className="hidden border-b text-left text-xs uppercase tracking-widest text-muted-foreground md:table-header-group">
@@ -188,7 +208,10 @@ export function RosterTable({
                 </td>
                 <td className="block px-4 py-2 md:table-cell md:py-3">
                   {player ? (
-                    <PlayerCell player={player} />
+                    <div className="min-w-0">
+                      <PlayerCell player={player} />
+                      <PlayerInsightChips player={player} week={week} />
+                    </div>
                   ) : (
                     <span className="text-muted-foreground">Empty</span>
                   )}
@@ -258,7 +281,10 @@ export function RosterTable({
               key={p.id}
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
             >
-              <PlayerCell player={p} compact />
+              <div className="min-w-0">
+                <PlayerCell player={p} compact />
+                <PlayerInsightChips player={p} week={week} />
+              </div>
               <div className="flex shrink-0 items-center gap-3">
                 <div className="text-right">
                   <div className="font-display text-lg font-bold tabular-nums">
