@@ -96,6 +96,25 @@ export function RosterTable({
   const move = useServerFn(makeRosterMove);
   const [pending, setPending] = useState(false);
   const [dropTarget, setDropTarget] = useState<SlimPlayer | null>(null);
+  const irMove = useServerFn(setInjuredReserve);
+
+  const irSlots = league.rules.irSlots ?? 0;
+  const irIds = team.ir ?? [];
+  const irPlayers = irIds.map((id) => byId.get(id)).filter((p): p is SlimPlayer => !!p);
+  const irOpen = irSlots > 0 && irIds.length < irSlots;
+
+  const moveToIR = async (p: SlimPlayer, toIR: boolean) => {
+    setPending(true);
+    try {
+      await irMove({ data: { playerId: p.id, playerName: p.name, toIR } });
+      await reloadLeague();
+      toast.success(toIR ? `${p.name} moved to injured reserve` : `${p.name} is back on your bench`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "That move did not go through.");
+    } finally {
+      setPending(false);
+    }
+  };
 
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
