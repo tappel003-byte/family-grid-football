@@ -23,7 +23,7 @@ type Standing = { place: number; team: string; owner: string; record: string };
 
 type SeasonRow = SeasonInput & { standings: Standing[] };
 
-const FIRST_SEASON = 2013;
+const FIRST_SEASON = 2012;
 
 function emptySeason(season: number): SeasonRow {
   return {
