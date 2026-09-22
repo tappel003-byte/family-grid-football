@@ -2,6 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { toast } from "sonner";
 import { CommissionerOnly } from "@/components/fantasy/AuthGate";
+import { useServerFn } from "@tanstack/react-start";
+import { useAuth, useMembers } from "@/lib/auth";
+import { assignTeam, setMemberRole } from "@/lib/fantasy/league.functions";
+import { reloadLeague } from "@/lib/fantasy/store";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +62,10 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const { league, players } = useLeague();
+  const { user } = useAuth();
+  const { data: members = [], refetch: refetchMembers } = useMembers(true);
+  const assign = useServerFn(assignTeam);
+  const changeRole = useServerFn(setMemberRole);
   if (!league) return <LoadingScreen label="Setting up your league…" />;
 
   const applyPreset = (scoring: Scoring, name: string) => {
@@ -156,6 +164,30 @@ function SettingsPage() {
                       }))
                     }
                   />
+                  <select
+                    aria-label={`Who manages ${team.name}`}
+                    className="h-10 rounded-md border bg-background px-2 text-base sm:col-span-2"
+                    value={team.userId ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value || null;
+                      void assign({ data: { slot: league.teams.indexOf(team), userId: value } })
+                        .then(async () => {
+                          await reloadLeague();
+                          await refetchMembers();
+                          toast.success(
+                            value ? "Team manager updated" : "Team is now unassigned",
+                          );
+                        })
+                        .catch((err: Error) => toast.error(err.message));
+                    }}
+                  >
+                    <option value="">No family member linked yet</option>
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.display_name} ({m.email})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </li>
             ))}
