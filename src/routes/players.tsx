@@ -81,6 +81,7 @@ function PlayersPage() {
   const [sort, setSort] = useState<"PROJ" | "RANK">("PROJ");
 
   const week = league?.currentWeek ?? 1;
+  useWeekData(week);
 
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();
