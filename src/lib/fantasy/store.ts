@@ -60,7 +60,7 @@ async function fetchLeague(): Promise<League | null> {
 
   const { data: teamRows } = await supabase
     .from("teams")
-    .select("slot, name, owner, color, starters, bench, user_id, division")
+    .select("slot, name, owner, color, starters, bench, ir, user_id, division")
     .eq("league_id", row.id)
     .order("slot", { ascending: true });
 
@@ -71,6 +71,7 @@ async function fetchLeague(): Promise<League | null> {
     color: t.color,
     starters: (t.starters as Array<string | null>) ?? [],
     bench: (t.bench as string[]) ?? [],
+    ir: ((t as { ir?: unknown }).ir as string[]) ?? [],
     userId: t.user_id ?? null,
     division: (t as { division?: string }).division ?? "",
   }));

@@ -9,6 +9,7 @@ type TeamRow = {
   color: string;
   starters: Array<string | null>;
   bench: string[];
+  ir: string[];
   userId?: string | null;
   division?: string;
 };
