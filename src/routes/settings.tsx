@@ -633,6 +633,88 @@ function SettingsPage() {
             })}
           </ul>
         </section>
+
+        <section>
+          <h2 className="font-display text-2xl font-bold">Waiver claims</h2>
+          <p className="mt-1 text-muted-foreground">
+            When the league uses claim order, pickups wait here until waivers run.
+          </p>
+          {claims.filter((c) => c.status === "pending").length === 0 ? (
+            <p className="mt-3 text-muted-foreground">No claims waiting.</p>
+          ) : (
+            <ul className="mt-3 divide-y rounded-xl border">
+              {claims
+                .filter((c) => c.status === "pending")
+                .map((c) => (
+                  <li key={c.id} className="flex items-center justify-between gap-3 p-3">
+                    <span className="min-w-0">
+                      <span className="block truncate text-base font-semibold">
+                        {c.team_name} → {c.player_name} ({c.player_pos})
+                      </span>
+                      <span className="block truncate text-sm text-muted-foreground">
+                        {c.drop_player_id
+                          ? `dropping ${c.drop_player_name}`
+                          : "no drop needed"}
+                        {c.actor_name ? ` · by ${c.actor_name}` : ""}
+                      </span>
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        void pullClaim({ data: { claimId: c.id } })
+                          .then(() => queryClient.invalidateQueries({ queryKey: ["waiver-claims"] }))
+                          .then(() => toast.success("Claim pulled back"))
+                          .catch((err: Error) => toast.error(err.message))
+                      }
+                    >
+                      Pull back
+                    </Button>
+                  </li>
+                ))}
+            </ul>
+          )}
+          <Button
+            className="mt-4"
+            onClick={() =>
+              void runClaimList({ data: { force: true } })
+                .then((res) => {
+                  queryClient.invalidateQueries({ queryKey: ["waiver-claims"] });
+                  return reloadLeague().then(() => res);
+                })
+                .then((res) =>
+                  toast.success(
+                    res.won + res.lost === 0
+                      ? "No claims to process right now"
+                      : `Waivers done — ${res.won} claim${res.won === 1 ? "" : "s"} won`,
+                  ),
+                )
+                .catch((err: Error) => toast.error(err.message))
+            }
+          >
+            Run waivers now
+          </Button>
+        </section>
+
+        <section>
+          <h2 className="font-display text-2xl font-bold">Close out the season</h2>
+          <p className="mt-1 max-w-prose text-muted-foreground">
+            At the end of the year, save this season's final record into the History page. The
+            weekly scores save themselves automatically as weeks finish — this button turns them
+            into the official record book entry. You can still fill in the champion afterwards on
+            the History page once playoffs end.
+          </p>
+          <Button
+            className="mt-4"
+            variant="outline"
+            onClick={() =>
+              void closeSeason({ data: {} })
+                .then((res) => toast.success(`${res.season} saved to History — best record: ${res.best}`))
+                .catch((err: Error) => toast.error(err.message))
+            }
+          >
+            Save {new Date().getFullYear()} to History
+          </Button>
+        </section>
       </div>
     </>
   );
