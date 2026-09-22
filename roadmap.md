@@ -16,9 +16,9 @@
 
 ## Required before the family uses it
 
-12. [ ] Add private family sign-in and protect the league from public visitors
-13. [ ] Give commissioner controls only to Tim and the co-commissioner
-14. [ ] Assign each family member to a team and restrict lineup changes to that team
+12. [x] Add private family sign-in and protect the league from public visitors
+13. [x] Give commissioner controls only to Tim and the co-commissioner
+14. [x] Assign each family member to a team and restrict lineup changes to that team
 15. [ ] Replace simulated projections, scores, game clocks, and standings with real NFL data
 16. [ ] Import and verify all ten real rosters, team names, owners, and league scoring
 17. [ ] Add waiver/free-agent transactions so roster moves are recorded and conflict-safe

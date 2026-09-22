@@ -5,6 +5,7 @@ import { RosterTable } from "@/components/fantasy/RosterTable";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague } from "@/lib/fantasy/hooks";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/team/$teamId")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
@@ -41,6 +42,7 @@ export const Route = createFileRoute("/team/$teamId")({
 function TeamPage() {
   const { teamId } = Route.useParams();
   const { league, byId } = useLeague();
+  const { user, isCommissioner } = useAuth();
   const [week, setWeek] = useState<number | null>(null);
 
   if (!league) return <LoadingScreen label="Setting up your league…" />;
@@ -49,6 +51,7 @@ function TeamPage() {
 
   const activeWeek = week ?? league.currentWeek;
   const totals = teamTotals(team, activeWeek, league, byId);
+  const canEdit = isCommissioner || (!!user && team.userId === user.id);
 
   return (
     <>
@@ -66,7 +69,18 @@ function TeamPage() {
         </div>
         <WeekSelector week={activeWeek} onChange={setWeek} />
       </div>
-      <RosterTable team={team} league={league} byId={byId} week={activeWeek} />
+      {!canEdit && (
+        <p className="mb-3 rounded-xl border bg-secondary/50 px-4 py-3 text-base text-muted-foreground">
+          You can look at this roster, but only {team.owner || "its manager"} can change the lineup.
+        </p>
+      )}
+      <RosterTable
+        team={team}
+        league={league}
+        byId={byId}
+        week={activeWeek}
+        editable={canEdit}
+      />
     </>
   );
 }

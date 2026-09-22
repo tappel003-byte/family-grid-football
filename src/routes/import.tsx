@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { Image as ImageIcon, Loader2, Search, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { CommissionerOnly } from "@/components/fantasy/AuthGate";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,9 @@ export const Route = createFileRoute("/import")({
   }),
   component: () => (
     <AppShell>
-      <ImportPage />
+      <CommissionerOnly>
+        <ImportPage />
+      </CommissionerOnly>
     </AppShell>
   ),
   errorComponent: ({ error }) => (

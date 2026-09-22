@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { toast } from "sonner";
+import { CommissionerOnly } from "@/components/fantasy/AuthGate";
+import { useServerFn } from "@tanstack/react-start";
+import { useAuth, useMembers } from "@/lib/auth";
+import { assignTeam, setMemberRole } from "@/lib/fantasy/league.functions";
+import { reloadLeague } from "@/lib/fantasy/store";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,9 +43,11 @@ export const Route = createFileRoute("/settings")({
   }),
   component: () => (
     <AppShell>
-      <Suspense fallback={<LoadingScreen />}>
-        <SettingsPage />
-      </Suspense>
+      <CommissionerOnly>
+        <Suspense fallback={<LoadingScreen />}>
+          <SettingsPage />
+        </Suspense>
+      </CommissionerOnly>
     </AppShell>
   ),
   errorComponent: ({ error }) => (
@@ -55,6 +62,10 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const { league, players } = useLeague();
+  const { user } = useAuth();
+  const { data: members = [], refetch: refetchMembers } = useMembers(true);
+  const assign = useServerFn(assignTeam);
+  const changeRole = useServerFn(setMemberRole);
   if (!league) return <LoadingScreen label="Setting up your league…" />;
 
   const applyPreset = (scoring: Scoring, name: string) => {
@@ -153,9 +164,76 @@ function SettingsPage() {
                       }))
                     }
                   />
+                  <select
+                    aria-label={`Who manages ${team.name}`}
+                    className="h-10 rounded-md border bg-background px-2 text-base sm:col-span-2"
+                    value={team.userId ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value || null;
+                      void assign({ data: { slot: league.teams.indexOf(team), userId: value } })
+                        .then(async () => {
+                          await reloadLeague();
+                          await refetchMembers();
+                          toast.success(
+                            value ? "Team manager updated" : "Team is now unassigned",
+                          );
+                        })
+                        .catch((err: Error) => toast.error(err.message));
+                    }}
+                  >
+                    <option value="">No family member linked yet</option>
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.display_name} ({m.email})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </li>
             ))}
+          </ul>
+
+          <h2 className="mt-8 font-display text-2xl font-bold">Family members</h2>
+          <p className="mt-1 text-base text-muted-foreground">
+            Everyone who has signed in. Commissioners can change scoring, weeks and rosters.
+          </p>
+          <ul className="mt-3 divide-y rounded-xl border">
+            {members.length === 0 && (
+              <li className="p-3 text-base text-muted-foreground">Nobody has signed in yet.</li>
+            )}
+            {members.map((m) => {
+              const theirTeam = league.teams.find((t) => t.userId === m.id);
+              return (
+                <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-base font-semibold">{m.display_name}</div>
+                    <div className="truncate text-sm text-muted-foreground">
+                      {m.email} · {theirTeam ? theirTeam.name : "no team yet"}
+                    </div>
+                  </div>
+                  <Button
+                    variant={m.role === "commissioner" ? "default" : "outline"}
+                    size="sm"
+                    disabled={m.id === user?.id}
+                    onClick={() => {
+                      const role = m.role === "commissioner" ? "member" : "commissioner";
+                      void changeRole({ data: { userId: m.id, role } })
+                        .then(async () => {
+                          await refetchMembers();
+                          toast.success(
+                            role === "commissioner"
+                              ? `${m.display_name} is now a commissioner`
+                              : `${m.display_name} is now a regular member`,
+                          );
+                        })
+                        .catch((err: Error) => toast.error(err.message));
+                    }}
+                  >
+                    {m.role === "commissioner" ? "Commissioner" : "Make commissioner"}
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         </section>
 
