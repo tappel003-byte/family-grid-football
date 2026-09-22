@@ -44,17 +44,25 @@ function TeamCrest({ team, size = "md" }: { team: FantasyTeam; size?: "md" | "lg
   if (logo) {
     return (
       <>
-        <button
-          type="button"
+        <span
+          role="button"
+          tabIndex={0}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             setZoom(true);
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              setZoom(true);
+            }
+          }}
           aria-label={`View ${team.name} helmet`}
           title="Tap to enlarge"
           className={cn(
-            "group shrink-0 cursor-zoom-in transition-transform hover:scale-110 active:scale-95",
+            "block shrink-0 cursor-zoom-in transition-transform hover:scale-110 active:scale-95",
             box,
           )}
         >
@@ -64,7 +72,8 @@ function TeamCrest({ team, size = "md" }: { team: FantasyTeam; size?: "md" | "lg
             className="h-full w-full object-contain drop-shadow-sm"
             loading="lazy"
           />
-        </button>
+        </span>
+
         <Dialog open={zoom} onOpenChange={setZoom}>
           <DialogContent className="w-[calc(100vw-3rem)] max-w-sm rounded-2xl p-6">
             <DialogTitle className="text-center font-display text-xl font-bold">
