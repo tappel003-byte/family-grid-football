@@ -183,12 +183,12 @@ function HistoryPage() {
             <header className="flex flex-wrap items-center justify-between gap-3 bg-secondary/60 px-3 py-2">
               <button
                 type="button"
-                onClick={() => setOpen(open === s.season ? null : s.season)}
-                aria-expanded={open === s.season}
+                onClick={() => setOpenSeason(openSeason === s.season ? null : s.season)}
+                aria-expanded={openSeason === s.season}
                 className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors hover:bg-secondary"
               >
                 <ChevronRight
-                  className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${open === s.season ? "rotate-90" : ""}`}
+                  className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${openSeason === s.season ? "rotate-90" : ""}`}
                 />
                 <span className="font-display text-2xl font-bold tabular-nums">{s.season}</span>
                 <span className="flex min-w-0 items-center gap-2 font-display text-lg font-bold">
@@ -213,7 +213,7 @@ function HistoryPage() {
               )}
             </header>
             <div
-              hidden={open !== s.season}
+              hidden={openSeason !== s.season}
               className="grid gap-4 border-t p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]"
             >
               <dl className="space-y-2 text-base">
