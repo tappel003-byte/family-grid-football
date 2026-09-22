@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as ImportRouteImport } from './routes/import'
+import { Route as MyTeamRouteImport } from './routes/my-team'
 import { Route as PlayersRouteImport } from './routes/players'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StandingsRouteImport } from './routes/standings'
@@ -31,6 +32,11 @@ const HistoryRoute = HistoryRouteImport.update({
 const ImportRoute = ImportRouteImport.update({
   id: '/import',
   path: '/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyTeamRoute = MyTeamRouteImport.update({
+  id: '/my-team',
+  path: '/my-team',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayersRoute = PlayersRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/import': typeof ImportRoute
+  '/my-team': typeof MyTeamRoute
   '/players': typeof PlayersRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/import': typeof ImportRoute
+  '/my-team': typeof MyTeamRoute
   '/players': typeof PlayersRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/import': typeof ImportRoute
+  '/my-team': typeof MyTeamRoute
   '/players': typeof PlayersRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/history'
     | '/import'
+    | '/my-team'
     | '/players'
     | '/settings'
     | '/standings'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/history'
     | '/import'
+    | '/my-team'
     | '/players'
     | '/settings'
     | '/standings'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/history'
     | '/import'
+    | '/my-team'
     | '/players'
     | '/settings'
     | '/standings'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HistoryRoute: typeof HistoryRoute
   ImportRoute: typeof ImportRoute
+  MyTeamRoute: typeof MyTeamRoute
   PlayersRoute: typeof PlayersRoute
   SettingsRoute: typeof SettingsRoute
   StandingsRoute: typeof StandingsRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/import'
       fullPath: '/import'
       preLoaderRoute: typeof ImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-team': {
+      id: '/my-team'
+      path: '/my-team'
+      fullPath: '/my-team'
+      preLoaderRoute: typeof MyTeamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/players': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoryRoute: HistoryRoute,
   ImportRoute: ImportRoute,
+  MyTeamRoute: MyTeamRoute,
   PlayersRoute: PlayersRoute,
   SettingsRoute: SettingsRoute,
   StandingsRoute: StandingsRoute,
