@@ -9,6 +9,7 @@ const NAV = [
   { to: "/", label: "Matchups", commissionerOnly: false },
   { to: "/my-team", label: "My Team", commissionerOnly: false },
   { to: "/standings", label: "Standings", commissionerOnly: false },
+  { to: "/playoffs", label: "Playoffs", commissionerOnly: false },
   { to: "/teams", label: "Teams", commissionerOnly: false },
   { to: "/players", label: "Players", commissionerOnly: false },
   { to: "/history", label: "History", commissionerOnly: false },

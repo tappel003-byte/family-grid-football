@@ -4,24 +4,9 @@ import { getPlayers, getTrending, type SlimPlayer } from "../sleeper.functions";
 import { buildLeague, type League } from "./league";
 import { hydrateLeague, leagueStatus, setLeague, useLeagueStore } from "./store";
 import { getWeekData, type WeekData } from "../nfl.functions";
-import { scoreStats, type StatLine } from "./scoring";
+import { scoreStats, ZERO_STATS, type StatLine } from "./scoring";
 
-const ZERO: StatLine = {
-  passYd: 0,
-  passTd: 0,
-  interception: 0,
-  rushYd: 0,
-  rushTd: 0,
-  reception: 0,
-  recYd: 0,
-  recTd: 0,
-  fumble: 0,
-  fgMade: 0,
-  xpMade: 0,
-  defSack: 0,
-  defInt: 0,
-  defTd: 0,
-};
+const ZERO: StatLine = ZERO_STATS;
 
 /** Latest real NFL week data, kept here so score helpers stay simple to call. */
 const weekCache = new Map<number, WeekData>();
