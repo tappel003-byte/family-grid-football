@@ -24,6 +24,7 @@ const NAV = [
   { to: "/playoffs", label: "Playoffs", commissionerOnly: false },
   { to: "/teams", label: "Teams", commissionerOnly: false },
   { to: "/players", label: "Players", commissionerOnly: false },
+  { to: "/trades", label: "Trades", commissionerOnly: false },
   { to: "/history", label: "History", commissionerOnly: false },
   { to: "/import", label: "Import", commissionerOnly: true },
   { to: "/settings", label: "Commissioner", commissionerOnly: true },

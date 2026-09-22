@@ -1,5 +1,6 @@
 import type { SlimPlayer } from "../sleeper.functions";
 import { PPR_SCORING, type Scoring } from "./scoring";
+import { DEFAULT_RULES, type LeagueRules } from "./rules";
 
 export const SLOTS = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "K", "DEF"] as const;
 export const BENCH_SIZE = 6;
@@ -24,6 +25,8 @@ export type League = {
   name: string;
   currentWeek: number;
   scoring: Scoring;
+  /** House rules: roster size, position caps, waivers, trade deadline. */
+  rules: LeagueRules;
   teams: FantasyTeam[];
   /** schedule[week-1] = array of [homeTeamIndex, awayTeamIndex] */
   schedule: Array<Array<[number, number]>>;
@@ -125,6 +128,7 @@ export function buildLeague(players: SlimPlayer[], teamCount = 10): League {
     name: "La Familia 2026",
     currentWeek: 3,
     scoring: { ...PPR_SCORING },
+    rules: { ...DEFAULT_RULES, positionLimits: { ...DEFAULT_RULES.positionLimits } },
     teams,
     schedule: makeSchedule(teamCount),
   };

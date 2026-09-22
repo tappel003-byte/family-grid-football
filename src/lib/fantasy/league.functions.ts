@@ -17,6 +17,7 @@ export type LeaguePayload = {
   name: string;
   currentWeek: number;
   scoring: Record<string, number>;
+  rules: Record<string, unknown>;
   schedule: Array<Array<[number, number]>>;
   teams: TeamRow[];
 };
@@ -26,6 +27,7 @@ export function toPayload(league: League): LeaguePayload {
     name: league.name,
     currentWeek: league.currentWeek,
     scoring: league.scoring as unknown as Record<string, number>,
+    rules: league.rules as unknown as Record<string, unknown>,
     schedule: league.schedule,
     teams: league.teams.map((t: FantasyTeam, i) => ({
       slot: i,
@@ -98,6 +100,7 @@ export const saveLeague = createServerFn({ method: "POST" })
           name: data.name,
           current_week: data.currentWeek,
           scoring: data.scoring,
+          rules: (data.rules ?? {}) as never,
           schedule: data.schedule,
         })
         .select("id")
@@ -111,6 +114,7 @@ export const saveLeague = createServerFn({ method: "POST" })
           name: data.name,
           current_week: data.currentWeek,
           scoring: data.scoring,
+          rules: (data.rules ?? {}) as never,
           schedule: data.schedule,
           updated_at: new Date().toISOString(),
         })
@@ -228,6 +232,37 @@ export const deleteSeason = createServerFn({ method: "POST" })
       .from("season_history")
       .delete()
       .eq("season", data.season);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Commissioner hands a family member a fresh start: password back to the family password. */
+export const resetMemberPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) => data)
+  .handler(async ({ data, context }) => {
+    if (!(await isCommissioner(context))) throw new Error("Commissioners only.");
+    const password = process.env["FAMILY_PASSWORD"];
+    if (!password) throw new Error("The family password is not set up yet.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Commissioner removes a family member completely and frees up their team. */
+export const removeMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) => data)
+  .handler(async ({ data, context }) => {
+    if (!(await isCommissioner(context))) throw new Error("Commissioners only.");
+    if (data.userId === context.userId) throw new Error("You cannot remove your own account.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    await supabaseAdmin.from("teams").update({ user_id: null }).eq("user_id", data.userId);
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+    await supabaseAdmin.from("profiles").delete().eq("id", data.userId);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

@@ -19,6 +19,7 @@ export type Database = {
           current_week: number
           id: string
           name: string
+          rules: Json
           schedule: Json
           scoring: Json
           slug: string
@@ -28,6 +29,7 @@ export type Database = {
           current_week?: number
           id?: string
           name?: string
+          rules?: Json
           schedule?: Json
           scoring?: Json
           slug?: string
@@ -37,6 +39,7 @@ export type Database = {
           current_week?: number
           id?: string
           name?: string
+          rules?: Json
           schedule?: Json
           scoring?: Json
           slug?: string
@@ -64,6 +67,47 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      score_overrides: {
+        Row: {
+          id: string
+          league_id: string
+          note: string
+          points: number
+          team_slot: number
+          updated_at: string
+          updated_by: string | null
+          week: number
+        }
+        Insert: {
+          id?: string
+          league_id: string
+          note?: string
+          points?: number
+          team_slot: number
+          updated_at?: string
+          updated_by?: string | null
+          week: number
+        }
+        Update: {
+          id?: string
+          league_id?: string
+          note?: string
+          points?: number
+          team_slot?: number
+          updated_at?: string
+          updated_by?: string | null
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "score_overrides_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       season_history: {
         Row: {
@@ -147,6 +191,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "teams_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trades: {
+        Row: {
+          created_at: string
+          from_player_ids: string[]
+          from_player_names: string[]
+          from_slot: number
+          from_team_name: string
+          id: string
+          league_id: string
+          note: string
+          proposer_id: string | null
+          proposer_name: string
+          resolved_at: string | null
+          resolver_id: string | null
+          resolver_name: string
+          status: string
+          to_player_ids: string[]
+          to_player_names: string[]
+          to_slot: number
+          to_team_name: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          from_player_ids?: string[]
+          from_player_names?: string[]
+          from_slot: number
+          from_team_name?: string
+          id?: string
+          league_id: string
+          note?: string
+          proposer_id?: string | null
+          proposer_name?: string
+          resolved_at?: string | null
+          resolver_id?: string | null
+          resolver_name?: string
+          status?: string
+          to_player_ids?: string[]
+          to_player_names?: string[]
+          to_slot: number
+          to_team_name?: string
+          week?: number
+        }
+        Update: {
+          created_at?: string
+          from_player_ids?: string[]
+          from_player_names?: string[]
+          from_slot?: number
+          from_team_name?: string
+          id?: string
+          league_id?: string
+          note?: string
+          proposer_id?: string | null
+          proposer_name?: string
+          resolved_at?: string | null
+          resolver_id?: string | null
+          resolver_name?: string
+          status?: string
+          to_player_ids?: string[]
+          to_player_names?: string[]
+          to_slot?: number
+          to_team_name?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_league_id_fkey"
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "league"

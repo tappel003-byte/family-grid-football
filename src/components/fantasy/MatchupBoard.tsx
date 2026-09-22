@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { League, FantasyTeam } from "@/lib/fantasy/league";
 import { SLOTS } from "@/lib/fantasy/league";
 import { scoreFor } from "@/lib/fantasy/hooks";
+import { scoreOverride } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle } from "lucide-react";
 import { PlayerCell, isInactive } from "./PlayerCell";
@@ -17,7 +18,13 @@ export function teamTotals(team: FantasyTeam, week: number, league: League, byId
     actual += s.actual;
     projected += s.projected;
   }
-  return { actual: Math.round(actual * 10) / 10, projected: Math.round(projected * 10) / 10 };
+  const slot = league.teams.findIndex((t) => t.id === team.id);
+  const fixed = slot >= 0 ? scoreOverride(week, slot) : undefined;
+  return {
+    actual: Math.round((fixed ?? actual) * 10) / 10,
+    projected: Math.round(projected * 10) / 10,
+    corrected: fixed != null,
+  };
 }
 
 function TeamCrest({ team, size = "md" }: { team: FantasyTeam; size?: "md" | "lg" }) {
@@ -125,6 +132,11 @@ export function MatchupBoard({
           <div className="text-xs uppercase tracking-widest text-muted-foreground sm:text-sm">
             Week {week} · proj {h.projected.toFixed(0)}–{a.projected.toFixed(0)}
           </div>
+          {(h.corrected || a.corrected) && (
+            <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              Final score set by the commissioner
+            </div>
+          )}
         </div>
         <Link
           to="/team/$teamId"
