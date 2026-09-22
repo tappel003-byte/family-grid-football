@@ -86,7 +86,12 @@ export function PlayerInsightChips({
         </span>
       )}
       {hasForm && (
-        <span className={cn(CHIP, "bg-secondary text-secondary-foreground")}>
+        <span
+          className={cn(CHIP, "bg-secondary text-secondary-foreground")}
+          title={`Average fantasy points over the last 3 games: ${info!.last3Avg.toFixed(1)} · Season average: ${info!.seasonAvg.toFixed(1)} per game${
+            trend >= 2 ? " · Playing hot lately" : trend <= -2 ? " · Cooling off lately" : ""
+          }`}
+        >
           {trend >= 2 ? (
             <Flame className="h-3 w-3 text-injury-out" />
           ) : trend <= -2 ? (
@@ -96,7 +101,12 @@ export function PlayerInsightChips({
         </span>
       )}
       {info && info.snapPct !== null && player.pos !== "DEF" && player.pos !== "K" && (
-        <span className={cn(CHIP, "bg-secondary text-secondary-foreground")}>
+        <span
+          className={cn(CHIP, "bg-secondary text-secondary-foreground")}
+          title={`Has played ${info.snapPct}% of his team's offensive snaps this season${
+            info.targets > 0 ? ` · Averages ${info.targets.toFixed(1)} targets per game` : ""
+          }`}
+        >
           {info.snapPct}% snaps
           {info.targets > 0 ? ` · ${info.targets.toFixed(1)} tgt` : ""}
         </span>
