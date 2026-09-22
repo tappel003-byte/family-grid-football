@@ -15,7 +15,8 @@ import { scoreFor } from "@/lib/fantasy/hooks";
 import { isPlayable } from "@/lib/fantasy/projections";
 import { updateLeague } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
-import { PlayerCell } from "./PlayerCell";
+import { AlertTriangle } from "lucide-react";
+import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
 import { cn } from "@/lib/utils";
 
 function setTeam(league: League, teamId: string, fn: (t: FantasyTeam) => FantasyTeam): League {
@@ -123,6 +124,10 @@ export function RosterTable({
     .filter((p): p is SlimPlayer => !!p);
 
   const eligibleBench = (slot: string) => benchPlayers.filter((p) => slotAccepts(slot, p.pos));
+
+  const inactiveStarters = rows
+    .map((r) => r.player)
+    .filter((p): p is SlimPlayer => !!p && isInactive(p.injury));
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
