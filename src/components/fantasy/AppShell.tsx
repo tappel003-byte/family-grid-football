@@ -7,6 +7,7 @@ const NAV = [
   { to: "/standings", label: "Standings" },
   { to: "/teams", label: "Teams" },
   { to: "/players", label: "Players" },
+  { to: "/history", label: "History" },
   { to: "/settings", label: "Commissioner" },
 ] as const;
 
