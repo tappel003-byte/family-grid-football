@@ -22,7 +22,6 @@ import { updateLeague } from "@/lib/fantasy/store";
 import { BENCH_SIZE, SLOTS, slotAccepts, rosterIds, type FantasyTeam } from "@/lib/fantasy/league";
 import { buildPlayerIndex, matchRoster, type MatchResult } from "@/lib/fantasy/import";
 import { readRosterImage } from "@/lib/fantasy/ocr.functions";
-import { PPR_SCORING, scoreStats } from "@/lib/fantasy/scoring";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 
 export const Route = createFileRoute("/import")({
@@ -61,7 +60,7 @@ export const Route = createFileRoute("/import")({
 });
 
 /** Lay a list of players into starting slots, the rest onto the bench. */
-function layoutRoster(ids: string[], byId: Map<string, SlimPlayer>, week: number) {
+function layoutRoster(ids: string[], byId: Map<string, SlimPlayer>) {
   const pool = ids
     .map((id) => byId.get(id))
     .filter((p): p is SlimPlayer => !!p)
@@ -161,7 +160,7 @@ function TeamImporter({
     updateLeague((l) => ({
       ...l,
       teams: l.teams.map((t) =>
-        t.id === team.id ? { ...t, ...layoutRoster(unique, byId, week) } : t,
+        t.id === team.id ? { ...t, ...layoutRoster(unique, byId) } : t,
       ),
     }));
   };
