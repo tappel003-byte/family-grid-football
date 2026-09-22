@@ -79,12 +79,16 @@ export const makeRosterMove = createServerFn({ method: "POST" })
     if (data.dropId) {
       const si = starters.indexOf(data.dropId);
       const bi = bench.indexOf(data.dropId);
-      if (si === -1 && bi === -1) throw new Error(`${data.dropName} is not on this roster.`);
+      const ii = ir.indexOf(data.dropId);
+      if (si === -1 && bi === -1 && ii === -1)
+        throw new Error(`${data.dropName} is not on this roster.`);
       if (si >= 0) {
         starters[si] = null;
         freedSlot = si;
-      } else {
+      } else if (bi >= 0) {
         bench.splice(bi, 1);
+      } else {
+        ir.splice(ii, 1);
       }
     }
 
@@ -105,7 +109,7 @@ export const makeRosterMove = createServerFn({ method: "POST" })
 
     const { error: updateError } = await supabaseAdmin
       .from("teams")
-      .update({ starters, bench, updated_at: new Date().toISOString() })
+      .update({ starters, bench, ir, updated_at: new Date().toISOString() })
       .eq("id", target.id);
     if (updateError) throw new Error(updateError.message);
 
