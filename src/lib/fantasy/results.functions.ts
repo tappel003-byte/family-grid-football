@@ -12,7 +12,7 @@ type StatLine = Record<string, number>;
 
 /** Same mapping the live scoring uses, kept local so this file imports nothing heavy. */
 function toLine(raw: Record<string, number> | undefined): StatLine {
-  if (!raw) return EMPTY;
+  if (!raw) return {};
   const n = (k: string) => {
     const v = Number(raw[k] ?? 0);
     return Number.isFinite(v) ? v : 0;
