@@ -16,6 +16,8 @@ export type LeagueRules = {
   tradeDeadlineWeek: number;
   /** Team slots in waiver priority order (first entry picks first). */
   waiverOrder: number[];
+  /** How many injured-reserve spots each team gets. 0 turns the feature off. */
+  irSlots: number;
 };
 
 export const DEFAULT_RULES: LeagueRules = {
@@ -24,6 +26,7 @@ export const DEFAULT_RULES: LeagueRules = {
   waiverMode: "free",
   tradeDeadlineWeek: 12,
   waiverOrder: [],
+  irSlots: 1,
 };
 
 export const RULE_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"] as const;
