@@ -22,11 +22,18 @@
 15. [x] Replace simulated projections, scores, game clocks, and standings with real NFL data
 16. [x] Import and verify all ten real rosters, team names, owners, and league scoring
 16b. [ ] Match remaining ESPN scoring detail: field goals by distance, defense fumble recoveries, safeties, points-allowed tiers
-16c. [ ] Add Division A / Division B and the 15-week regular season + 4-team playoff setup
+16c. [x] Add Division A / Division B and the 15-week regular season + 4-team playoff setup
 17. [x] Add waiver/free-agent transactions so roster moves are recorded and conflict-safe
 18. [ ] Test the complete experience on phones, tablets, and laptops with family accounts
-19. [ ] Choose, buy, and connect the domain
-20. [ ] Publish the private family app
+19. [x] Choose, buy, and connect the domain (lafamiliafantasyfootball.com)
+20. [x] Publish the private family app
+
+## Added beyond the original list (done)
+- [x] My Team screen separate from Matchups, with Optimize Lineup
+- [x] Research: bye flags, last-3-weeks vs season, snap share, targets, matchup grades, hot free agents
+- [x] Claim-your-team sign-in with one family password
+- [x] Full league history 2012–2025 with champions (2012–2015 champs still unknown)
+- [x] "Made with Lovable" badge hidden
 
 ## Important next improvements
 
