@@ -118,7 +118,7 @@ export function buildLeague(players: SlimPlayer[], teamCount = 10): League {
 
   return {
     version: LEAGUE_VERSION,
-    name: "The Appel Family League",
+    name: "La Familia 2026",
     currentWeek: 3,
     scoring: { ...PPR_SCORING },
     teams,
