@@ -22,7 +22,7 @@ import {
   useWeekData,
   scoreFor,
 } from "@/lib/fantasy/hooks";
-import { rosterIds } from "@/lib/fantasy/league";
+import { ownedIds } from "@/lib/fantasy/league";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"];
@@ -102,7 +102,7 @@ function PlayersPage() {
 
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();
-    for (const t of league?.teams ?? []) for (const id of rosterIds(t)) map.set(id, t.name);
+    for (const t of league?.teams ?? []) for (const id of ownedIds(t)) map.set(id, t.name);
     return map;
   }, [league]);
 

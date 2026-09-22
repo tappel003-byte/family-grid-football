@@ -447,6 +447,28 @@ function SettingsPage() {
               />
             </div>
             <div className="grid grid-cols-[minmax(0,1fr)_6rem] items-center gap-3">
+              <Label htmlFor="ir-slots" className="text-base">
+                Injured reserve spots (0 = off)
+              </Label>
+              <Input
+                id="ir-slots"
+                type="number"
+                min={0}
+                max={3}
+                className="h-11 text-base tabular-nums"
+                value={league.rules.irSlots}
+                onChange={(e) =>
+                  updateLeague((l) => ({
+                    ...l,
+                    rules: {
+                      ...l.rules,
+                      irSlots: Math.max(0, Math.min(3, Number(e.target.value) || 0)),
+                    },
+                  }))
+                }
+              />
+            </div>
+            <div className="grid grid-cols-[minmax(0,1fr)_6rem] items-center gap-3">
               <Label htmlFor="trade-deadline" className="text-base">
                 Trade deadline week (0 = never)
               </Label>

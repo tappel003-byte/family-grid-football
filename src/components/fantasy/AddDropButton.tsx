@@ -51,7 +51,7 @@ export function AddDropButton({
     cap > 0 &&
     myIds.filter((id) => byId.get(id)?.pos === player.pos).length >= cap;
   const ownedElsewhere = league.teams.some(
-    (t) => t.id !== myTeam.id && rosterIds(t).includes(player.id),
+    (t) => t.id !== myTeam.id && ownedIds(t).includes(player.id),
   );
   if (ownedElsewhere) return null;
 
