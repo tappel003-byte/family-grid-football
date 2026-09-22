@@ -92,6 +92,9 @@ export function RosterTable({
 }) {
   const [flash, setFlash] = useState<string | null>(null);
   const insights = useInsights();
+  const move = useServerFn(makeRosterMove);
+  const [pending, setPending] = useState(false);
+  const [dropTarget, setDropTarget] = useState<SlimPlayer | null>(null);
 
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
