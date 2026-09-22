@@ -4,6 +4,34 @@ import type { FantasyTeam, League } from "./league";
 import { LEAGUE_VERSION } from "./league";
 import { saveLeague, toPayload } from "./league.functions";
 import { PPR_SCORING, type Scoring } from "./scoring";
+import { normalizeRules } from "./rules";
+
+/** Hand-entered final scores, keyed "week:slot". */
+let overrides = new Map<string, number>();
+
+export function scoreOverride(week: number, slot: number): number | undefined {
+  return overrides.get(`${week}:${slot}`);
+}
+
+export function allOverrides() {
+  return overrides;
+}
+
+async function fetchOverrides(leagueId: string) {
+  const { data } = await supabase
+    .from("score_overrides")
+    .select("week, team_slot, points")
+    .eq("league_id", leagueId);
+  const next = new Map<string, number>();
+  for (const row of data ?? []) next.set(`${row.week}:${row.team_slot}`, Number(row.points));
+  overrides = next;
+}
+
+export async function reloadOverrides() {
+  const { data: row } = await supabase.from("league").select("id").eq("slug", "main").maybeSingle();
+  if (row) await fetchOverrides(row.id);
+  emit();
+}
 
 let league: League | null = null;
 let status: "idle" | "loading" | "ready" = "idle";
@@ -22,10 +50,12 @@ export function leagueStatus() {
 async function fetchLeague(): Promise<League | null> {
   const { data: row } = await supabase
     .from("league")
-    .select("id, name, current_week, scoring, schedule")
+    .select("id, name, current_week, scoring, schedule, rules")
     .eq("slug", "main")
     .maybeSingle();
   if (!row) return null;
+
+  await fetchOverrides(row.id);
 
   const { data: teamRows } = await supabase
     .from("teams")
