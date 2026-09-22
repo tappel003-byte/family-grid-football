@@ -14,6 +14,7 @@ import { Route as HistoryRouteImport } from './routes/history'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as MyTeamRouteImport } from './routes/my-team'
 import { Route as PlayersRouteImport } from './routes/players'
+import { Route as PlayoffsRouteImport } from './routes/playoffs'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StandingsRouteImport } from './routes/standings'
 import { Route as TeamsRouteImport } from './routes/teams'
@@ -44,6 +45,11 @@ const PlayersRoute = PlayersRouteImport.update({
   path: '/players',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayoffsRoute = PlayoffsRouteImport.update({
+  id: '/playoffs',
+  path: '/playoffs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/import': typeof ImportRoute
   '/my-team': typeof MyTeamRoute
   '/players': typeof PlayersRoute
+  '/playoffs': typeof PlayoffsRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
   '/teams': typeof TeamsRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/import': typeof ImportRoute
   '/my-team': typeof MyTeamRoute
   '/players': typeof PlayersRoute
+  '/playoffs': typeof PlayoffsRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
   '/teams': typeof TeamsRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/import': typeof ImportRoute
   '/my-team': typeof MyTeamRoute
   '/players': typeof PlayersRoute
+  '/playoffs': typeof PlayoffsRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
   '/teams': typeof TeamsRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/my-team'
     | '/players'
+    | '/playoffs'
     | '/settings'
     | '/standings'
     | '/teams'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/my-team'
     | '/players'
+    | '/playoffs'
     | '/settings'
     | '/standings'
     | '/teams'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/my-team'
     | '/players'
+    | '/playoffs'
     | '/settings'
     | '/standings'
     | '/teams'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   ImportRoute: typeof ImportRoute
   MyTeamRoute: typeof MyTeamRoute
   PlayersRoute: typeof PlayersRoute
+  PlayoffsRoute: typeof PlayoffsRoute
   SettingsRoute: typeof SettingsRoute
   StandingsRoute: typeof StandingsRoute
   TeamsRoute: typeof TeamsRoute
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/playoffs': {
+      id: '/playoffs'
+      path: '/playoffs'
+      fullPath: '/playoffs'
+      preLoaderRoute: typeof PlayoffsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -221,6 +241,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImportRoute: ImportRoute,
   MyTeamRoute: MyTeamRoute,
   PlayersRoute: PlayersRoute,
+  PlayoffsRoute: PlayoffsRoute,
   SettingsRoute: SettingsRoute,
   StandingsRoute: StandingsRoute,
   TeamsRoute: TeamsRoute,

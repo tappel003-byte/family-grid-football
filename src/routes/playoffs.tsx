@@ -239,14 +239,14 @@ function BracketGame({
   league: League;
   byId: Map<string, SlimPlayer>;
   week: number;
-  home?: Record_;
-  away?: Record_;
-  seedHome?: number;
-  seedAway?: number;
-  placeholder?: string;
+  home?: Record_ | undefined;
+  away?: Record_ | undefined;
+  seedHome?: number | undefined;
+  seedAway?: number | undefined;
+  placeholder?: string | undefined;
 }) {
   const teams = league.teams;
-  const rows: Array<{ team?: FantasyTeam; seed?: number }> = [
+  const rows: Array<{ team?: FantasyTeam | undefined; seed?: number | undefined }> = [
     { team: home !== undefined ? teams[home.index] : undefined, seed: seedHome },
     { team: away !== undefined ? teams[away.index] : undefined, seed: seedAway },
   ];
