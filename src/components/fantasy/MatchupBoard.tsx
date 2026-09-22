@@ -44,11 +44,13 @@ function Side({
   align,
   week,
   league,
+  flagged,
 }: {
   player: SlimPlayer | undefined;
   align: "left" | "right";
   week: number;
   league: League;
+  flagged: boolean;
 }) {
   if (!player) {
     return (
@@ -61,7 +63,8 @@ function Side({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3",
+        "flex items-center justify-between gap-3 rounded-lg",
+        flagged && "-mx-2 bg-injury-out/15 px-2 py-1",
         align === "right" && "flex-row-reverse",
       )}
     >
