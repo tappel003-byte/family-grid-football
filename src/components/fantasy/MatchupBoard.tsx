@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { League, FantasyTeam } from "@/lib/fantasy/league";
 import { SLOTS } from "@/lib/fantasy/league";
@@ -8,6 +9,8 @@ import { AlertTriangle } from "lucide-react";
 import { PlayerCell, isInactive } from "./PlayerCell";
 import { cn } from "@/lib/utils";
 import { teamLogo } from "@/lib/fantasy/logos";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+
 
 
 export function teamTotals(team: FantasyTeam, week: number, league: League, byId: Map<string, SlimPlayer>) {
@@ -31,22 +34,53 @@ export function teamTotals(team: FantasyTeam, week: number, league: League, byId
 
 function TeamCrest({ team, size = "md" }: { team: FantasyTeam; size?: "md" | "lg" }) {
   const logo = teamLogo(team.name);
+  const [zoom, setZoom] = useState(false);
   const box = size === "lg" ? "h-14 w-14" : "h-11 w-11";
-  if (logo) {
-    return (
-      <img
-        src={logo}
-        alt={`${team.name} logo`}
-        className={cn("shrink-0 object-contain", box)}
-        loading="lazy"
-      />
-    );
-  }
   const initials = team.name
     .split(" ")
     .slice(0, 2)
     .map((w) => w[0])
     .join("");
+  if (logo) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setZoom(true);
+          }}
+          aria-label={`View ${team.name} helmet`}
+          title="Tap to enlarge"
+          className={cn(
+            "group shrink-0 cursor-zoom-in transition-transform hover:scale-110 active:scale-95",
+            box,
+          )}
+        >
+          <img
+            src={logo}
+            alt={`${team.name} logo`}
+            className="h-full w-full object-contain drop-shadow-sm"
+            loading="lazy"
+          />
+        </button>
+        <Dialog open={zoom} onOpenChange={setZoom}>
+          <DialogContent className="w-[calc(100vw-3rem)] max-w-sm rounded-2xl p-6">
+            <DialogTitle className="text-center font-display text-xl font-bold">
+              {team.name}
+            </DialogTitle>
+            <img
+              src={logo}
+              alt={`${team.name} logo`}
+              className="mx-auto h-56 w-56 object-contain"
+            />
+            <p className="text-center text-sm text-muted-foreground">{team.owner}</p>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
   return (
     <div
       className={cn(
@@ -60,6 +94,7 @@ function TeamCrest({ team, size = "md" }: { team: FantasyTeam; size?: "md" | "lg
     </div>
   );
 }
+
 
 
 function Side({
