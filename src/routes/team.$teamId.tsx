@@ -41,6 +41,7 @@ export const Route = createFileRoute("/team/$teamId")({
 function TeamPage() {
   const { teamId } = Route.useParams();
   const { league, byId } = useLeague();
+  const { user, isCommissioner } = useAuth();
   const [week, setWeek] = useState<number | null>(null);
 
   if (!league) return <LoadingScreen label="Setting up your league…" />;
