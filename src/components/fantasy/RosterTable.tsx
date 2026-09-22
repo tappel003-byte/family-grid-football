@@ -29,6 +29,7 @@ export function optimizeTeam(
   byId: Map<string, SlimPlayer>,
   league: League,
   week: number,
+  insights?: import("@/lib/insights.functions").InsightsData | null,
 ): FantasyTeam {
   const ids = rosterIds(team);
   const ranked = ids
@@ -36,10 +37,13 @@ export function optimizeTeam(
     .filter((p): p is SlimPlayer => !!p)
     .sort((a, b) => scoreFor(b, week, league).projected - scoreFor(a, week, league).projected);
 
+  const available = (p: SlimPlayer) =>
+    isPlayable(p) && !isOnBye(insights ?? null, p, week);
+
   const used = new Set<string>();
   const pick = (slot: string, healthyOnly: boolean) =>
     ranked.find(
-      (p) => !used.has(p.id) && slotAccepts(slot, p.pos) && (!healthyOnly || isPlayable(p)),
+      (p) => !used.has(p.id) && slotAccepts(slot, p.pos) && (!healthyOnly || available(p)),
     );
 
   const starters = SLOTS.map((slot) => {
@@ -49,6 +53,18 @@ export function optimizeTeam(
   });
 
   return { ...team, starters, bench: ids.filter((id) => !used.has(id)) };
+}
+
+function projectedTotal(
+  team: FantasyTeam,
+  byId: Map<string, SlimPlayer>,
+  league: League,
+  week: number,
+) {
+  return team.starters.reduce((sum, id) => {
+    const p = id ? byId.get(id) : undefined;
+    return sum + (p ? scoreFor(p, week, league).projected : 0);
+  }, 0);
 }
 
 export function RosterTable({
