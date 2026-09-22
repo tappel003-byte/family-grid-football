@@ -92,7 +92,7 @@ function AccountPage() {
   async function onSave() {
     setSaving(true);
     try {
-      await save({ data: { displayName: name, teamName, color } });
+      await save({ data: { displayName: name, teamName, color: color ?? COLORS[0]! } });
       await queryClient.invalidateQueries();
       toast.success("Saved");
     } catch (e) {
