@@ -68,7 +68,18 @@ function TeamPage() {
         </div>
         <WeekSelector week={activeWeek} onChange={setWeek} />
       </div>
-      <RosterTable team={team} league={league} byId={byId} week={activeWeek} />
+      {!canEdit && (
+        <p className="mb-3 rounded-xl border bg-secondary/50 px-4 py-3 text-base text-muted-foreground">
+          You can look at this roster, but only {team.owner || "its manager"} can change the lineup.
+        </p>
+      )}
+      <RosterTable
+        team={team}
+        league={league}
+        byId={byId}
+        week={activeWeek}
+        editable={canEdit}
+      />
     </>
   );
 }
