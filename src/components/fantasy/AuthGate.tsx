@@ -153,7 +153,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if (!session) return <SignInScreen />;
+  if (!session) return <ClaimScreen />;
   return <>{children}</>;
 }
 
