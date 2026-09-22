@@ -59,6 +59,32 @@ export function isOnBye(data: InsightsData | null, player: SlimPlayer, week: num
 
 const CHIP = "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold";
 
+/** Big, front-and-center bye flag — same visual weight as the OUT injury badge. */
+export function ByeBadge({
+  player,
+  week,
+  size = "md",
+}: {
+  player: SlimPlayer;
+  week: number;
+  size?: "sm" | "md";
+}) {
+  const data = useInsights();
+  if (!isOnBye(data, player, week)) return null;
+  return (
+    <span
+      title={`Bye week — ${player.team} doesn't play in week ${week}, so ${player.name} scores 0 points. Bench him.`}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-md font-display font-bold uppercase tracking-wider ring-2",
+        "bg-injury-questionable text-injury-questionable-foreground ring-injury-questionable/50",
+        size === "sm" ? "px-1.5 py-0.5 text-xs" : "px-2 py-0.5 text-sm",
+      )}
+    >
+      <CalendarOff className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} /> Bye
+    </span>
+  );
+}
+
 export function PlayerInsightChips({
   player,
   week,

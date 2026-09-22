@@ -1,6 +1,7 @@
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { headshotUrl, teamLogoUrl } from "@/lib/fantasy/hooks";
 import { cn } from "@/lib/utils";
+import { ByeBadge } from "./PlayerInsights";
 
 export type InjurySeverity = "out" | "doubtful" | "questionable";
 
