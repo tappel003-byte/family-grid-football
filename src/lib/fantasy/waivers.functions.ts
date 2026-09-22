@@ -18,12 +18,12 @@ export type ClaimRow = {
   drop_player_name: string;
   week: number;
   status: string;
+  actor_id: string | null;
   actor_name: string;
   created_at: string;
   resolved_at: string | null;
 };
 
-type LeagueRow = { id: string; current_week: number; rules: unknown };
 type TeamRow = {
   id: string;
   slot: number;
@@ -40,17 +40,6 @@ function idsOf(team: TeamRow): string[] {
   ];
 }
 
-async function isCommissioner(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> },
-  userId: string,
-) {
-  const { data } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: "commissioner",
-  });
-  return data === true;
-}
-
 /** Pending claims first, then recently resolved. */
 export const listClaims = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -61,7 +50,7 @@ export const listClaims = createServerFn({ method: "GET" })
       .select("*")
       .order("created_at", { ascending: false })
       .limit(80);
-    return (data ?? []) as ClaimRow[];
+    return (data ?? []) as unknown as ClaimRow[];
   });
 
 export const placeClaim = createServerFn({ method: "POST" })
@@ -95,7 +84,7 @@ export const placeClaim = createServerFn({ method: "POST" })
       .select("id, slot, name, user_id, starters, bench")
       .eq("league_id", leagueRow.id)
       .order("slot", { ascending: true });
-    const teams = (teamRows ?? []) as TeamRow[];
+    const teams = (teamRows ?? []) as unknown as TeamRow[];
     const mine = teams.find((t) => t.user_id === context.userId);
     if (!mine) throw new Error("You do not have a team in this league yet.");
 
@@ -161,14 +150,21 @@ export const cancelClaim = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const commish = await isCommissioner(context.supabase, context.userId);
+    const { data: commishFlag } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "commissioner",
+    });
+    const commish = commishFlag === true;
+
     const { data: claim } = await supabaseAdmin
       .from("waiver_claims")
       .select("*")
       .eq("id", data.claimId)
       .maybeSingle();
     if (!claim) throw new Error("That claim is gone.");
-    if (claim.status !== "pending") throw new Error("That claim was already processed.");
+    if ((claim as ClaimRow).status !== "pending") {
+      throw new Error("That claim was already processed.");
+    }
 
     const { data: leagueRow } = await supabaseAdmin
       .from("league")
@@ -179,8 +175,10 @@ export const cancelClaim = createServerFn({ method: "POST" })
       .from("teams")
       .select("slot, user_id")
       .eq("league_id", leagueRow?.id ?? "");
-    const mine = (teamRows ?? []).find((t: TeamRow) => t.user_id === context.userId);
-    if (!commish && mine && mine.slot !== claim.team_slot) {
+    const mine = (teamRows ?? []).find(
+      (t: { slot: number; user_id: string | null }) => t.user_id === context.userId,
+    );
+    if (!commish && mine && mine.slot !== (claim as ClaimRow).team_slot) {
       throw new Error("You can only pull back your own claim.");
     }
 
@@ -202,8 +200,13 @@ export const runWaivers = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const commish = await isCommissioner(context.supabase, context.userId);
-    if (data.force && !commish) throw new Error("Only the commissioner can run waivers early.");
+    const { data: commishFlag } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "commissioner",
+    });
+    if (data.force && commishFlag !== true) {
+      throw new Error("Only the commissioner can run waivers early.");
+    }
 
     const { data: leagueRow } = await supabaseAdmin
       .from("league")
@@ -220,7 +223,7 @@ export const runWaivers = createServerFn({ method: "POST" })
       .eq("league_id", leagueRow.id)
       .eq("status", "pending")
       .order("created_at", { ascending: true });
-    const claims = (pending ?? []) as ClaimRow[];
+    const claims = (pending ?? []) as unknown as ClaimRow[];
     if (!claims.length) return { won: 0, lost: 0 };
 
     const oldest = claims.reduce(
@@ -231,144 +234,118 @@ export const runWaivers = createServerFn({ method: "POST" })
       return { won: 0, lost: 0, waiting: true };
     }
 
-    return processClaims(supabaseAdmin, leagueRow as LeagueRow, claims, rules);
-  });
+    const { data: teamRows } = await supabaseAdmin
+      .from("teams")
+      .select("id, slot, name, user_id, starters, bench")
+      .eq("league_id", leagueRow.id)
+      .order("slot", { ascending: true });
+    const teams = ((teamRows ?? []) as unknown as TeamRow[]).slice();
 
-type Admin = {
-  from: (table: string) => ReturnType<ReturnType<NonNullable<unknown>>["from"]> extends never
-    ? never
-    : never;
-};
-void (0 as unknown as Admin);
-
-async function processClaims(
-  db: {
-    from: (table: string) => {
-      select: (cols: string) => {
-        eq: (col: string, val: unknown) => Promise<{ data: unknown }>;
-      };
-      update: (patch: Record<string, unknown>) => {
-        eq: (col: string, val: unknown) => Promise<{ error: unknown }>;
-      };
-      insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>;
+    const priority = (slot: number): [number, number] => {
+      const idx = rules.waiverOrder.indexOf(slot);
+      return [idx === -1 ? 999 : idx, slot];
     };
-  },
-  leagueRow: LeagueRow,
-  claims: ClaimRow[],
-  rules: ReturnType<typeof normalizeRules>,
-): Promise<{ won: number; lost: number }> {
-  const { data: teamRows } = await db
-    .from("teams")
-    .select("id, slot, name, user_id, starters, bench")
-    .eq("league_id", leagueRow.id)
-    .order("slot", { ascending: true });
-  const teams = ((teamRows ?? []) as TeamRow[]).slice();
+    const ordered = claims.slice().sort((a, b) => {
+      const [pa, sa] = priority(a.team_slot);
+      const [pb, sb] = priority(b.team_slot);
+      return pa - pb || sa - sb;
+    });
 
-  const priority = (slot: number) => {
-    const idx = rules.waiverOrder.indexOf(slot);
-    return [idx === -1 ? 999 : idx, slot];
-  };
-  const ordered = claims.slice().sort((a, b) => {
-    const [pa, sa] = priority(a.team_slot);
-    const [pb, sb] = priority(b.team_slot);
-    return pa - pb || sa - sb;
-  });
+    let won = 0;
+    let lost = 0;
 
-  let won = 0;
-  let lost = 0;
-
-  for (const claim of ordered) {
-    const team = teams.find((t) => t.slot === claim.team_slot);
-    if (!team) {
-      await db
-        .from("waiver_claims")
-        .update({ status: "lost", resolved_at: new Date().toISOString() })
-        .eq("id", claim.id);
-      lost++;
-      continue;
-    }
-
-    // Is the player still a free agent?
-    const owner = teams.find((t) => idsOf(t).includes(claim.player_id));
-    let reason = "";
-    if (owner) reason = owner.id === team.id ? "already on your roster" : `won by ${owner.name}`;
-
-    const starters = (((team.starters as Array<string | null>) ?? []) as Array<string | null>).slice();
-    const bench = ((team.bench as string[]) ?? []).slice();
-
-    let freedSlot = -1;
-    if (!reason && claim.drop_player_id) {
-      const si = starters.indexOf(claim.drop_player_id);
-      const bi = bench.indexOf(claim.drop_player_id);
-      if (si === -1 && bi === -1) {
-        reason = `${claim.drop_player_name} is no longer on your roster`;
-      } else if (si >= 0) {
-        starters[si] = null;
-        freedSlot = si;
-      } else {
-        bench.splice(bi, 1);
+    for (const claim of ordered) {
+      const team = teams.find((t) => t.slot === claim.team_slot);
+      if (!team) {
+        await supabaseAdmin
+          .from("waiver_claims")
+          .update({ status: "lost", resolved_at: new Date().toISOString() })
+          .eq("id", claim.id);
+        lost++;
+        continue;
       }
-    }
 
-    if (!reason) {
-      const size = starters.filter(Boolean).length + bench.length;
-      if (size >= rules.rosterLimit) {
-        reason = "no roster space";
-      } else if (freedSlot >= 0) {
-        const slotName = SLOTS[freedSlot];
-        if (slotName && slotAccepts(slotName, claim.player_pos)) {
-          starters[freedSlot] = claim.player_id;
+      // Is the player still a free agent?
+      const owner = teams.find((t) => idsOf(t).includes(claim.player_id));
+      let reason = "";
+      if (owner) reason = owner.id === team.id ? "already on your roster" : `won by ${owner.name}`;
+
+      const starters = (((team.starters as Array<string | null>) ?? []) as Array<string | null>).slice();
+      const bench = ((team.bench as string[]) ?? []).slice();
+
+      let freedSlot = -1;
+      if (!reason && claim.drop_player_id) {
+        const si = starters.indexOf(claim.drop_player_id);
+        const bi = bench.indexOf(claim.drop_player_id);
+        if (si === -1 && bi === -1) {
+          reason = `${claim.drop_player_name} is no longer on your roster`;
+        } else if (si >= 0) {
+          starters[si] = null;
+          freedSlot = si;
+        } else {
+          bench.splice(bi, 1);
+        }
+      }
+
+      if (!reason) {
+        const size = starters.filter(Boolean).length + bench.length;
+        if (size >= rules.rosterLimit) {
+          reason = "no roster space";
+        } else if (freedSlot >= 0) {
+          const slotName = SLOTS[freedSlot];
+          if (slotName && slotAccepts(slotName, claim.player_pos)) {
+            starters[freedSlot] = claim.player_id;
+          } else {
+            bench.push(claim.player_id);
+          }
         } else {
           bench.push(claim.player_id);
         }
-      } else {
-        bench.push(claim.player_id);
       }
-    }
 
-    if (reason) {
-      await db
+      if (reason) {
+        await supabaseAdmin
+          .from("waiver_claims")
+          .update({ status: "lost", resolved_at: new Date().toISOString() })
+          .eq("id", claim.id);
+        lost++;
+        continue;
+      }
+
+      team.starters = starters;
+      team.bench = bench;
+      const { error: updateError } = await supabaseAdmin
+        .from("teams")
+        .update({ starters, bench, updated_at: new Date().toISOString() })
+        .eq("id", team.id);
+      if (updateError) {
+        await supabaseAdmin
+          .from("waiver_claims")
+          .update({ status: "lost", resolved_at: new Date().toISOString() })
+          .eq("id", claim.id);
+        lost++;
+        continue;
+      }
+
+      await supabaseAdmin.from("transactions").insert({
+        league_id: leagueRow.id,
+        team_slot: team.slot,
+        team_name: team.name,
+        kind: "waiver",
+        added_player_id: claim.player_id,
+        added_player_name: claim.player_name,
+        dropped_player_id: claim.drop_player_id,
+        dropped_player_name: claim.drop_player_name,
+        actor_id: claim.actor_id,
+        actor_name: claim.actor_name,
+        week: claim.week,
+      });
+      await supabaseAdmin
         .from("waiver_claims")
-        .update({ status: "lost", resolved_at: new Date().toISOString() })
+        .update({ status: "won", resolved_at: new Date().toISOString() })
         .eq("id", claim.id);
-      lost++;
-      continue;
+      won++;
     }
 
-    team.starters = starters;
-    team.bench = bench;
-    const { error: updateError } = await db
-      .from("teams")
-      .update({ starters, bench, updated_at: new Date().toISOString() })
-      .eq("id", team.id);
-    if (updateError) {
-      await db
-        .from("waiver_claims")
-        .update({ status: "lost", resolved_at: new Date().toISOString() })
-        .eq("id", claim.id);
-      lost++;
-      continue;
-    }
-
-    await db.from("transactions").insert({
-      league_id: leagueRow.id,
-      team_slot: team.slot,
-      team_name: team.name,
-      kind: "waiver",
-      added_player_id: claim.player_id,
-      added_player_name: claim.player_name,
-      dropped_player_id: claim.drop_player_id,
-      dropped_player_name: claim.drop_player_name,
-      actor_id: claim.actor_id,
-      actor_name: claim.actor_name,
-      week: claim.week,
-    });
-    await db
-      .from("waiver_claims")
-      .update({ status: "won", resolved_at: new Date().toISOString() })
-      .eq("id", claim.id);
-    won++;
-  }
-
-  return { won, lost };
-}
+    return { won, lost };
+  });
