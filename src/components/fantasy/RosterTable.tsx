@@ -1,0 +1,260 @@
+import { useState } from "react";
+import { ArrowLeftRight, Wand2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { FantasyTeam, League } from "@/lib/fantasy/league";
+import { SLOTS, rosterIds, slotAccepts } from "@/lib/fantasy/league";
+import { scoreFor } from "@/lib/fantasy/hooks";
+import { isPlayable } from "@/lib/fantasy/projections";
+import { updateLeague } from "@/lib/fantasy/store";
+import type { SlimPlayer } from "@/lib/sleeper.functions";
+import { PlayerCell } from "./PlayerCell";
+import { cn } from "@/lib/utils";
+
+function setTeam(league: League, teamId: string, fn: (t: FantasyTeam) => FantasyTeam): League {
+  return { ...league, teams: league.teams.map((t) => (t.id === teamId ? fn(t) : t)) };
+}
+
+export function optimizeTeam(
+  team: FantasyTeam,
+  byId: Map<string, SlimPlayer>,
+  league: League,
+  week: number,
+): FantasyTeam {
+  const ids = rosterIds(team);
+  const ranked = ids
+    .map((id) => byId.get(id))
+    .filter((p): p is SlimPlayer => !!p)
+    .sort((a, b) => scoreFor(b, week, league).projected - scoreFor(a, week, league).projected);
+
+  const used = new Set<string>();
+  const pick = (slot: string, healthyOnly: boolean) =>
+    ranked.find(
+      (p) => !used.has(p.id) && slotAccepts(slot, p.pos) && (!healthyOnly || isPlayable(p)),
+    );
+
+  const starters = SLOTS.map((slot) => {
+    const player = pick(slot, true) ?? pick(slot, false);
+    if (player) used.add(player.id);
+    return player?.id ?? null;
+  });
+
+  return { ...team, starters, bench: ids.filter((id) => !used.has(id)) };
+}
+
+export function RosterTable({
+  team,
+  league,
+  byId,
+  week,
+  editable = true,
+}: {
+  team: FantasyTeam;
+  league: League;
+  byId: Map<string, SlimPlayer>;
+  week: number;
+  editable?: boolean;
+}) {
+  const [flash, setFlash] = useState<string | null>(null);
+
+  const swapIn = (slotIndex: number, benchId: string) => {
+    updateLeague((l) =>
+      setTeam(l, team.id, (t) => {
+        const starters = [...t.starters];
+        const out = starters[slotIndex] ?? null;
+        starters[slotIndex] = benchId;
+        const bench = t.bench.filter((id) => id !== benchId);
+        if (out) bench.push(out);
+        return { ...t, starters, bench };
+      }),
+    );
+    setFlash(benchId);
+    toast.success("Lineup updated");
+  };
+
+  const benchStarter = (slotIndex: number) => {
+    updateLeague((l) =>
+      setTeam(l, team.id, (t) => {
+        const starters = [...t.starters];
+        const out = starters[slotIndex];
+        if (!out) return t;
+        starters[slotIndex] = null;
+        return { ...t, starters, bench: [...t.bench, out] };
+      }),
+    );
+    toast.success("Player moved to bench");
+  };
+
+  const startBenchPlayer = (benchId: string) => {
+    const p = byId.get(benchId);
+    if (!p) return;
+    const slotIndex = SLOTS.findIndex(
+      (slot, i) => slotAccepts(slot, p.pos) && !team.starters[i],
+    );
+    const target =
+      slotIndex >= 0 ? slotIndex : SLOTS.findIndex((slot) => slotAccepts(slot, p.pos));
+    if (target < 0) {
+      toast.error(`No starting spot for a ${p.pos}`);
+      return;
+    }
+    swapIn(target, benchId);
+  };
+
+  const optimize = () => {
+    updateLeague((l) => setTeam(l, team.id, (t) => optimizeTeam(t, byId, l, week)));
+    toast.success("Best projected healthy lineup set");
+  };
+
+  const rows = SLOTS.map((slot, i) => ({
+    slot,
+    index: i,
+    player: team.starters[i] ? byId.get(team.starters[i]!) : undefined,
+  }));
+
+  const benchPlayers = team.bench
+    .map((id) => byId.get(id))
+    .filter((p): p is SlimPlayer => !!p);
+
+  const eligibleBench = (slot: string) => benchPlayers.filter((p) => slotAccepts(slot, p.pos));
+
+  return (
+    <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b bg-secondary/60 px-4 py-3 sm:flex sm:justify-between">
+        <h2 className="truncate font-display text-xl font-bold">Starting Lineup</h2>
+        {editable && (
+          <Button onClick={optimize} className="shrink-0 text-base font-semibold">
+            <Wand2 className="mr-2 h-4 w-4" /> Optimize Lineup
+          </Button>
+        )}
+      </div>
+
+      <table className="w-full">
+        <thead className="hidden border-b text-left text-xs uppercase tracking-widest text-muted-foreground md:table-header-group">
+          <tr>
+            <th className="w-20 px-4 py-2">Slot</th>
+            <th className="px-4 py-2">Player</th>
+            <th className="w-32 px-4 py-2">Game</th>
+            <th className="w-24 px-4 py-2 text-right">Proj</th>
+            <th className="w-24 px-4 py-2 text-right">Points</th>
+            {editable && <th className="w-40 px-4 py-2 text-right">Move</th>}
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {rows.map(({ slot, index, player }) => {
+            const s = player ? scoreFor(player, week, league) : null;
+            return (
+              <tr
+                key={`${slot}-${index}`}
+                className={cn(
+                  "block md:table-row",
+                  flash === player?.id && "bg-accent/40 transition-colors",
+                )}
+              >
+                <td className="block px-4 pt-3 md:table-cell md:py-3">
+                  <span className="rounded bg-secondary px-2 py-0.5 font-display text-sm font-bold uppercase tracking-widest">
+                    {slot}
+                  </span>
+                </td>
+                <td className="block px-4 py-2 md:table-cell md:py-3">
+                  {player ? (
+                    <PlayerCell player={player} />
+                  ) : (
+                    <span className="text-muted-foreground">Empty</span>
+                  )}
+                </td>
+                <td className="block px-4 text-sm text-muted-foreground md:table-cell md:py-3">
+                  {s?.status ?? "—"}
+                </td>
+                <td className="hidden px-4 py-3 text-right text-lg tabular-nums md:table-cell">
+                  {s ? s.projected.toFixed(1) : "—"}
+                </td>
+                <td className="block px-4 md:table-cell md:py-3 md:text-right">
+                  <span className="font-display text-xl font-bold tabular-nums">
+                    {s ? s.actual.toFixed(1) : "—"}
+                  </span>
+                  <span className="ml-2 text-sm text-muted-foreground md:hidden">
+                    proj {s ? s.projected.toFixed(1) : "—"}
+                  </span>
+                </td>
+                {editable && (
+                  <td className="block px-4 pb-3 pt-2 md:table-cell md:py-3 md:text-right">
+                    <div className="flex flex-wrap gap-2 md:justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="font-semibold">
+                            <ArrowLeftRight className="mr-1.5 h-4 w-4" /> Swap
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-64">
+                          <DropdownMenuLabel>Bring in for {slot}</DropdownMenuLabel>
+                          {eligibleBench(slot).length === 0 && (
+                            <DropdownMenuItem disabled>No eligible bench player</DropdownMenuItem>
+                          )}
+                          {eligibleBench(slot).map((p) => (
+                            <DropdownMenuItem key={p.id} onSelect={() => swapIn(index, p.id)}>
+                              <span className="truncate">
+                                {p.name} · {p.pos}
+                              </span>
+                              <span className="ml-auto tabular-nums">
+                                {scoreFor(p, week, league).projected.toFixed(1)}
+                              </span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      {player && (
+                        <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
+                          Bench
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      <div className="border-t bg-secondary/40 px-4 py-3">
+        <h3 className="font-display text-lg font-bold">Bench</h3>
+      </div>
+      <ul className="divide-y">
+        {benchPlayers.map((p) => {
+          const s = scoreFor(p, week, league);
+          return (
+            <li
+              key={p.id}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
+            >
+              <PlayerCell player={p} compact />
+              <div className="flex shrink-0 items-center gap-3">
+                <div className="text-right">
+                  <div className="font-display text-lg font-bold tabular-nums">
+                    {s.actual.toFixed(1)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">proj {s.projected.toFixed(1)}</div>
+                </div>
+                {editable && (
+                  <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
+                    Start
+                  </Button>
+                )}
+              </div>
+            </li>
+          );
+        })}
+        {benchPlayers.length === 0 && (
+          <li className="px-4 py-6 text-muted-foreground">Bench is empty.</li>
+        )}
+      </ul>
+    </div>
+  );
+}

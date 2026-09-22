@@ -1,0 +1,77 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Suspense } from "react";
+import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
+import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
+import { useLeague } from "@/lib/fantasy/hooks";
+import { playersQueryOptions } from "@/lib/fantasy/hooks";
+
+export const Route = createFileRoute("/teams")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
+  head: () => ({
+    meta: [
+      { title: "League Teams — Family Football" },
+      {
+        name: "description",
+        content: "Every family team, owner and weekly projected total in one place.",
+      },
+      { property: "og:title", content: "League Teams — Family Football" },
+      {
+        property: "og:description",
+        content: "Every family team, owner and weekly projected total in one place.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: () => (
+    <AppShell>
+      <Suspense fallback={<LoadingScreen />}>
+        <TeamsPage />
+      </Suspense>
+    </AppShell>
+  ),
+  errorComponent: ({ error }) => (
+    <AppShell>
+      <p role="alert" className="text-lg">
+        {error.message}
+      </p>
+    </AppShell>
+  ),
+  notFoundComponent: () => <AppShell>No teams found.</AppShell>,
+});
+
+function TeamsPage() {
+  const { league, byId } = useLeague();
+  if (!league) return <LoadingScreen label="Setting up your league…" />;
+
+  return (
+    <>
+      <PageTitle title="League Teams" subtitle={`${league.teams.length} family teams`} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {league.teams.map((team) => {
+          const t = teamTotals(team, league.currentWeek, league, byId);
+          return (
+            <Link
+              key={team.id}
+              to="/team/$teamId"
+              params={{ teamId: team.id }}
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border bg-card p-4 shadow-sm transition-colors hover:bg-secondary/50"
+            >
+              <TeamCrest team={team} size="lg" />
+              <div className="min-w-0">
+                <div className="truncate font-display text-xl font-bold">{team.name}</div>
+                <div className="truncate text-base text-muted-foreground">{team.owner}</div>
+              </div>
+              <div className="text-right">
+                <div className="font-display text-2xl font-bold tabular-nums">
+                  {t.actual.toFixed(1)}
+                </div>
+                <div className="text-xs text-muted-foreground">proj {t.projected.toFixed(1)}</div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </>
+  );
+}
