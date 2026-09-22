@@ -124,8 +124,8 @@ function PlayersPage() {
   }, [players, query, pos, avail, sort, ownerByPlayer, league, week, insights]);
 
   return (
-    <>
-      <PageTitle title="Player Research" subtitle="Live NFL rosters, injuries and waiver trends" />
+    <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
+      <PageTitle title="Player Research" subtitle="Recent form, matchups, byes and waiver trends" />
       <Tabs defaultValue="search">
         <TabsList className="h-11">
           <TabsTrigger value="search" className="text-base">
@@ -260,6 +260,6 @@ function PlayersPage() {
           </div>
         </TabsContent>
       </Tabs>
-    </>
+    </InsightsProvider>
   );
 }
