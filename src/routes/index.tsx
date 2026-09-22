@@ -4,6 +4,7 @@ import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { MatchupBoard, TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks";
+import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -116,7 +117,9 @@ function MatchupsPage() {
       </div>
 
       {home && away && (
-        <MatchupBoard league={league} byId={byId} week={activeWeek} home={home} away={away} />
+        <InsightsProvider week={activeWeek} scoring={league.scoring}>
+          <MatchupBoard league={league} byId={byId} week={activeWeek} home={home} away={away} />
+        </InsightsProvider>
       )}
     </>
   );
