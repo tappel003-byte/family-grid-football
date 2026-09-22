@@ -2,7 +2,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { getPlayers, getTrending, type SlimPlayer } from "../sleeper.functions";
 import { buildLeague, type League } from "./league";
-import { setLeague, useLeagueStore } from "./store";
+import { hydrateLeague, leagueStatus, setLeague, useLeagueStore } from "./store";
 import { actualStats, gameStatusLabel, projectedStats } from "./projections";
 import { scoreStats } from "./scoring";
 
@@ -25,14 +25,23 @@ export function usePlayers() {
   return { players: data, byId };
 }
 
-/** Players plus the family league, creating a fresh league on first visit. */
+/** Players plus the shared family league, loaded from the cloud for everyone. */
 export function useLeague() {
   const { players, byId } = usePlayers();
   const league = useLeagueStore();
 
   useEffect(() => {
-    if (!league && players.length) setLeague(buildLeague(players, 10));
-  }, [league, players]);
+    let cancelled = false;
+    void hydrateLeague().then((loaded) => {
+      if (cancelled) return;
+      if (!loaded && players.length && leagueStatus() === "ready") {
+        setLeague(buildLeague(players, 10));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [players]);
 
   return { league, players, byId };
 }
