@@ -68,16 +68,39 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
 }
 
 function PlayersPage() {
-  const { players, byId } = usePlayers();
+  const { league, players, byId } = useLeague();
   const [query, setQuery] = useState("");
   const [pos, setPos] = useState("ALL");
+  const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">("ALL");
+  const [sort, setSort] = useState<"PROJ" | "RANK">("PROJ");
+
+  const week = league?.currentWeek ?? 1;
+
+  const ownerByPlayer = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of league?.teams ?? []) for (const id of rosterIds(t)) map.set(id, t.name);
+    return map;
+  }, [league]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return players
+    const list = players
       .filter((p) => (pos === "ALL" || p.pos === pos) && (!q || p.name.toLowerCase().includes(q)))
-      .slice(0, 100);
-  }, [players, query, pos]);
+      .filter((p) => {
+        if (avail === "ALL") return true;
+        const owned = ownerByPlayer.has(p.id);
+        return avail === "FA" ? !owned : owned;
+      })
+      .map((p) => ({
+        player: p,
+        owner: ownerByPlayer.get(p.id) ?? null,
+        proj: league ? scoreFor(p, week, league).projected : 0,
+      }));
+    list.sort((a, b) =>
+      sort === "PROJ" ? b.proj - a.proj : a.player.rank - b.player.rank,
+    );
+    return list.slice(0, 100);
+  }, [players, query, pos, avail, sort, ownerByPlayer, league, week]);
 
   return (
     <>
