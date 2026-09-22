@@ -52,6 +52,10 @@ export function normalizeRules(raw: unknown): LeagueRules {
     tradeDeadlineWeek:
       Number.isFinite(deadline) && deadline >= 0 ? deadline : DEFAULT_RULES.tradeDeadlineWeek,
     waiverOrder: order,
+    irSlots: (() => {
+      const ir = Number(r.irSlots);
+      return Number.isFinite(ir) && ir >= 0 ? Math.min(ir, 3) : DEFAULT_RULES.irSlots;
+    })(),
   };
 }
 
