@@ -14,7 +14,7 @@ export type LeagueRules = {
 };
 
 export const DEFAULT_RULES: LeagueRules = {
-  rosterLimit: SLOTS.length + BENCH_SIZE,
+  rosterLimit: DEFAULT_ROSTER_LIMIT,
   positionLimits: { QB: 4, RB: 8, WR: 8, TE: 4, K: 3, DEF: 3 },
   waiverMode: "free",
   tradeDeadlineWeek: 12,
