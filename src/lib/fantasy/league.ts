@@ -104,8 +104,8 @@ export function buildLeague(players: SlimPlayer[], teamCount = 10): League {
     const entry = TEAM_NAMES[i % TEAM_NAMES.length]!;
     const team: FantasyTeam = {
       id: `team-${i + 1}`,
-      name: entry[0],
-      owner: entry[1],
+      name: entry[0]!,
+      owner: entry[1]!,
       color: COLORS[i % COLORS.length]!,
       starters: SLOTS.map(() => null),
       bench: [],
