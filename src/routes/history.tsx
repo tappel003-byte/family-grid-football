@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Trophy, Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth";
 import { AppShell, PageTitle } from "@/components/fantasy/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,6 +123,8 @@ function HistoryPage() {
   }
   const dynasty = [...titlesByOwner.entries()].sort((a, b) => b[1] - a[1]);
 
+  const { isCommissioner } = useAuth();
+
   const save = async (row: SeasonRow) => {
     await saveSeason({ data: row });
     await queryClient.invalidateQueries({ queryKey: ["season-history"] });
@@ -143,9 +146,11 @@ function HistoryPage() {
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
-        <Button onClick={() => setEditing(emptySeason(nextSeason))} className="text-base font-semibold">
-          <Plus className="mr-2 h-4 w-4" /> Add a season
-        </Button>
+        {isCommissioner && (
+          <Button onClick={() => setEditing(emptySeason(nextSeason))} className="text-base font-semibold">
+            <Plus className="mr-2 h-4 w-4" /> Add a season
+          </Button>
+        )}
         {dynasty.length > 0 && (
           <p className="text-base text-muted-foreground">
             Most titles:{" "}
@@ -187,14 +192,16 @@ function HistoryPage() {
                   )}
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
-                  <Pencil className="mr-1.5 h-4 w-4" /> Edit
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => void remove(s.season)}>
-                  <Trash2 className="mr-1.5 h-4 w-4" /> Delete
-                </Button>
-              </div>
+              {isCommissioner && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
+                    <Pencil className="mr-1.5 h-4 w-4" /> Edit
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => void remove(s.season)}>
+                    <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+                  </Button>
+                </div>
+              )}
             </header>
             <div className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
               <dl className="space-y-2 text-base">
