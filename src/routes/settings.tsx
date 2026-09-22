@@ -98,6 +98,59 @@ function SettingsPage() {
     queryFn: claimsFetch,
   });
 
+  /** Worst record picks first: order teams by wins (fewest first), then points. */
+  async function setOrderFromStandings() {
+    try {
+      const weeksPlayed = Math.max(0, league.currentWeek - 1);
+      const weeks = Array.from({ length: weeksPlayed }, (_, i) => i + 1);
+      const results = await Promise.all(
+        weeks.map((w) => queryClient.fetchQuery(weekDataQueryOptions(w))),
+      );
+      const pts = (slot: number, week: number) => {
+        const data = results[week - 1];
+        const team = league.teams[slot];
+        if (!team) return 0;
+        return rosterIds(team)
+          .filter(Boolean)
+          .reduce((sum, id) => {
+            const line = data?.stats[id];
+            if (!line) return sum;
+            const v = scoreStats(line, league.scoring);
+            return sum + (Number.isFinite(v) ? v : 0);
+          }, 0);
+      };
+      const recs = league.teams.map((_, slot) => {
+        let wins = 0,
+          losses = 0,
+          ties = 0,
+          pf = 0;
+        for (let w = 1; w <= weeksPlayed; w++) {
+          const pair = (league.schedule[w - 1] ?? []).find(
+            ([h, a]) => h === slot || a === slot,
+          );
+          if (!pair) continue;
+          const mine = pts(slot, w);
+          const other = pair[0] === slot ? pair[1] : pair[0];
+          const theirs = pts(other, w);
+          pf += mine;
+          if (mine > theirs) wins++;
+          else if (mine < theirs) losses++;
+          else ties++;
+        }
+        return { slot, wins, losses, ties, pf };
+      });
+      recs.sort((x, y) => x.wins * 2 + x.ties - (y.wins * 2 + y.ties) || x.pf - y.pf);
+      updateLeague((l) => ({
+        ...l,
+        rules: { ...l.rules, waiverOrder: recs.map((r) => r.slot) },
+      }));
+      toast.success("Claim order set — the team with the worst record picks first");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not set the claim order");
+    }
+  }
+
+
   const [fixWeek, setFixWeek] = useState<number | null>(null);
   const [draft, setDraft] = useState<Record<number, string>>({});
   if (!league) return <LoadingScreen label="Setting up your league…" />;
