@@ -338,8 +338,17 @@ export function RosterTable({
         </tbody>
       </table>
 
-      <div className="border-t bg-secondary/40 px-4 py-3">
+      <div className="border-t bg-secondary/40 px-4 py-3 sm:flex sm:items-center sm:justify-between">
         <h3 className="font-display text-lg font-bold">Bench</h3>
+        {editable && (
+          <Link
+            to="/players"
+            search={{ f: "FA" }}
+            className="mt-2 inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-semibold hover:bg-accent sm:mt-0"
+          >
+            <UserPlus className="mr-1.5 h-4 w-4" /> Pick up a free agent
+          </Link>
+        )}
       </div>
       <ul className="divide-y">
         {benchPlayers.map((p) => {
