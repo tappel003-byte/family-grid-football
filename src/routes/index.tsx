@@ -49,7 +49,7 @@ function MatchupsPage() {
   const [week, setWeek] = useState<number | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
   const activeWeek = week ?? league?.currentWeek ?? 1;
-  useWeekData(activeWeek);
+  const weekData = useWeekData(activeWeek);
 
   if (!league) return <LoadingScreen label="Drafting your family league…" />;
 
