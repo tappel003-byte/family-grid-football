@@ -1,4 +1,5 @@
-import { BENCH_SIZE, SLOTS } from "./league";
+/** 9 starters + 6 bench, written out so this file imports nothing (avoids a circular import). */
+const DEFAULT_ROSTER_LIMIT = 15;
 
 /** House rules the commissioner controls: roster size, position caps, waivers, trade deadline. */
 export type LeagueRules = {
