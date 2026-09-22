@@ -248,11 +248,71 @@ function SettingsPage() {
                   >
                     {m.role === "commissioner" ? "Commissioner" : "Make commissioner"}
                   </Button>
+                  <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        void resetPassword({ data: { userId: m.id } })
+                          .then(() =>
+                            toast.success(
+                              `${m.display_name} can sign in again with the family password`,
+                            ),
+                          )
+                          .catch((err: Error) => toast.error(err.message));
+                      }}
+                    >
+                      Reset sign-in
+                    </Button>
+                    {theirTeam && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          void assign({
+                            data: { slot: league.teams.indexOf(theirTeam), userId: null },
+                          })
+                            .then(async () => {
+                              await reloadLeague();
+                              await refetchMembers();
+                              toast.success(`${theirTeam.name} is free to be claimed again`);
+                            })
+                            .catch((err: Error) => toast.error(err.message));
+                        }}
+                      >
+                        Unclaim team
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      disabled={m.id === user?.id}
+                      onClick={() => {
+                        if (
+                          !window.confirm(
+                            `Remove ${m.display_name} from the league? Their team goes back up for grabs.`,
+                          )
+                        )
+                          return;
+                        void kickMember({ data: { userId: m.id } })
+                          .then(async () => {
+                            await reloadLeague();
+                            await refetchMembers();
+                            toast.success(`${m.display_name} removed`);
+                          })
+                          .catch((err: Error) => toast.error(err.message));
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </li>
               );
             })}
           </ul>
         </section>
+
 
         <section className="rounded-2xl border bg-card p-5 shadow-sm">
           <h2 className="font-display text-2xl font-bold">Scoring rules</h2>
