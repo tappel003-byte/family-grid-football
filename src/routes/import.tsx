@@ -22,7 +22,6 @@ import { updateLeague } from "@/lib/fantasy/store";
 import { BENCH_SIZE, SLOTS, slotAccepts, rosterIds, type FantasyTeam } from "@/lib/fantasy/league";
 import { buildPlayerIndex, matchRoster, type MatchResult } from "@/lib/fantasy/import";
 import { readRosterImage } from "@/lib/fantasy/ocr.functions";
-import { projectedStats } from "@/lib/fantasy/projections";
 import { PPR_SCORING, scoreStats } from "@/lib/fantasy/scoring";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 
@@ -66,10 +65,7 @@ function layoutRoster(ids: string[], byId: Map<string, SlimPlayer>, week: number
   const pool = ids
     .map((id) => byId.get(id))
     .filter((p): p is SlimPlayer => !!p)
-    .sort(
-      (a, b) =>
-        scoreStats(projectedStats(b, week), PPR_SCORING) - scoreStats(projectedStats(a, week), PPR_SCORING),
-    );
+    .sort((a, b) => a.rank - b.rank);
   const starters: (string | null)[] = SLOTS.map(() => null);
   const used = new Set<string>();
   SLOTS.forEach((slot, i) => {
