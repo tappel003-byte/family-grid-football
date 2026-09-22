@@ -111,6 +111,9 @@ function StandingsPage() {
 
   const rows = computeStandings(league, byId);
   const weeksPlayed = Math.max(0, league.currentWeek - 1);
+  const divisions = Array.from(
+    new Set(league.teams.map((t) => t.division ?? "").filter(Boolean)),
+  ).sort();
 
   return (
     <>
@@ -123,93 +126,125 @@ function StandingsPage() {
         }
       />
 
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b bg-secondary/50 text-sm uppercase tracking-wide text-muted-foreground">
-              <th className="px-3 py-3 sm:px-5">#</th>
-              <th className="px-1 py-3">Team</th>
-              <th className="px-2 py-3 text-center sm:px-5">Rec</th>
-              <th className="hidden px-3 py-3 text-right sm:table-cell">PF</th>
-              <th className="hidden px-3 py-3 text-right sm:table-cell">PA</th>
-              <th className="hidden px-3 py-3 text-right sm:table-cell">Diff</th>
-              <th className="px-3 py-3 text-center sm:px-5">Last</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => {
-              const team = league.teams[row.teamIndex]!;
-              const diff = row.pointsFor - row.pointsAgainst;
-              return (
-                <tr
-                  key={team.id}
+      {divisions.length > 1 ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {divisions.map((division) => (
+            <StandingsTable
+              key={division}
+              heading={`Division ${division}`}
+              rows={rows.filter((r) => (league.teams[r.teamIndex]?.division ?? "") === division)}
+              league={league}
+            />
+          ))}
+        </div>
+      ) : (
+        <StandingsTable rows={rows} league={league} />
+      )}
+    </>
+  );
+}
+
+function StandingsTable({
+  rows,
+  league,
+  heading,
+}: {
+  rows: Row[];
+  league: League;
+  heading?: string;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+      {heading ? (
+        <h2 className="border-b bg-secondary/30 px-3 py-3 font-display text-lg font-bold sm:px-5">
+          {heading}
+        </h2>
+      ) : null}
+      <table className="w-full text-left">
+        <thead>
+          <tr className="border-b bg-secondary/50 text-sm uppercase tracking-wide text-muted-foreground">
+            <th className="px-3 py-3 sm:px-5">#</th>
+            <th className="px-1 py-3">Team</th>
+            <th className="px-2 py-3 text-center sm:px-5">Rec</th>
+            <th className="hidden px-3 py-3 text-right sm:table-cell">PF</th>
+            <th className="hidden px-3 py-3 text-right sm:table-cell">PA</th>
+            <th className="hidden px-3 py-3 text-right lg:table-cell">Diff</th>
+            <th className="px-3 py-3 text-center sm:px-5">Last</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => {
+            const team = league.teams[row.teamIndex]!;
+            const diff = row.pointsFor - row.pointsAgainst;
+            return (
+              <tr
+                key={team.id}
+                className={cn(
+                  "border-b last:border-b-0 transition-colors hover:bg-secondary/40",
+                  i === 0 && row.wins + row.losses + row.ties > 0 && "bg-primary/5",
+                )}
+              >
+                <td className="px-3 py-3 sm:px-5">
+                  <span className="font-display text-xl font-bold tabular-nums">{i + 1}</span>
+                </td>
+                <td className="px-1 py-3">
+                  <Link
+                    to="/team/$teamId"
+                    params={{ teamId: team.id }}
+                    className="flex min-w-0 items-center gap-3 rounded-lg hover:underline"
+                  >
+                    <TeamCrest team={team} />
+                    <span className="min-w-0">
+                      <span className="block truncate font-display text-lg font-bold">
+                        {team.name}
+                      </span>
+                      <span className="block truncate text-sm text-muted-foreground">
+                        {team.owner}
+                      </span>
+                    </span>
+                  </Link>
+                </td>
+                <td className="px-2 py-3 text-center font-display text-xl font-bold tabular-nums sm:px-5">
+                  {row.wins}-{row.losses}
+                  {row.ties > 0 ? `-${row.ties}` : ""}
+                </td>
+                <td className="hidden px-3 py-3 text-right tabular-nums sm:table-cell">
+                  {row.pointsFor.toFixed(1)}
+                </td>
+                <td className="hidden px-3 py-3 text-right tabular-nums text-muted-foreground sm:table-cell">
+                  {row.pointsAgainst.toFixed(1)}
+                </td>
+                <td
                   className={cn(
-                    "border-b last:border-b-0 transition-colors hover:bg-secondary/40",
-                    i === 0 && row.wins + row.losses + row.ties > 0 && "bg-primary/5",
+                    "hidden px-3 py-3 text-right font-semibold tabular-nums lg:table-cell",
+                    diff > 0 && "text-green-700 dark:text-green-400",
+                    diff < 0 && "text-red-700 dark:text-red-400",
                   )}
                 >
-                  <td className="px-3 py-3 sm:px-5">
-                    <span className="font-display text-xl font-bold tabular-nums">{i + 1}</span>
-                  </td>
-                  <td className="px-1 py-3">
-                    <Link
-                      to="/team/$teamId"
-                      params={{ teamId: team.id }}
-                      className="flex min-w-0 items-center gap-3 rounded-lg hover:underline"
+                  {diff > 0 ? "+" : ""}
+                  {diff.toFixed(1)}
+                </td>
+                <td className="px-3 py-3 text-center sm:px-5">
+                  {row.lastResult ? (
+                    <span
+                      className={cn(
+                        "inline-grid h-8 w-8 place-items-center rounded-full font-display text-base font-bold text-white",
+                        row.lastResult === "W" && "bg-green-700 dark:bg-green-600",
+                        row.lastResult === "L" && "bg-red-700 dark:bg-red-600",
+                        row.lastResult === "T" && "bg-muted-foreground",
+                      )}
                     >
-                      <TeamCrest team={team} />
-                      <span className="min-w-0">
-                        <span className="block truncate font-display text-lg font-bold">
-                          {team.name}
-                        </span>
-                        <span className="block truncate text-sm text-muted-foreground">
-                          {team.owner}
-                        </span>
-                      </span>
-                    </Link>
-                  </td>
-                  <td className="px-2 py-3 text-center font-display text-xl font-bold tabular-nums sm:px-5">
-                    {row.wins}-{row.losses}
-                    {row.ties > 0 ? `-${row.ties}` : ""}
-                  </td>
-                  <td className="hidden px-3 py-3 text-right tabular-nums sm:table-cell">
-                    {row.pointsFor.toFixed(1)}
-                  </td>
-                  <td className="hidden px-3 py-3 text-right tabular-nums text-muted-foreground sm:table-cell">
-                    {row.pointsAgainst.toFixed(1)}
-                  </td>
-                  <td
-                    className={cn(
-                      "hidden px-3 py-3 text-right font-semibold tabular-nums sm:table-cell",
-                      diff > 0 && "text-green-700 dark:text-green-400",
-                      diff < 0 && "text-red-700 dark:text-red-400",
-                    )}
-                  >
-                    {diff > 0 ? "+" : ""}
-                    {diff.toFixed(1)}
-                  </td>
-                  <td className="px-3 py-3 text-center sm:px-5">
-                    {row.lastResult ? (
-                      <span
-                        className={cn(
-                          "inline-grid h-8 w-8 place-items-center rounded-full font-display text-base font-bold text-white",
-                          row.lastResult === "W" && "bg-green-700 dark:bg-green-600",
-                          row.lastResult === "L" && "bg-red-700 dark:bg-red-600",
-                          row.lastResult === "T" && "bg-muted-foreground",
-                        )}
-                      >
-                        {row.lastResult}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </>
+                      {row.lastResult}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
