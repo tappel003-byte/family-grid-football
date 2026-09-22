@@ -37,6 +37,7 @@ export function toPayload(league: League): LeaguePayload {
       color: t.color,
       starters: t.starters,
       bench: t.bench,
+      ir: t.ir ?? [],
       userId: t.userId ?? null,
       division: t.division ?? "",
     })),
