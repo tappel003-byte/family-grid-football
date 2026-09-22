@@ -15,6 +15,8 @@ export type FantasyTeam = {
   bench: string[];
   /** The family member's account that owns this team, if assigned. */
   userId?: string | null;
+  /** Division label, e.g. "A" or "B". Empty when the league has no divisions. */
+  division?: string;
 };
 
 export type League = {
