@@ -13,6 +13,8 @@ export type FantasyTeam = {
   color: string;
   starters: Array<string | null>;
   bench: string[];
+  /** The family member's account that owns this team, if assigned. */
+  userId?: string | null;
 };
 
 export type League = {
