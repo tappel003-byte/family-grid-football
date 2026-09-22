@@ -18,7 +18,10 @@ type Raw = Record<string, Record<string, number>>;
 
 function toStatLine(raw: Record<string, number> | undefined): StatLine | null {
   if (!raw) return null;
-  const n = (key: string) => raw[key] ?? 0;
+  const n = (key: string): number => {
+    const num = Number(raw[key] ?? 0);
+    return Number.isFinite(num) ? num : 0;
+  };
   const line: StatLine = {
     ...EMPTY,
     passYd: n("pass_yd"),
