@@ -31,12 +31,12 @@ export const Route = createFileRoute("/players")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
-      { title: "Player Research — Family Football" },
+      { title: "Player Research — La Familia" },
       {
         name: "description",
         content: "Search every NFL player, filter by position and see who the country is adding.",
       },
-      { property: "og:title", content: "Player Research — Family Football" },
+      { property: "og:title", content: "Player Research — La Familia" },
       {
         property: "og:description",
         content: "Search every NFL player, filter by position and see trending adds and drops.",

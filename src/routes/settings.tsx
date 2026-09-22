@@ -27,12 +27,12 @@ export const Route = createFileRoute("/settings")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
-      { title: "Commissioner Settings — Family Football" },
+      { title: "Commissioner Settings — La Familia" },
       {
         name: "description",
         content: "Adjust scoring rules, rename family teams and set the current week.",
       },
-      { property: "og:title", content: "Commissioner Settings — Family Football" },
+      { property: "og:title", content: "Commissioner Settings — La Familia" },
       {
         property: "og:description",
         content: "Adjust scoring rules, rename family teams and set the current week.",

@@ -12,9 +12,9 @@ export const Route = createFileRoute("/team/$teamId")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
-      { title: "Team Roster — Family Football" },
+      { title: "Team Roster — La Familia" },
       { name: "description", content: "Set your starters, swap players and optimize your lineup." },
-      { property: "og:title", content: "Team Roster — Family Football" },
+      { property: "og:title", content: "Team Roster — La Familia" },
       {
         property: "og:description",
         content: "Set your starters, swap players and optimize your lineup.",

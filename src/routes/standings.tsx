@@ -11,12 +11,12 @@ export const Route = createFileRoute("/standings")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
-      { title: "Standings — Family Football" },
+      { title: "Standings — La Familia" },
       {
         name: "description",
         content: "Win-loss records and total points for every team in the family league.",
       },
-      { property: "og:title", content: "Standings — Family Football" },
+      { property: "og:title", content: "Standings — La Familia" },
       {
         property: "og:description",
         content: "Win-loss records and total points for every team in the family league.",

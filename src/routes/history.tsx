@@ -56,12 +56,12 @@ function textToStandings(text: string): Standing[] {
 export const Route = createFileRoute("/history")({
   head: () => ({
     meta: [
-      { title: "League History — Family Football" },
+      { title: "League History — La Familia" },
       {
         name: "description",
         content: "Every champion and final standing in the family league since 2013.",
       },
-      { property: "og:title", content: "League History — Family Football" },
+      { property: "og:title", content: "League History — La Familia" },
       {
         property: "og:description",
         content: "Every champion and final standing in the family league since 2013.",
