@@ -23,6 +23,7 @@ import { SLOTS, rosterIds, slotAccepts } from "@/lib/fantasy/league";
 import { scoreFor } from "@/lib/fantasy/hooks";
 import { isPlayable } from "@/lib/fantasy/projections";
 import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
+import { setInjuredReserve } from "@/lib/fantasy/ir.functions";
 import { updateLeague, reloadLeague } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle, CalendarOff } from "lucide-react";
