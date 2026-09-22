@@ -19,12 +19,15 @@ import { signOut, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
-  { to: "/", label: "Matchups", commissionerOnly: false },
-  { to: "/my-team", label: "My Team", commissionerOnly: false },
-  { to: "/standings", label: "Standings", commissionerOnly: false },
+  { to: "/", label: "Matchups" },
+  { to: "/my-team", label: "My Team" },
+  { to: "/players", label: "Players" },
+  { to: "/standings", label: "Standings" },
+] as const;
+
+const NAV_MORE = [
   { to: "/playoffs", label: "Playoffs", commissionerOnly: false },
   { to: "/teams", label: "Teams", commissionerOnly: false },
-  { to: "/players", label: "Players", commissionerOnly: false },
   { to: "/trades", label: "Trades", commissionerOnly: false },
   { to: "/history", label: "History", commissionerOnly: false },
   { to: "/settings", label: "Commissioner", commissionerOnly: true },

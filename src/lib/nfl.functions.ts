@@ -10,6 +10,8 @@ export type WeekData = {
   stats: Record<string, StatLine>;
   projections: Record<string, StatLine>;
   games: Record<string, GameInfo>;
+  /** True when the live feed hiccuped and we are showing the last scores we got. */
+  stale?: boolean;
 };
 
 const EMPTY: StatLine = ZERO_STATS;
@@ -137,6 +139,13 @@ export const getWeekData = createServerFn({ method: "GET" })
       projections: mapStats(projections),
       games,
     };
-    cache.set(key, { at: Date.now(), data: result });
+    const feedDown =
+      Object.keys(result.stats).length === 0 && Object.keys(result.projections).length === 0;
+    const lastGood = lastGoodCache.get(key);
+    if (feedDown && lastGood) return { ...lastGood, stale: true };
+    if (!feedDown) {
+      lastGoodCache.set(key, result);
+      cache.set(key, { at: Date.now(), data: result });
+    }
     return result;
   });
