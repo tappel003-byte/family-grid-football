@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { HelpCircle, LogOut, Settings, UserRound } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function Football({ className }: { className?: string }) {
@@ -18,7 +19,7 @@ import type { ReactNode } from "react";
 import { AuthGate } from "./AuthGate";
 import { signOut, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { getMyAccount } from "@/lib/fantasy/account.functions";
 
 const NAV = [
   { to: "/", label: "Matchups" },
@@ -144,17 +145,11 @@ function ProfileNav({
 
 function Shell({ children }: { children: ReactNode }) {
   const { isCommissioner, displayName, user } = useAuth();
-  const { data: person } = useQuery({
+  const fetchAccount = useServerFn(getMyAccount);
+  const { data: account } = useQuery({
     queryKey: ["my-header-person", user?.id],
     enabled: Boolean(user),
-    queryFn: async () => {
-      if (!user) return undefined;
-      const [{ data: profile }, { data: team }] = await Promise.all([
-        supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
-        supabase.from("teams").select("name, owner").eq("user_id", user.id).maybeSingle(),
-      ]);
-      return { name: profile?.display_name || team?.owner, teamName: team?.name };
-    },
+    queryFn: () => fetchAccount(),
   });
 
   return (
@@ -185,8 +180,8 @@ function Shell({ children }: { children: ReactNode }) {
             <span className="ml-auto flex items-center gap-2 sm:ml-2">
               <ChipLegend />
               <ProfileNav
-                displayName={person?.name || displayName}
-                teamName={person?.teamName}
+                displayName={account?.displayName || displayName}
+                teamName={account?.team?.name}
                 isCommissioner={isCommissioner}
               />
             </span>
