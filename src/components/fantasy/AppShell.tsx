@@ -144,13 +144,16 @@ function ProfileNav({
 
 function Shell({ children }: { children: ReactNode }) {
   const { isCommissioner, displayName, user } = useAuth();
-  const { data: myTeam } = useQuery({
-    queryKey: ["my-header-team", user?.id],
+  const { data: person } = useQuery({
+    queryKey: ["my-header-person", user?.id],
     enabled: Boolean(user),
     queryFn: async () => {
       if (!user) return undefined;
-      const { data } = await supabase.from("teams").select("name, owner").eq("user_id", user.id).maybeSingle();
-      return data ?? undefined;
+      const [{ data: profile }, { data: team }] = await Promise.all([
+        supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
+        supabase.from("teams").select("name, owner").eq("user_id", user.id).maybeSingle(),
+      ]);
+      return { name: profile?.display_name || team?.owner, teamName: team?.name };
     },
   });
 
@@ -182,8 +185,8 @@ function Shell({ children }: { children: ReactNode }) {
             <span className="ml-auto flex items-center gap-2 sm:ml-2">
               <ChipLegend />
               <ProfileNav
-                displayName={myTeam?.owner || displayName}
-                teamName={myTeam?.name}
+                displayName={person?.name || displayName}
+                teamName={person?.teamName}
                 isCommissioner={isCommissioner}
               />
             </span>
