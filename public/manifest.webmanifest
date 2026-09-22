@@ -1,0 +1,23 @@
+{
+  "name": "La Familia 2026",
+  "short_name": "La Familia",
+  "description": "Private family fantasy football league",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9f8f4",
+  "theme_color": "#1e40af",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
