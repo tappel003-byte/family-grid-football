@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { toast } from "sonner";
+import { CommissionerOnly } from "@/components/fantasy/AuthGate";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,9 +39,11 @@ export const Route = createFileRoute("/settings")({
   }),
   component: () => (
     <AppShell>
-      <Suspense fallback={<LoadingScreen />}>
-        <SettingsPage />
-      </Suspense>
+      <CommissionerOnly>
+        <Suspense fallback={<LoadingScreen />}>
+          <SettingsPage />
+        </Suspense>
+      </CommissionerOnly>
     </AppShell>
   ),
   errorComponent: ({ error }) => (
