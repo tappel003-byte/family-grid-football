@@ -75,13 +75,15 @@ function TeamPage() {
           You can look at this roster, but only {team.owner || "its manager"} can change the lineup.
         </p>
       )}
-      <RosterTable
-        team={team}
-        league={league}
-        byId={byId}
-        week={activeWeek}
-        editable={canEdit}
-      />
+      <InsightsProvider week={activeWeek} scoring={league.scoring}>
+        <RosterTable
+          team={team}
+          league={league}
+          byId={byId}
+          week={activeWeek}
+          editable={canEdit}
+        />
+      </InsightsProvider>
     </>
   );
 }
