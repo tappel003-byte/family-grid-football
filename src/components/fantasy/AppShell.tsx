@@ -144,13 +144,13 @@ function ProfileNav({
 
 function Shell({ children }: { children: ReactNode }) {
   const { isCommissioner, displayName, user } = useAuth();
-  const { data: teamName } = useQuery({
+  const { data: myTeam } = useQuery({
     queryKey: ["my-header-team", user?.id],
     enabled: Boolean(user),
     queryFn: async () => {
       if (!user) return undefined;
-      const { data } = await supabase.from("teams").select("name").eq("user_id", user.id).maybeSingle();
-      return data?.name;
+      const { data } = await supabase.from("teams").select("name, owner").eq("user_id", user.id).maybeSingle();
+      return data ?? undefined;
     },
   });
 
@@ -181,7 +181,11 @@ function Shell({ children }: { children: ReactNode }) {
             <MoreNav items={NAV_MORE} />
             <span className="ml-auto flex items-center gap-2 sm:ml-2">
               <ChipLegend />
-              <ProfileNav displayName={displayName} teamName={teamName} isCommissioner={isCommissioner} />
+              <ProfileNav
+                displayName={myTeam?.owner || displayName}
+                teamName={myTeam?.name}
+                isCommissioner={isCommissioner}
+              />
             </span>
           </nav>
         </div>
