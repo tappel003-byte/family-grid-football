@@ -6,7 +6,12 @@ import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShel
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { AddDropButton } from "@/components/fantasy/AddDropButton";
 import { ActivityFeed } from "@/components/fantasy/ActivityFeed";
-import { InsightsProvider, PlayerInsightChips } from "@/components/fantasy/PlayerInsights";
+import {
+  InsightsProvider,
+  PlayerInsightChips,
+  insightsQueryOptions,
+} from "@/components/fantasy/PlayerInsights";
+import { STANDARD_SCORING } from "@/lib/fantasy/scoring";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
