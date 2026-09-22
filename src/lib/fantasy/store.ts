@@ -5,6 +5,7 @@ import { LEAGUE_VERSION } from "./league";
 import { saveLeague, toPayload } from "./league.functions";
 import { PPR_SCORING, type Scoring } from "./scoring";
 import { normalizeRules } from "./rules";
+import { archiveWeeks } from "./results.functions";
 
 /** Hand-entered final scores, keyed "week:slot". */
 let overrides = new Map<string, number>();
@@ -122,6 +123,10 @@ export async function hydrateLeague(): Promise<League | null> {
   status = "ready";
   bindRealtime();
   emit();
+  // Background: save any finished weeks that are not archived yet.
+  if (league && typeof window !== "undefined") {
+    void archiveWeeks().catch(() => undefined);
+  }
   return league;
 }
 
