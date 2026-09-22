@@ -440,16 +440,57 @@ function SettingsPage() {
                     ...l,
                     rules: {
                       ...l.rules,
-                      waiverMode: e.target.value === "locked" ? "locked" : "free",
+                      waiverMode: e.target.value as League["rules"]["waiverMode"],
                     },
                   }))
                 }
               >
                 <option value="free">Grab anybody, anytime</option>
                 <option value="locked">Locked once a player's game kicks off</option>
+                <option value="waivers">Claim order — pickups wait and process in order</option>
               </select>
             </div>
           </div>
+
+          {league.rules.waiverMode === "waivers" && (
+            <div className="mt-4 rounded-xl border bg-secondary/30 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-display text-lg font-bold">Claim order</h3>
+                  <p className="text-sm text-muted-foreground">
+                    When several families want the same player, the team with the worse record
+                    picks first.
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => void setOrderFromStandings()}>
+                  Set from current standings
+                </Button>
+              </div>
+              <ol className="mt-3 space-y-1 text-base">
+                {(league.rules.waiverOrder.length
+                  ? league.rules.waiverOrder
+                  : league.teams.map((_, i) => i)
+                ).map((slot, i) => {
+                  const team = league.teams[slot];
+                  if (!team) return null;
+                  return (
+                    <li key={slot} className="flex items-center gap-2">
+                      <span className="w-6 text-right font-display font-bold tabular-nums text-muted-foreground">
+                        {i + 1}.
+                      </span>
+                      <span className="font-semibold">{team.name}</span>
+                      <span className="truncate text-muted-foreground">{team.owner}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+              {league.rules.waiverOrder.length === 0 && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  No order set yet — teams pick in slot order until you set one.
+                </p>
+              )}
+            </div>
+          )}
 
           <h2 className="mt-8 font-display text-2xl font-bold">Fix a final score</h2>
           <p className="mt-1 text-base text-muted-foreground">
