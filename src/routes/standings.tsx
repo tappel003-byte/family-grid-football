@@ -6,6 +6,7 @@ import { playersQueryOptions, useLeague, useWeeksData } from "@/lib/fantasy/hook
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import type { League } from "@/lib/fantasy/league";
 import { cn } from "@/lib/utils";
+import { PlayoffPicture } from "@/components/fantasy/PlayoffPicture";
 
 export const Route = createFileRoute("/standings")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
@@ -140,6 +141,7 @@ function StandingsPage() {
       ) : (
         <StandingsTable rows={rows} league={league} />
       )}
+      <PlayoffPicture league={league} byId={byId} />
     </>
   );
 }

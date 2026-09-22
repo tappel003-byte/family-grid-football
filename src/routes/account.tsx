@@ -105,10 +105,7 @@ function AccountPage() {
 
   return (
     <>
-      <PageTitle
-        title="My Account"
-        subtitle={data.isCommissioner ? "Commissioner" : "Family league member"}
-      />
+      <PageTitle title="My Account" />
 
       <div className="grid max-w-2xl gap-6">
         <section className="rounded-2xl border bg-card p-6">
