@@ -75,7 +75,15 @@ function SettingsPage() {
   const { data: members = [], refetch: refetchMembers } = useMembers(true);
   const assign = useServerFn(assignTeam);
   const changeRole = useServerFn(setMemberRole);
+  const resetPassword = useServerFn(resetMemberPassword);
+  const kickMember = useServerFn(removeMember);
+  const saveOverride = useServerFn(setScoreOverride);
+  const [fixWeek, setFixWeek] = useState<number | null>(null);
+  const [draft, setDraft] = useState<Record<number, string>>({});
   if (!league) return <LoadingScreen label="Setting up your league…" />;
+
+  const correctionWeek = fixWeek ?? league.currentWeek;
+  const overrideCount = allOverrides().size;
 
   const applyPreset = (scoring: Scoring, name: string) => {
     updateLeague((l) => ({ ...l, scoring: { ...scoring } }));
