@@ -41,7 +41,7 @@ export const makeRosterMove = createServerFn({ method: "POST" })
 
     const { data: teamRows, error: teamsError } = await supabaseAdmin
       .from("teams")
-      .select("id, slot, name, user_id, starters, bench")
+      .select("id, slot, name, user_id, starters, bench, ir")
       .eq("league_id", leagueRow.id)
       .order("slot", { ascending: true });
     if (teamsError) throw new Error(teamsError.message);
@@ -55,12 +55,14 @@ export const makeRosterMove = createServerFn({ method: "POST" })
 
     const starters = ((target.starters as Array<string | null>) ?? []).slice();
     const bench = ((target.bench as string[]) ?? []).slice();
+    const ir = (((target as { ir?: string[] }).ir as string[]) ?? []).slice();
 
     if (data.addId) {
       const taken = teams.find((t) => {
         const ids = [
           ...(((t.starters as Array<string | null>) ?? []).filter(Boolean) as string[]),
           ...(((t.bench as string[]) ?? []) as string[]),
+          ...((((t as { ir?: string[] }).ir as string[]) ?? []) as string[]),
         ];
         return ids.includes(data.addId!);
       });
