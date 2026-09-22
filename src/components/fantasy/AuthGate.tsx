@@ -1,130 +1,142 @@
 import { useState, type ReactNode } from "react";
-import { Trophy } from "lucide-react";
+import { Trophy, Shield, Check } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth, useSession } from "@/lib/auth";
+import { claimTeam, listClaimTeams } from "@/lib/fantasy/claim.functions";
 
-function SignInScreen() {
-  const [mode, setMode] = useState<"in" | "up">("in");
-  const [email, setEmail] = useState("");
+function ClaimScreen() {
+  const [slot, setSlot] = useState<number | null>(null);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const { data, isLoading } = useQuery({
+    queryKey: ["claim-teams"],
+    queryFn: () => listClaimTeams(),
+  });
+
+  const teams = data?.teams ?? [];
+  const picked = teams.find((t) => t.slot === slot) ?? null;
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (slot === null) return;
     setBusy(true);
     try {
-      if (mode === "up") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: name },
-          },
-        });
-        if (error) throw error;
-        toast.success("Welcome to the league!");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+      const res = await claimTeam({ data: { slot, password, displayName: name } });
+      if (!res.ok) {
+        toast.error(res.message);
+        return;
       }
+      const { error } = await supabase.auth.signInWithPassword({
+        email: res.email,
+        password,
+      });
+      if (error) throw error;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not sign in");
+      toast.error(err instanceof Error ? err.message : "Could not get you in");
     } finally {
       setBusy(false);
     }
   };
 
-  const google = async () => {
-    try {
-      await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Google sign-in failed");
-    }
-  };
-
   return (
-    <div className="grid min-h-screen place-items-center bg-background px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
+    <div className="min-h-screen bg-background px-4 py-10">
+      <div className="mx-auto w-full max-w-3xl">
         <div className="flex items-center gap-3">
           <span className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground">
             <Trophy className="h-6 w-6" />
           </span>
           <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight">La Familia</h1>
-            <p className="text-base text-muted-foreground">Family fantasy football</p>
+            <h1 className="font-display text-2xl font-bold tracking-tight">
+              {data?.leagueName ?? "La Familia"}
+            </h1>
+            <p className="text-base text-muted-foreground">Claim your team</p>
           </div>
         </div>
 
         <p className="mt-6 text-lg leading-snug">
-          This league is private. Sign in to see your team.
+          Tap your team below, then type the family password.
         </p>
 
-        <Button onClick={google} variant="outline" className="mt-5 h-12 w-full text-base font-semibold">
-          Continue with Google
-        </Button>
+        {isLoading ? (
+          <p className="mt-6 text-lg text-muted-foreground">Loading teams…</p>
+        ) : (
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {teams.map((t) => {
+              const active = t.slot === slot;
+              return (
+                <button
+                  key={t.slot}
+                  type="button"
+                  onClick={() => setSlot(t.slot)}
+                  className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${
+                    active ? "border-primary ring-2 ring-primary" : "hover:bg-accent"
+                  }`}
+                >
+                  <span
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-primary-foreground"
+                    style={{ backgroundColor: t.color }}
+                  >
+                    <Shield className="h-6 w-6" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-lg font-semibold">{t.name}</span>
+                    <span className="block truncate text-base text-muted-foreground">
+                      {t.owner || "Unclaimed"}
+                    </span>
+                  </span>
+                  {active && <Check className="h-6 w-6 text-primary" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-        <div className="my-5 flex items-center gap-3 text-sm text-muted-foreground">
-          <span className="h-px flex-1 bg-border" /> or use email <span className="h-px flex-1 bg-border" />
-        </div>
-
-        <form onSubmit={submit} className="grid gap-4">
-          {mode === "up" && (
+        {picked && (
+          <form
+            onSubmit={submit}
+            className="mt-8 grid gap-4 rounded-2xl border bg-card p-6 shadow-sm"
+          >
+            <p className="text-lg font-semibold">
+              You picked <span style={{ color: picked.color }}>{picked.name}</span>
+            </p>
             <div>
-              <Label htmlFor="name" className="text-base">Your name</Label>
+              <Label htmlFor="name" className="text-base">
+                Your name
+              </Label>
               <Input
                 id="name"
                 className="mt-1 h-12 text-base"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Papa Ray"
+                placeholder={picked.owner || "Your name"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="family-password" className="text-base">
+                Family password
+              </Label>
+              <Input
+                id="family-password"
+                type="password"
+                autoComplete="current-password"
+                className="mt-1 h-12 text-base"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-          )}
-          <div>
-            <Label htmlFor="email" className="text-base">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              className="mt-1 h-12 text-base"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="password" className="text-base">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete={mode === "up" ? "new-password" : "current-password"}
-              className="mt-1 h-12 text-base"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={6}
-              required
-            />
-          </div>
-          <Button type="submit" disabled={busy} className="h-12 text-base font-semibold">
-            {mode === "up" ? "Create my account" : "Sign in"}
-          </Button>
-        </form>
-
-        <button
-          type="button"
-          className="mt-5 w-full text-base font-semibold text-primary underline-offset-4 hover:underline"
-          onClick={() => setMode(mode === "in" ? "up" : "in")}
-        >
-          {mode === "in" ? "New here? Create an account" : "Already have an account? Sign in"}
-        </button>
+            <Button type="submit" disabled={busy} className="h-12 text-base font-semibold">
+              {busy ? "Getting you in…" : "This is my team"}
+            </Button>
+          </form>
+        )}
       </div>
     </div>
   );
