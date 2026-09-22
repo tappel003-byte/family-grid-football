@@ -140,6 +140,24 @@ export function RosterTable({
         )}
       </div>
 
+      {inactiveStarters.length > 0 && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 border-b-2 border-injury-out bg-injury-out/15 px-4 py-3"
+        >
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-injury-out" />
+          <p className="text-base font-semibold leading-snug">
+            <span className="text-injury-out">
+              {inactiveStarters.length === 1 ? "A player who won't play is" : "Players who won't play are"} in your starting lineup:
+            </span>{" "}
+            {inactiveStarters
+              .map((p) => `${p.name} (${injuryInfo(p.injury)?.tag})`)
+              .join(", ")}
+            . Swap them out or hit Optimize Lineup.
+          </p>
+        </div>
+      )}
+
       <table className="w-full">
         <thead className="hidden border-b text-left text-xs uppercase tracking-widest text-muted-foreground md:table-header-group">
           <tr>
@@ -159,6 +177,7 @@ export function RosterTable({
                 key={`${slot}-${index}`}
                 className={cn(
                   "block md:table-row",
+                  player && isInactive(player.injury) && "bg-injury-out/10",
                   flash === player?.id && "bg-accent/40 transition-colors",
                 )}
               >
