@@ -54,6 +54,8 @@ export function AddDropButton({
     (t) => t.id !== myTeam.id && ownedIds(t).includes(player.id),
   );
   if (ownedElsewhere) return null;
+  // Players parked on injured reserve are managed from the My Team page.
+  if ((myTeam.ir ?? []).includes(player.id)) return null;
 
   async function run(dropId: string | null, dropName: string) {
     setPending(true);
