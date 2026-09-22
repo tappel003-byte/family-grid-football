@@ -7,7 +7,13 @@ import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { playersQueryOptions, trendingQueryOptions, usePlayers } from "@/lib/fantasy/hooks";
+import {
+  playersQueryOptions,
+  trendingQueryOptions,
+  useLeague,
+  scoreFor,
+} from "@/lib/fantasy/hooks";
+import { rosterIds } from "@/lib/fantasy/league";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"];
