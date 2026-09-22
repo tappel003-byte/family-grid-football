@@ -112,12 +112,21 @@ function AccountPage() {
       <div className="grid max-w-2xl gap-6">
         <section className="rounded-2xl border bg-card p-6">
           <div className="flex items-center gap-4">
-            <div
-              className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl font-display text-2xl font-bold text-white"
-              style={{ backgroundColor: color }}
-            >
-              {initialsOf(teamName || name)}
-            </div>
+            {teamLogo(teamName) ? (
+              <img
+                src={teamLogo(teamName)}
+                alt={`${teamName} logo`}
+                className="h-20 w-20 shrink-0 object-contain"
+              />
+            ) : (
+              <div
+                className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl font-display text-2xl font-bold text-white"
+                style={{ backgroundColor: color }}
+              >
+                {initialsOf(teamName || name)}
+              </div>
+            )}
+
             <div className="min-w-0">
               <p className="truncate font-display text-xl font-bold">{teamName || name}</p>
               <p className="truncate text-muted-foreground">{data.email}</p>
