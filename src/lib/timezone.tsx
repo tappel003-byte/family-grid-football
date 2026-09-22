@@ -4,7 +4,7 @@ export const DEFAULT_TIME_ZONE = "America/Denver";
 
 const TimeZoneContext = createContext(DEFAULT_TIME_ZONE);
 
-export function TimeZoneProvider({ value, children }: { value?: string; children: ReactNode }) {
+export function TimeZoneProvider({ value, children }: { value: string | undefined; children: ReactNode }) {
   return <TimeZoneContext.Provider value={value || DEFAULT_TIME_ZONE}>{children}</TimeZoneContext.Provider>;
 }
 

@@ -108,7 +108,11 @@ function scoreboardGames(scoreboard: Scoreboard): Record<string, GameInfo> {
     const label = status === "final" ? "Final" : status === "live" ? "Live" : "Scheduled";
     for (const competitor of event.competitions?.[0]?.competitors ?? []) {
       const abbreviation = competitor.team?.abbreviation;
-      if (abbreviation) games[abbreviation === "WSH" ? "WAS" : abbreviation] = { status, label, startsAt };
+      if (abbreviation) {
+        games[abbreviation === "WSH" ? "WAS" : abbreviation] = startsAt
+          ? { status, label, startsAt }
+          : { status, label };
+      }
     }
   }
   return games;
