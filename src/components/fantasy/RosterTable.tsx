@@ -1,7 +1,16 @@
 import { useState } from "react";
-import { ArrowLeftRight, Wand2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeftRight, UserPlus, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +22,8 @@ import type { FantasyTeam, League } from "@/lib/fantasy/league";
 import { SLOTS, rosterIds, slotAccepts } from "@/lib/fantasy/league";
 import { scoreFor } from "@/lib/fantasy/hooks";
 import { isPlayable } from "@/lib/fantasy/projections";
-import { updateLeague } from "@/lib/fantasy/store";
+import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
+import { reloadLeague } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle, CalendarOff } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
