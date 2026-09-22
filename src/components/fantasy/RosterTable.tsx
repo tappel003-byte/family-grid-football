@@ -127,8 +127,20 @@ export function RosterTable({
   };
 
   const optimize = () => {
-    updateLeague((l) => setTeam(l, team.id, (t) => optimizeTeam(t, byId, l, week)));
-    toast.success("Best projected healthy lineup set");
+    const before = projectedTotal(team, byId, league, week);
+    const after = projectedTotal(
+      optimizeTeam(team, byId, league, week, insights),
+      byId,
+      league,
+      week,
+    );
+    updateLeague((l) => setTeam(l, team.id, (t) => optimizeTeam(t, byId, l, week, insights)));
+    const gain = after - before;
+    toast.success(
+      gain > 0.05
+        ? `Lineup optimized · +${gain.toFixed(1)} projected points`
+        : "Your lineup was already the best projected one",
+    );
   };
 
   const rows = SLOTS.map((slot, i) => ({
