@@ -100,6 +100,7 @@ function SettingsPage() {
 
   /** Worst record picks first: order teams by wins (fewest first), then points. */
   async function setOrderFromStandings() {
+    if (!league) return;
     try {
       const weeksPlayed = Math.max(0, league.currentWeek - 1);
       const weeks = Array.from({ length: weeksPlayed }, (_, i) => i + 1);
