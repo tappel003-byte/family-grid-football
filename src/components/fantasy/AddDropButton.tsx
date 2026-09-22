@@ -39,6 +39,14 @@ export function AddDropButton({
 
   const myIds = rosterIds(myTeam);
   const onMyTeam = myIds.includes(player.id);
+  const rules = league.rules;
+  const locked =
+    rules.waiverMode === "locked" &&
+    ["live", "final"].includes(gameStatusFor(player.team, league.currentWeek));
+  const cap = rules.positionLimits[player.pos] ?? 0;
+  const atCap =
+    cap > 0 &&
+    myIds.filter((id) => byId.get(id)?.pos === player.pos).length >= cap;
   const ownedElsewhere = league.teams.some(
     (t) => t.id !== myTeam.id && rosterIds(t).includes(player.id),
   );
@@ -110,13 +118,25 @@ export function AddDropButton({
     );
   }
 
-  const rosterFull = myIds.length >= ROSTER_LIMIT;
+  const rosterFull = myIds.length >= rules.rosterLimit;
+  const blocked = locked
+    ? `${player.name}'s game has already started — he's locked this week.`
+    : atCap
+      ? `You already carry ${cap} ${player.pos}s, the most the league allows.`
+      : "";
 
   return (
     <>
       <Button
         disabled={pending}
-        onClick={() => (rosterFull ? setDropOpen(true) : void run(null, ""))}
+        onClick={() => {
+          if (blocked) {
+            toast.error(blocked);
+            return;
+          }
+          if (rosterFull) setDropOpen(true);
+          else void run(null, "");
+        }}
         className="font-semibold"
       >
         Add
