@@ -67,6 +67,40 @@ function ChipLegend() {
   );
 }
 
+/** Secondary pages tucked into a "More" menu so the top bar stays tidy. */
+function MoreNav({
+  items,
+}: {
+  items: ReadonlyArray<{ to: string; label: string }>;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="sm" className="px-3 text-base font-semibold text-muted-foreground">
+          More
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-48 p-1.5">
+        <div className="flex flex-col">
+          {items.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="rounded-md px-3 py-2 text-base font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground [&.bg-secondary]:text-foreground"
+              activeProps={{ className: "bg-secondary text-foreground" }}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function Shell({ children }: { children: ReactNode }) {
   const { isCommissioner, displayName } = useAuth();
   const more = NAV_MORE.filter((item) => !item.commissionerOnly || isCommissioner);
