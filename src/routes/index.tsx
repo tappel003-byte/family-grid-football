@@ -4,6 +4,7 @@ import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { MatchupBoard, TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -53,13 +54,9 @@ function MatchupsPage() {
   if (!league) return <LoadingScreen label="Drafting your family league…" />;
 
   const pairs = league.schedule[activeWeek - 1] ?? [];
-  const myTeam = league.teams.find((t) => !!user && t.userId === user.id);
-  const myIndex = myTeam
-    ? Math.max(
-        0,
-        pairs.findIndex((p) => p[0] === myTeam.slot || p[1] === myTeam.slot),
-      )
-    : 0;
+  const myIdx = league.teams.findIndex((t) => !!user && t.userId === user.id);
+  const found = pairs.findIndex((p) => p[0] === myIdx || p[1] === myIdx);
+  const myIndex = myIdx >= 0 && found >= 0 ? found : 0;
   const selected = Math.min(picked ?? myIndex, Math.max(0, pairs.length - 1));
   const pair = pairs[selected];
   const home = pair ? league.teams[pair[0]] : undefined;
