@@ -40,7 +40,7 @@ function toStatLine(raw: Record<string, number> | undefined): StatLine | null {
     xpMiss: n("xpmiss"),
     defSack: n("sack"),
     defInt: n("int"),
-    defFumRec: n("ff") > 0 ? n("fum_rec") : n("fum_rec"),
+    defFumRec: n("fum_rec"),
     defSafety: n("safe"),
     defTd: n("def_td") + n("def_st_td") + n("st_td"),
     defBlockKick: n("blk_kick"),
