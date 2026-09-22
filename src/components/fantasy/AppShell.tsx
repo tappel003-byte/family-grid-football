@@ -46,12 +46,14 @@ function Shell({ children }: { children: ReactNode }) {
               </Link>
             ))}
             <span className="ml-auto flex items-center gap-2 sm:ml-2">
-              {displayName && (
-                <span className="hidden max-w-[10rem] truncate text-base font-semibold text-muted-foreground sm:inline">
-                  {displayName}
-                  {isCommissioner ? " · Commissioner" : ""}
-                </span>
-              )}
+              <Link
+                to="/account"
+                className="max-w-[10rem] truncate rounded-lg px-3 py-2 text-base font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                activeProps={{ className: "bg-secondary text-foreground" }}
+              >
+                {displayName || "My Account"}
+                {isCommissioner ? " · Commissioner" : ""}
+              </Link>
               <Button
                 variant="ghost"
                 size="sm"
