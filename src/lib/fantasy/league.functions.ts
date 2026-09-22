@@ -100,6 +100,7 @@ export const saveLeague = createServerFn({ method: "POST" })
           name: data.name,
           current_week: data.currentWeek,
           scoring: data.scoring,
+          rules: data.rules ?? {},
           schedule: data.schedule,
         })
         .select("id")
@@ -113,6 +114,7 @@ export const saveLeague = createServerFn({ method: "POST" })
           name: data.name,
           current_week: data.currentWeek,
           scoring: data.scoring,
+          rules: data.rules ?? {},
           schedule: data.schedule,
           updated_at: new Date().toISOString(),
         })
