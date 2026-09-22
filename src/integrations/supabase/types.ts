@@ -53,18 +53,21 @@ export type Database = {
           display_name: string
           email: string
           id: string
+          time_zone: string
         }
         Insert: {
           created_at?: string
           display_name?: string
           email?: string
           id: string
+          time_zone?: string
         }
         Update: {
           created_at?: string
           display_name?: string
           email?: string
           id?: string
+          time_zone?: string
         }
         Relationships: []
       }

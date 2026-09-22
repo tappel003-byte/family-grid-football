@@ -104,6 +104,10 @@ export function gameStatusFor(teamAbbr: string, week: number) {
   return weekCache.get(week)?.games[teamAbbr]?.status ?? "none";
 }
 
+export function gameInfoFor(teamAbbr: string, week: number) {
+  return weekCache.get(week)?.games[teamAbbr];
+}
+
 export function headshotUrl(id: string, pos: string, team: string) {
   return pos === "DEF"
     ? `https://sleepercdn.com/images/team_logos/nfl/${team.toLowerCase()}.png`

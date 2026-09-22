@@ -1,7 +1,8 @@
 import type { SlimPlayer } from "@/lib/sleeper.functions";
-import { headshotUrl, teamLogoUrl } from "@/lib/fantasy/hooks";
+import { gameInfoFor, headshotUrl, teamLogoUrl } from "@/lib/fantasy/hooks";
 import { cn } from "@/lib/utils";
 import { ByeBadge } from "./PlayerInsights";
+import { formatGameTime, useTimeZone } from "@/lib/timezone";
 
 export type InjurySeverity = "out" | "doubtful" | "questionable";
 
@@ -80,6 +81,9 @@ export function PlayerCell({
   week?: number;
 }) {
   const info = injuryInfo(player.injury);
+  const timeZone = useTimeZone();
+  const game = week === undefined ? undefined : gameInfoFor(player.team, week);
+  const kickoff = formatGameTime(game?.startsAt, timeZone);
   return (
     <div
       className={cn(
@@ -143,6 +147,9 @@ export function PlayerCell({
             </span>
           )}
         </div>
+        {kickoff && game?.status === "scheduled" && (
+          <div className={cn("mt-0.5 text-xs font-semibold text-foreground/75", align === "right" && "text-right")}>{kickoff}</div>
+        )}
       </div>
     </div>
   );

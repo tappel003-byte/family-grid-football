@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { ZERO_STATS, type StatLine } from "./fantasy/scoring";
 
-export type GameInfo = { status: "final" | "live" | "scheduled" | "none"; label: string };
+export type GameInfo = { status: "final" | "live" | "scheduled" | "none"; label: string; startsAt?: string };
 
 export type WeekData = {
   season: string;
@@ -77,6 +77,16 @@ function mapStats(raw: Raw): Record<string, StatLine> {
 
 type ScheduleGame = { status: string; date: string; home: string; away: string; week: number };
 
+type Scoreboard = {
+  events?: Array<{
+    date?: string;
+    status?: { type?: { state?: string; completed?: boolean } };
+    competitions?: Array<{
+      competitors?: Array<{ team?: { abbreviation?: string } }>;
+    }>;
+  }>;
+};
+
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function gameLabel(game: ScheduleGame): GameInfo {
@@ -87,6 +97,25 @@ function gameLabel(game: ScheduleGame): GameInfo {
   const d = new Date(Date.UTC(parts[0] ?? 2026, (parts[1] ?? 1) - 1, parts[2] ?? 1));
   const day = DAYS[d.getUTCDay()] ?? "Sun";
   return { status: "scheduled", label: `${day} ${d.getUTCMonth() + 1}/${d.getUTCDate()}` };
+}
+
+function scoreboardGames(scoreboard: Scoreboard): Record<string, GameInfo> {
+  const games: Record<string, GameInfo> = {};
+  for (const event of scoreboard.events ?? []) {
+    const startsAt = event.date;
+    const state = event.status?.type?.state;
+    const status = event.status?.type?.completed ? "final" : state === "in" ? "live" : "scheduled";
+    const label = status === "final" ? "Final" : status === "live" ? "Live" : "Scheduled";
+    for (const competitor of event.competitions?.[0]?.competitors ?? []) {
+      const abbreviation = competitor.team?.abbreviation;
+      if (abbreviation) {
+        games[abbreviation === "WSH" ? "WAS" : abbreviation] = startsAt
+          ? { status, label, startsAt }
+          : { status, label };
+      }
+    }
+  }
+  return games;
 }
 
 type Cached = { at: number; data: WeekData };
@@ -120,10 +149,11 @@ export const getWeekData = createServerFn({ method: "GET" })
     const ttl = data.week < currentWeek ? 1000 * 60 * 60 * 6 : 1000 * 60 * 2;
     if (hit && Date.now() - hit.at < ttl) return hit.data;
 
-    const [stats, projections, schedule] = await Promise.all([
+    const [stats, projections, schedule, scoreboard] = await Promise.all([
       json<Raw>(`https://api.sleeper.app/v1/stats/nfl/regular/${season}/${data.week}`, {}),
       json<Raw>(`https://api.sleeper.app/v1/projections/nfl/regular/${season}/${data.week}`, {}),
       json<ScheduleGame[]>(`https://api.sleeper.app/schedule/nfl/regular/${season}`, []),
+      json<Scoreboard>(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${data.week}&dates=${season}`, {}),
     ]);
 
     const games: Record<string, GameInfo> = {};
@@ -133,6 +163,7 @@ export const getWeekData = createServerFn({ method: "GET" })
       games[game.home] = info;
       games[game.away] = info;
     }
+    Object.assign(games, scoreboardGames(scoreboard));
 
     const result: WeekData = {
       season,

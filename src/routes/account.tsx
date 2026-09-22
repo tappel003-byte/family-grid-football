@@ -11,6 +11,13 @@ import { Label } from "@/components/ui/label";
 import { getMyAccount, saveMyAccount } from "@/lib/fantasy/account.functions";
 import { cn } from "@/lib/utils";
 
+const TIME_ZONES = [
+  ["America/Los_Angeles", "Pacific Time"],
+  ["America/Denver", "Mountain Time"],
+  ["America/Chicago", "Central Time"],
+  ["America/New_York", "Eastern Time"],
+] as const;
+
 const COLORS = [
   "#1d4ed8",
   "#0ea5e9",
@@ -30,12 +37,12 @@ export const Route = createFileRoute("/account")({
       { title: "My Account — La Familia Fantasy Football" },
       {
         name: "description",
-        content: "Change your name, your team name and your team colour in the family league.",
+        content: "Change your name, team, colour and preferred game-time zone in the family league.",
       },
       { property: "og:title", content: "My Account — La Familia Fantasy Football" },
       {
         property: "og:description",
-        content: "Change your name, your team name and your team colour in the family league.",
+        content: "Change your name, team, colour and preferred game-time zone in the family league.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -79,6 +86,7 @@ function AccountPage() {
   const [name, setName] = useState("");
   const [teamName, setTeamName] = useState("");
   const [color, setColor] = useState(COLORS[0]);
+  const [timeZone, setTimeZone] = useState("America/Denver");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -86,6 +94,7 @@ function AccountPage() {
     setName(data.displayName);
     setTeamName(data.team?.name ?? "");
     setColor(data.team?.color ?? COLORS[0]);
+    setTimeZone(data.timeZone);
   }, [data]);
 
   if (isLoading || !data) return <LoadingScreen label="Loading your account…" />;
@@ -93,7 +102,7 @@ function AccountPage() {
   async function onSave() {
     setSaving(true);
     try {
-      await save({ data: { displayName: name, teamName, color: color ?? COLORS[0]! } });
+      await save({ data: { displayName: name, teamName, color: color ?? COLORS[0]!, timeZone } });
       await queryClient.invalidateQueries();
       toast.success("Saved");
     } catch (e) {
@@ -135,6 +144,21 @@ function AccountPage() {
             <div className="grid gap-2">
               <Label htmlFor="acct-name">Your name</Label>
               <Input id="acct-name" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="acct-time-zone">Preferred time zone</Label>
+              <select
+                id="acct-time-zone"
+                value={timeZone}
+                onChange={(e) => setTimeZone(e.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 text-base"
+              >
+                {TIME_ZONES.map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              <p className="text-sm text-muted-foreground">NFL kickoff times will use this time zone.</p>
             </div>
 
             {data.team ? (
