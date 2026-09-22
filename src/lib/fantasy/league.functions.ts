@@ -235,3 +235,34 @@ export const deleteSeason = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Commissioner hands a family member a fresh start: password back to the family password. */
+export const resetMemberPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) => data)
+  .handler(async ({ data, context }) => {
+    if (!(await isCommissioner(context))) throw new Error("Commissioners only.");
+    const password = process.env["FAMILY_PASSWORD"];
+    if (!password) throw new Error("The family password is not set up yet.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Commissioner removes a family member completely and frees up their team. */
+export const removeMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) => data)
+  .handler(async ({ data, context }) => {
+    if (!(await isCommissioner(context))) throw new Error("Commissioners only.");
+    if (data.userId === context.userId) throw new Error("You cannot remove your own account.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    await supabaseAdmin.from("teams").update({ user_id: null }).eq("user_id", data.userId);
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+    await supabaseAdmin.from("profiles").delete().eq("id", data.userId);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
