@@ -1,39 +1,50 @@
-# Get the real league in and live by the weekend
+# Finish La Familia Fantasy Football — all 26 items
 
-Two things have to happen before Sunday: real rosters replace the sample teams, and everyone sees the same league instead of their own private copy in their own browser.
+A phased plan to take the app from "works with sample data" to "the family logs in and plays".
+Items 1–11 are already done. Below are 12–26, grouped so each phase leaves the app usable.
 
-## 1. Shared league (required to go live)
+## Phase 1 — Make it private and real (do first, before the family weekend)
 
-Right now the league lives in each person's browser, so your mom would see a different league than you. Turning on the built-in backend stores one league everyone loads.
+**12. Private sign-in.** Family members sign in with Google or email. Nobody signed out can see the league; visitors land on a simple sign-in page with the league crest.
 
-- One shared league record: teams, owners, rosters, scoring rules, current week, schedule.
-- Anyone with the link can view. Only you (commissioner) can edit teams, rosters and settings — protected by a simple commissioner password you set once, kept server-side.
-- No accounts, no signups for the family. Just a link.
+**13. Commissioner powers.** You and your brother get a commissioner badge. Only you two can edit scoring, weeks, schedules, team names, and imports. Everyone else sees those screens read-only.
 
-## 2. Roster import (ESPN / Yahoo)
+**14. One person, one team.** Each account is linked to a team. You can only change lineups for your own team; other teams are view-only. Commissioner can change any team.
 
-ESPN and Yahoo don't hand out private-league data, so the import is paste-based. It only has to be done once, and you can do it Saturday with everyone in the room.
+**16. Real rosters loaded.** Import all ten rosters (paste, screenshot, or search), set the real team names and owners, and set the league's real scoring rules. A checklist screen shows which teams are complete.
 
-New "Import league" screen under Commissioner:
+**18. Test on real devices.** Walk the whole flow on a phone, tablet, and laptop with two different family accounts.
 
-- Set number of teams (8-10), then for each team: team name, owner name.
-- For each team, paste its roster — one player per line, straight from the ESPN/Yahoo roster page. Messy lines are fine ("Ja'Marr Chase WR CIN Q", "Bijan Robinson, RB").
-- The app matches each line to the real NFL player list (already loaded from Sleeper) by name, with position and team used to break ties. Defenses handled by team name.
-- A review step shows each line as Matched / Needs a pick (a short dropdown of close names) / Not found, so nothing silently lands in the wrong place.
-- Confirm builds the real league, auto-fills each starting lineup, and keeps the rest on the bench.
-- Also lets you paste all teams at once in a single box using "Team name:" header lines, for speed.
+**19 + 20. Domain and publish.** Buy the domain, connect it, and publish so family can reach it by name.
 
-Safety: importing replaces the sample league, with a confirm step. Existing sample league stays until you confirm.
+## Phase 2 — Real NFL scoring
 
-## 3. Weekend-ready touches
+**15. Real data replaces the simulation.** Live weekly stats and points from Sleeper's public feeds instead of the current made-up projections and clocks. Scores update through Sunday, matchups settle, and standings compute from real results. Kickoff times and game status come from the real schedule.
 
-- Schedule: auto-generated round-robin as today, plus the ability to edit which teams play each other in a given week if your real league's schedule differs.
-- Set the current NFL week on import so scores line up with the real season.
-- A share button on the home page that copies the league link.
+**17. Waivers and free agents.** Add and drop players for your own team, with roster-size limits and a record of every move so two people can't grab the same player.
+
+## Phase 3 — Season-long league features
+
+**24. Trades.** Propose a swap to another team; they accept or reject. Commissioner can veto.
+
+**25. Playoffs.** Choose playoff weeks and team count; a bracket appears and advances automatically.
+
+**23. Transaction rules and history.** Waiver settings, roster limits per position, and a league-wide activity feed.
+
+**22. Commissioner corrections.** Edit the schedule and override matchup results when something goes wrong.
+
+## Phase 4 — Year over year
+
+**21. Season rollover.** At season end, archive the year into History (champion, standings) and start a fresh league for next year with the same members.
+
+**26. Member management.** Invite links, remove members, reassign teams, and password recovery.
 
 ## Technical notes
 
-- Enable Lovable Cloud. Tables: `league` (single row: name, current_week, scoring JSON, schedule JSON), `teams` (name, owner, color, starters array, bench array, sort order). Public read via anon SELECT policies; writes through server functions guarded by a hashed commissioner passcode stored as a secret.
-- Replace `src/lib/fantasy/store.ts` localStorage layer with TanStack Query against server functions; keep the existing `League`/`FantasyTeam` shapes so matchups, standings, roster and optimize logic are unchanged.
-- New `src/lib/fantasy/import.ts`: name normalisation (strip punctuation, suffixes, accents), index of Sleeper players by normalised name + position, fuzzy fallback for near matches, defense alias table.
-- New route `src/routes/import.tsx` for the paste-and-review flow; `settings.tsx` gains the passcode gate and schedule editor.
+- Auth: Lovable Cloud auth, Google plus email/password. Routes move under a protected layout; sign-in page stays public.
+- Roles: separate `user_roles` table (`commissioner`, `member`) with a security-definer check; never stored on the profile. Team ownership via a `user_id` column on `teams`.
+- Write access: league/teams/season_history currently allow anon read and are written by the service role. Replace with policies — commissioners write league/schedule/scoring/history, a member writes only their own team row.
+- Real data (15): Sleeper `/stats/nfl/regular/{season}/{week}`, `/projections/...`, and `/state/nfl` for current week, cached server-side; scoring runs through the existing `scoreStats` with the league's real rules. Removes `projections.ts` simulation paths.
+- Transactions (17/23/24): new `transactions` table (add/drop/trade, status, actor, timestamps) and server functions that validate roster limits and ownership atomically.
+- Playoffs (25): store playoff config on the league row; bracket derived from standings at the cutoff week.
+- Rollover (21): copies teams and members into a new league slug, writes the finished season into `season_history`.
