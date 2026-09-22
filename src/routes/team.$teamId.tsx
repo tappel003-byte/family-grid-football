@@ -4,7 +4,7 @@ import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { RosterTable } from "@/components/fantasy/RosterTable";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
-import { playersQueryOptions, useLeague } from "@/lib/fantasy/hooks";
+import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/team/$teamId")({
@@ -44,12 +44,13 @@ function TeamPage() {
   const { league, byId } = useLeague();
   const { user, isCommissioner } = useAuth();
   const [week, setWeek] = useState<number | null>(null);
+  const activeWeek = week ?? league?.currentWeek ?? 1;
+  useWeekData(activeWeek);
 
   if (!league) return <LoadingScreen label="Setting up your league…" />;
   const team = league.teams.find((t) => t.id === teamId);
   if (!team) throw notFound();
 
-  const activeWeek = week ?? league.currentWeek;
   const totals = teamTotals(team, activeWeek, league, byId);
   const canEdit = isCommissioner || (!!user && team.userId === user.id);
 

@@ -11,6 +11,7 @@ import {
   playersQueryOptions,
   trendingQueryOptions,
   useLeague,
+  useWeekData,
   scoreFor,
 } from "@/lib/fantasy/hooks";
 import { rosterIds } from "@/lib/fantasy/league";
@@ -81,6 +82,7 @@ function PlayersPage() {
   const [sort, setSort] = useState<"PROJ" | "RANK">("PROJ");
 
   const week = league?.currentWeek ?? 1;
+  useWeekData(week);
 
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();

@@ -3,7 +3,7 @@ import { Suspense, useState } from "react";
 import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { MatchupBoard, TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
-import { playersQueryOptions, useLeague } from "@/lib/fantasy/hooks";
+import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -46,10 +46,11 @@ function MatchupsPage() {
   const { league, byId } = useLeague();
   const [week, setWeek] = useState<number | null>(null);
   const [selected, setSelected] = useState(0);
+  const activeWeek = week ?? league?.currentWeek ?? 1;
+  useWeekData(activeWeek);
 
   if (!league) return <LoadingScreen label="Drafting your family league…" />;
 
-  const activeWeek = week ?? league.currentWeek;
   const pairs = league.schedule[activeWeek - 1] ?? [];
   const pair = pairs[Math.min(selected, pairs.length - 1)];
   const home = pair ? league.teams[pair[0]] : undefined;

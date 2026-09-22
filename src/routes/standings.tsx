@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
-import { playersQueryOptions, useLeague } from "@/lib/fantasy/hooks";
+import { playersQueryOptions, useLeague, useWeeksData } from "@/lib/fantasy/hooks";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import type { League } from "@/lib/fantasy/league";
 import { cn } from "@/lib/utils";
@@ -106,6 +106,7 @@ function computeStandings(league: League, byId: Map<string, SlimPlayer>): Row[] 
 
 function StandingsPage() {
   const { league, byId } = useLeague();
+  useWeeksData(Math.max(0, (league?.currentWeek ?? 1) - 1));
   if (!league) return <LoadingScreen label="Setting up your league…" />;
 
   const rows = computeStandings(league, byId);
