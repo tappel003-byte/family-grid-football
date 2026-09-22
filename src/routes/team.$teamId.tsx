@@ -3,6 +3,7 @@ import { Suspense, useState } from "react";
 import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { RosterTable } from "@/components/fantasy/RosterTable";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
+import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks";
 import { useAuth } from "@/lib/auth";

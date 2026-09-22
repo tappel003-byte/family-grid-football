@@ -17,6 +17,7 @@ import { updateLeague } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
+import { PlayerInsightChips, useInsights, isOnBye } from "./PlayerInsights";
 import { cn } from "@/lib/utils";
 
 function setTeam(league: League, teamId: string, fn: (t: FantasyTeam) => FantasyTeam): League {
@@ -188,7 +189,10 @@ export function RosterTable({
                 </td>
                 <td className="block px-4 py-2 md:table-cell md:py-3">
                   {player ? (
-                    <PlayerCell player={player} />
+                    <div className="min-w-0">
+                      <PlayerCell player={player} />
+                      <PlayerInsightChips player={player} week={week} />
+                    </div>
                   ) : (
                     <span className="text-muted-foreground">Empty</span>
                   )}
@@ -258,7 +262,10 @@ export function RosterTable({
               key={p.id}
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
             >
-              <PlayerCell player={p} compact />
+              <div className="min-w-0">
+                <PlayerCell player={p} compact />
+                <PlayerInsightChips player={p} week={week} />
+              </div>
               <div className="flex shrink-0 items-center gap-3">
                 <div className="text-right">
                   <div className="font-display text-lg font-bold tabular-nums">
