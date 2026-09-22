@@ -20,6 +20,7 @@ type RawPlayer = {
   team?: string | null;
   injury_status?: string | null;
   search_rank?: number | null;
+  fantasy_positions?: string[] | null;
   age?: number | null;
   number?: number | null;
   active?: boolean;
@@ -40,8 +41,11 @@ export const getPlayers = createServerFn({ method: "GET" }).handler(
 
     const players: SlimPlayer[] = [];
     for (const p of Object.values(raw)) {
-      const pos = p.position ?? "";
-      if (!p.player_id || !FANTASY_POSITIONS.has(pos)) continue;
+      const declared = p.position ?? "";
+      const pos = FANTASY_POSITIONS.has(declared)
+        ? declared
+        : ((p.fantasy_positions ?? []).find((f) => FANTASY_POSITIONS.has(f)) ?? "");
+      if (!p.player_id || !pos) continue;
       if (!p.team) continue;
       const name = p.full_name ?? [p.first_name, p.last_name].filter(Boolean).join(" ");
       if (!name) continue;
