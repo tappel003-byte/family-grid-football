@@ -11,13 +11,13 @@ export const Route = createFileRoute("/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
-      { title: "Family Football — Weekly Matchups" },
+      { title: "La Familia — Weekly Matchups" },
       {
         name: "description",
         content:
           "A private family fantasy football league: head-to-head matchups, live points and big, easy-to-read rosters.",
       },
-      { property: "og:title", content: "Family Football — Weekly Matchups" },
+      { property: "og:title", content: "La Familia — Weekly Matchups" },
       {
         property: "og:description",
         content: "Head-to-head family fantasy matchups with live NFL players and clear scoreboards.",

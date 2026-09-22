@@ -9,12 +9,12 @@ export const Route = createFileRoute("/teams")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
-      { title: "League Teams — Family Football" },
+      { title: "League Teams — La Familia" },
       {
         name: "description",
         content: "Every family team, owner and weekly projected total in one place.",
       },
-      { property: "og:title", content: "League Teams — Family Football" },
+      { property: "og:title", content: "League Teams — La Familia" },
       {
         property: "og:description",
         content: "Every family team, owner and weekly projected total in one place.",

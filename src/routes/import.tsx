@@ -28,12 +28,12 @@ export const Route = createFileRoute("/import")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
-      { title: "Import Rosters — Family Football" },
+      { title: "Import Rosters — La Familia" },
       {
         name: "description",
         content: "Commissioner tool to paste, scan or search in every family team's roster.",
       },
-      { property: "og:title", content: "Import Rosters — Family Football" },
+      { property: "og:title", content: "Import Rosters — La Familia" },
       {
         property: "og:description",
         content: "Commissioner tool to paste, scan or search in every family team's roster.",
