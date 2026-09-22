@@ -207,7 +207,7 @@ function PlayersPage() {
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
                 >
                   <div className="min-w-0">
-                    <PlayerCell player={player} />
+                    <PlayerCell player={player} week={week} />
                     <div className="mt-1 text-sm">
                       {owner ? (
                         <span className="text-muted-foreground">On {owner}</span>
