@@ -151,6 +151,62 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          actor_id: string | null
+          actor_name: string
+          added_player_id: string | null
+          added_player_name: string
+          created_at: string
+          dropped_player_id: string | null
+          dropped_player_name: string
+          id: string
+          kind: string
+          league_id: string
+          team_name: string
+          team_slot: number
+          week: number
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string
+          added_player_id?: string | null
+          added_player_name?: string
+          created_at?: string
+          dropped_player_id?: string | null
+          dropped_player_name?: string
+          id?: string
+          kind?: string
+          league_id: string
+          team_name?: string
+          team_slot: number
+          week?: number
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string
+          added_player_id?: string | null
+          added_player_name?: string
+          created_at?: string
+          dropped_player_id?: string | null
+          dropped_player_name?: string
+          id?: string
+          kind?: string
+          league_id?: string
+          team_name?: string
+          team_slot?: number
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "league"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
