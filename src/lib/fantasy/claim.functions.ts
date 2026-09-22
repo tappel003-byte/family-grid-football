@@ -129,5 +129,16 @@ export const claimTeam = createServerFn({ method: "POST" })
       .update({ user_id: userId, owner: name, updated_at: new Date().toISOString() })
       .eq("id", team.id);
 
+    // Everyone who claims a team is a member; Scottsdale Banthas is the
+    // commissioner's team (Scott Appel).
+    await supabaseAdmin
+      .from("user_roles")
+      .upsert({ user_id: userId, role: "member" }, { onConflict: "user_id,role" });
+    if (team.slot === 1) {
+      await supabaseAdmin
+        .from("user_roles")
+        .upsert({ user_id: userId, role: "commissioner" }, { onConflict: "user_id,role" });
+    }
+
     return { ok: true as const, email };
   });
