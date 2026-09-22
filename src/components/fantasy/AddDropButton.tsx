@@ -33,6 +33,7 @@ export function AddDropButton({
   const move = useServerFn(makeRosterMove);
   const [pending, setPending] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
+  const [confirmDrop, setConfirmDrop] = useState(false);
 
   const myTeam = user ? league.teams.find((t) => t.userId === user.id) : undefined;
   if (!myTeam) return null;
