@@ -93,6 +93,7 @@ function Shell({ children }: { children: ReactNode }) {
               </Link>
             ))}
             <span className="ml-auto flex items-center gap-2 sm:ml-2">
+              <ChipLegend />
               <Link
                 to="/account"
                 className="max-w-[10rem] truncate rounded-lg px-3 py-2 text-base font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
