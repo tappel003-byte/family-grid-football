@@ -434,6 +434,58 @@ export function RosterTable({
         )}
       </ul>
 
+      {irSlots > 0 && (
+        <>
+          <div className="border-t bg-secondary/40 px-4 py-3">
+            <h3 className="font-display text-lg font-bold">
+              Injured Reserve{" "}
+              <span className="font-sans text-sm font-semibold text-muted-foreground">
+                {irIds.length} of {irSlots}
+              </span>
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Park a hurt starter here to free up a roster spot. They score nothing while on IR.
+            </p>
+          </div>
+          <ul className="divide-y">
+            {irPlayers.map((p) => (
+              <li
+                key={p.id}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
+              >
+                <PlayerCell player={p} compact week={week} />
+                {editable && (
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => void moveToIR(p, false)}
+                    >
+                      Activate
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive"
+                      disabled={pending}
+                      onClick={() => setDropTarget(p)}
+                    >
+                      Drop
+                    </Button>
+                  </div>
+                )}
+              </li>
+            ))}
+            {irPlayers.length === 0 && (
+              <li className="px-4 py-6 text-muted-foreground">
+                Nobody on injured reserve. Use the IR button next to a player who is out.
+              </li>
+            )}
+          </ul>
+        </>
+      )}
+
       <Dialog open={!!dropTarget} onOpenChange={(o) => !o && setDropTarget(null)}>
         <DialogContent>
           <DialogHeader>
