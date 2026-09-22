@@ -176,22 +176,30 @@ function HistoryPage() {
         </div>
       )}
 
-      <div className="grid gap-4">
+      <div className="grid gap-3">
         {seasons.map((s) => (
           <article key={s.season} className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-secondary/60 px-5 py-4">
-              <div className="flex items-center gap-4">
-                <span className="font-display text-3xl font-bold tabular-nums">{s.season}</span>
-                <div>
-                  <div className="flex items-center gap-2 font-display text-xl font-bold">
-                    <Trophy className="h-5 w-5 text-accent" />
-                    {s.champion || "Champion not recorded"}
-                  </div>
-                  {s.champion_owner && (
-                    <div className="text-base text-muted-foreground">{s.champion_owner}</div>
-                  )}
-                </div>
-              </div>
+            <header className="flex flex-wrap items-center justify-between gap-3 bg-secondary/60 px-3 py-2">
+              <button
+                type="button"
+                onClick={() => setOpen(open === s.season ? null : s.season)}
+                aria-expanded={open === s.season}
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors hover:bg-secondary"
+              >
+                <ChevronRight
+                  className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${open === s.season ? "rotate-90" : ""}`}
+                />
+                <span className="font-display text-2xl font-bold tabular-nums">{s.season}</span>
+                <span className="flex min-w-0 items-center gap-2 font-display text-lg font-bold">
+                  <Trophy className="h-4 w-4 shrink-0 text-accent" />
+                  <span className="truncate">{s.champion || "Champion not recorded"}</span>
+                </span>
+                {s.champion_owner && (
+                  <span className="hidden truncate text-base text-muted-foreground sm:inline">
+                    {s.champion_owner}
+                  </span>
+                )}
+              </button>
               {isCommissioner && (
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
@@ -203,7 +211,10 @@ function HistoryPage() {
                 </div>
               )}
             </header>
-            <div className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+            <div
+              hidden={open !== s.season}
+              className="grid gap-4 border-t p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]"
+            >
               <dl className="space-y-2 text-base">
                 <div>
                   <dt className="text-sm uppercase tracking-widest text-muted-foreground">
