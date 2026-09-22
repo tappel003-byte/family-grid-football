@@ -17,6 +17,7 @@ export type LeaguePayload = {
   name: string;
   currentWeek: number;
   scoring: Record<string, number>;
+  rules: Record<string, unknown>;
   schedule: Array<Array<[number, number]>>;
   teams: TeamRow[];
 };
@@ -26,6 +27,7 @@ export function toPayload(league: League): LeaguePayload {
     name: league.name,
     currentWeek: league.currentWeek,
     scoring: league.scoring as unknown as Record<string, number>,
+    rules: league.rules as unknown as Record<string, unknown>,
     schedule: league.schedule,
     teams: league.teams.map((t: FantasyTeam, i) => ({
       slot: i,
