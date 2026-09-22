@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
+import { HelpCircle, LogOut } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function Football({ className }: { className?: string }) {
   return (
@@ -28,6 +29,40 @@ const NAV = [
   { to: "/history", label: "History", commissionerOnly: false },
   { to: "/settings", label: "Commissioner", commissionerOnly: true },
 ] as const;
+
+const LEGEND = [
+  { chip: "L3 16.2 · season 16.2", text: "Average fantasy points over the last 3 games, and the season average per game. A flame means he's playing hot lately; a snowflake means he's cooling off." },
+  { chip: "77% snaps", text: "The share of his team's offensive plays he was on the field for this season. Higher means he stays on the field." },
+  { chip: "8.5 tgt", text: "Average times per game the quarterback throws to him (receivers, tight ends, running backs)." },
+  { chip: "vs DEN · Great matchup", text: "This week's opponent and how their defense fares against his position. Great = that defense gives up lots of points; Tough = they shut that position down." },
+  { chip: "BYE week 12", text: "His NFL team doesn't play that week, so he scores 0 points. Bench him." },
+  { chip: "OUT / Q / D", text: "Injury status. OUT (red) means he won't play. Q means questionable — a game-time decision. D means doubtful." },
+] as const;
+
+function ChipLegend() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="sm" aria-label="What do the player badges mean?" className="font-semibold">
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80">
+        <p className="mb-2 font-display text-base font-bold">What the player badges mean</p>
+        <ul className="space-y-2.5">
+          {LEGEND.map((row) => (
+            <li key={row.chip}>
+              <span className="inline-block rounded-md bg-secondary px-1.5 py-0.5 text-xs font-semibold text-secondary-foreground">
+                {row.chip}
+              </span>
+              <p className="mt-0.5 text-sm text-muted-foreground">{row.text}</p>
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function Shell({ children }: { children: ReactNode }) {
   const { isCommissioner, displayName } = useAuth();
@@ -58,6 +93,7 @@ function Shell({ children }: { children: ReactNode }) {
               </Link>
             ))}
             <span className="ml-auto flex items-center gap-2 sm:ml-2">
+              <ChipLegend />
               <Link
                 to="/account"
                 className="max-w-[10rem] truncate rounded-lg px-3 py-2 text-base font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
