@@ -87,9 +87,10 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
 
 function PlayersPage() {
   const { league, players, byId } = useLeague();
+  const { f } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [pos, setPos] = useState("ALL");
-  const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">("ALL");
+  const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
   const [sort, setSort] = useState<"PROJ" | "RANK" | "HOT">("PROJ");
 
   const week = league?.currentWeek ?? 1;
