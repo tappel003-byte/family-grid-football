@@ -10,12 +10,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
-import { BENCH_SIZE, SLOTS, rosterIds, type League } from "@/lib/fantasy/league";
+import { rosterIds, type League } from "@/lib/fantasy/league";
 import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
 import { reloadLeague } from "@/lib/fantasy/store";
+import { gameStatusFor } from "@/lib/fantasy/hooks";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
-
-const ROSTER_LIMIT = SLOTS.length + BENCH_SIZE;
 
 /** Add a free agent to your own team, or drop someone you already have. */
 export function AddDropButton({
