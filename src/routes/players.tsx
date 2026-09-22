@@ -1,13 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowUpDown, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { playersQueryOptions, trendingQueryOptions, usePlayers } from "@/lib/fantasy/hooks";
+import {
+  playersQueryOptions,
+  trendingQueryOptions,
+  useLeague,
+  scoreFor,
+} from "@/lib/fantasy/hooks";
+import { rosterIds } from "@/lib/fantasy/league";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"];
@@ -68,16 +74,39 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
 }
 
 function PlayersPage() {
-  const { players, byId } = usePlayers();
+  const { league, players, byId } = useLeague();
   const [query, setQuery] = useState("");
   const [pos, setPos] = useState("ALL");
+  const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">("ALL");
+  const [sort, setSort] = useState<"PROJ" | "RANK">("PROJ");
+
+  const week = league?.currentWeek ?? 1;
+
+  const ownerByPlayer = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of league?.teams ?? []) for (const id of rosterIds(t)) map.set(id, t.name);
+    return map;
+  }, [league]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return players
+    const list = players
       .filter((p) => (pos === "ALL" || p.pos === pos) && (!q || p.name.toLowerCase().includes(q)))
-      .slice(0, 100);
-  }, [players, query, pos]);
+      .filter((p) => {
+        if (avail === "ALL") return true;
+        const owned = ownerByPlayer.has(p.id);
+        return avail === "FA" ? !owned : owned;
+      })
+      .map((p) => ({
+        player: p,
+        owner: ownerByPlayer.get(p.id) ?? null,
+        proj: league ? scoreFor(p, week, league).projected : 0,
+      }));
+    list.sort((a, b) =>
+      sort === "PROJ" ? b.proj - a.proj : a.player.rank - b.player.rank,
+    );
+    return list.slice(0, 100);
+  }, [players, query, pos, avail, sort, ownerByPlayer, league, week]);
 
   return (
     <>
@@ -119,12 +148,56 @@ function PlayersPage() {
                 </Button>
               ))}
             </div>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["ALL", "All players"],
+                  ["FA", "Free agents"],
+                  ["ROSTERED", "On a team"],
+                ] as const
+              ).map(([v, label]) => (
+                <Button
+                  key={v}
+                  variant={avail === v ? "default" : "outline"}
+                  onClick={() => setAvail(v)}
+                  className="font-semibold"
+                >
+                  {label}
+                </Button>
+              ))}
+              <Button
+                variant="secondary"
+                onClick={() => setSort(sort === "PROJ" ? "RANK" : "PROJ")}
+                className="font-semibold"
+              >
+                <ArrowUpDown className="mr-1.5 h-4 w-4" />
+                {sort === "PROJ" ? "Top projected" : "Overall rank"}
+              </Button>
+            </div>
           </div>
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <ul className="divide-y">
-              {results.map((p) => (
-                <li key={p.id} className="px-4 py-3">
-                  <PlayerCell player={p} />
+              {results.map(({ player, owner, proj }) => (
+                <li
+                  key={player.id}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <PlayerCell player={player} />
+                    <div className="mt-1 text-sm">
+                      {owner ? (
+                        <span className="text-muted-foreground">On {owner}</span>
+                      ) : (
+                        <span className="font-semibold text-accent-foreground">Free agent</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="font-display text-xl font-bold tabular-nums">
+                      {proj.toFixed(1)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">proj wk {week}</div>
+                  </div>
                 </li>
               ))}
               {!results.length && (
