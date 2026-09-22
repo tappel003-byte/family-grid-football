@@ -92,6 +92,13 @@ export function MatchupBoard({
   const h = teamTotals(home, week, league, byId);
   const a = teamTotals(away, week, league, byId);
 
+  const inactiveNames = [home, away].flatMap((team) =>
+    team.starters
+      .map((id) => (id ? byId.get(id) : undefined))
+      .filter((p): p is SlimPlayer => !!p && isInactive(p.injury))
+      .map((p) => `${p.name} (${team.name})`),
+  );
+
   return (
     <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <header className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b bg-secondary/60 p-4 sm:p-5">
