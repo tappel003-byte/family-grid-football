@@ -139,6 +139,22 @@ export function RosterTable({
     swapIn(target, benchId);
   };
 
+  const dropPlayer = async (p: SlimPlayer) => {
+    setPending(true);
+    try {
+      await move({
+        data: { addId: null, addName: p.name, addPos: p.pos, dropId: p.id, dropName: p.name },
+      });
+      await reloadLeague();
+      toast.success(`Dropped ${p.name}`);
+      setDropTarget(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "That move did not go through.");
+    } finally {
+      setPending(false);
+    }
+  };
+
   const optimize = () => {
     const before = projectedTotal(team, byId, league, week);
     const after = projectedTotal(
