@@ -266,7 +266,7 @@ export function RosterTable({
                 <td className="block px-4 py-2 md:table-cell md:py-3">
                   {player ? (
                     <div className="min-w-0">
-                      <PlayerCell player={player} />
+                      <PlayerCell player={player} week={week} />
                       <PlayerInsightChips player={player} week={week} />
                     </div>
                   ) : (
@@ -359,7 +359,7 @@ export function RosterTable({
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
             >
               <div className="min-w-0">
-                <PlayerCell player={p} compact />
+                <PlayerCell player={p} compact week={week} />
                 <PlayerInsightChips player={p} week={week} />
               </div>
               <div className="flex shrink-0 items-center gap-3">
