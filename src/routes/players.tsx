@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpDown, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowUpDown, History, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
+import { AddDropButton } from "@/components/fantasy/AddDropButton";
+import { ActivityFeed } from "@/components/fantasy/ActivityFeed";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -124,6 +126,9 @@ function PlayersPage() {
           <TabsTrigger value="drops" className="text-base">
             Trending Drops
           </TabsTrigger>
+          <TabsTrigger value="activity" className="text-base">
+            Activity
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="search" className="mt-4">
@@ -194,11 +199,14 @@ function PlayersPage() {
                       )}
                     </div>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <div className="font-display text-xl font-bold tabular-nums">
-                      {proj.toFixed(1)}
+                  <div className="flex shrink-0 items-center gap-3">
+                    <div className="text-right">
+                      <div className="font-display text-xl font-bold tabular-nums">
+                        {proj.toFixed(1)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">proj wk {week}</div>
                     </div>
-                    <div className="text-xs text-muted-foreground">proj wk {week}</div>
+                    {league && <AddDropButton player={player} league={league} byId={byId} />}
                   </div>
                 </li>
               ))}
@@ -226,6 +234,15 @@ function PlayersPage() {
               <TrendingDown className="h-5 w-5" /> Most dropped in the last 24 hours
             </div>
             <TrendingList type="drop" byId={byId} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="activity" className="mt-4">
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div className="flex items-center gap-2 border-b bg-secondary/60 px-4 py-3 font-display text-lg font-bold">
+              <History className="h-5 w-5" /> Recent adds and drops
+            </div>
+            <ActivityFeed />
           </div>
         </TabsContent>
       </Tabs>
