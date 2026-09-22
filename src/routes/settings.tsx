@@ -88,6 +88,16 @@ function SettingsPage() {
   const resetPassword = useServerFn(resetMemberPassword);
   const kickMember = useServerFn(removeMember);
   const saveOverride = useServerFn(setScoreOverride);
+  const claimsFetch = useServerFn(listClaims);
+  const runClaimList = useServerFn(runWaivers);
+  const pullClaim = useServerFn(cancelClaim);
+  const closeSeason = useServerFn(saveSeasonToHistory);
+  const queryClient = useQueryClient();
+  const { data: claims = [] } = useQuery<ClaimRow[]>({
+    queryKey: ["waiver-claims"],
+    queryFn: claimsFetch,
+  });
+
   const [fixWeek, setFixWeek] = useState<number | null>(null);
   const [draft, setDraft] = useState<Record<number, string>>({});
   if (!league) return <LoadingScreen label="Setting up your league…" />;
