@@ -3,8 +3,43 @@ import { useEffect, useMemo } from "react";
 import { getPlayers, getTrending, type SlimPlayer } from "../sleeper.functions";
 import { buildLeague, type League } from "./league";
 import { hydrateLeague, leagueStatus, setLeague, useLeagueStore } from "./store";
-import { actualStats, gameStatusLabel, projectedStats } from "./projections";
-import { scoreStats } from "./scoring";
+import { getWeekData, type WeekData } from "../nfl.functions";
+import { scoreStats, type StatLine } from "./scoring";
+
+const ZERO: StatLine = {
+  passYd: 0,
+  passTd: 0,
+  interception: 0,
+  rushYd: 0,
+  rushTd: 0,
+  reception: 0,
+  recYd: 0,
+  recTd: 0,
+  fumble: 0,
+  fgMade: 0,
+  xpMade: 0,
+  defSack: 0,
+  defInt: 0,
+  defTd: 0,
+};
+
+/** Latest real NFL week data, kept here so score helpers stay simple to call. */
+const weekCache = new Map<number, WeekData>();
+
+export const weekDataQueryOptions = (week: number) =>
+  queryOptions({
+    queryKey: ["nfl-week", week],
+    queryFn: () => getWeekData({ data: { week } }),
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: 1000 * 60 * 2,
+  });
+
+/** Loads the real stats, projections and game status for a week. */
+export function useWeekData(week: number): WeekData {
+  const { data } = useSuspenseQuery(weekDataQueryOptions(week));
+  weekCache.set(week, data);
+  return data;
+}
 
 export const playersQueryOptions = queryOptions({
   queryKey: ["nfl-players"],
