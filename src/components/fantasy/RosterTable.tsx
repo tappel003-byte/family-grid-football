@@ -314,9 +314,20 @@ export function RosterTable({
                         </DropdownMenuContent>
                       </DropdownMenu>
                       {player && (
-                        <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
-                          Bench
-                        </Button>
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
+                            Bench
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            disabled={pending}
+                            onClick={() => setDropTarget(player)}
+                          >
+                            Drop
+                          </Button>
+                        </>
                       )}
                     </div>
                   </td>
