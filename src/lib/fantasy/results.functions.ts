@@ -9,15 +9,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type StatLine = Record<string, number>;
 
-const EMPTY: StatLine = {};
-const KEYS = [
-  "pass_yd", "pass_td", "pass_int", "rush_yd", "rush_td", "rec", "rec_yd", "rec_td",
-  "fum_lost", "pass_2pt", "rush_2pt", "rec_2pt",
-  "fgm", "fgm_0_19", "fgm_20_29", "fgm_30_39", "fgm_40_49", "fgm_50p", "fgmiss", "xpm", "xpmiss",
-  "sack", "int", "fum_rec", "safe", "def_td", "def_st_td", "st_td", "blk_kick",
-  "pts_allow_0", "pts_allow_1_6", "pts_allow_7_13", "pts_allow_14_20", "pts_allow_21_27",
-  "pts_allow_28_34", "pts_allow_35p",
-];
 
 /** Same mapping the live scoring uses, kept local so this file imports nothing heavy. */
 function toLine(raw: Record<string, number> | undefined): StatLine {
