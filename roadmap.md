@@ -8,3 +8,4 @@
 6. [x] Chrome — stack the nav: History (and Commissioner) tucked under a "More" menu
 
 - [ ] Player Research screen: discuss and improve usefulness (Tim, Sep 22)
+- [ ] Decide: should IR moves require commissioner approval? (owner-managed for now)
