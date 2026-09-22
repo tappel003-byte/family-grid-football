@@ -6,6 +6,7 @@ import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShel
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { AddDropButton } from "@/components/fantasy/AddDropButton";
 import { ActivityFeed } from "@/components/fantasy/ActivityFeed";
+import { InsightsProvider, PlayerInsightChips } from "@/components/fantasy/PlayerInsights";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -198,6 +199,7 @@ function PlayersPage() {
                         <span className="font-semibold text-accent-foreground">Free agent</span>
                       )}
                     </div>
+                    <PlayerInsightChips player={player} week={week} />
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <div className="text-right">
