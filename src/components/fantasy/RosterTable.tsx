@@ -15,7 +15,7 @@ import { scoreFor } from "@/lib/fantasy/hooks";
 import { isPlayable } from "@/lib/fantasy/projections";
 import { updateLeague } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CalendarOff } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
 import { PlayerInsightChips, useInsights, isOnBye } from "./PlayerInsights";
 import { cn } from "@/lib/utils";
@@ -163,6 +163,20 @@ export function RosterTable({
           </p>
         </div>
       )}
+
+      {byeStarters.length > 0 && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 border-b-2 border-injury-questionable bg-injury-questionable/20 px-4 py-3"
+        >
+          <CalendarOff className="mt-0.5 h-5 w-5 shrink-0 text-injury-questionable" />
+          <p className="text-base font-semibold leading-snug">
+            On bye this week and still starting:{" "}
+            {byeStarters.map((p) => p.name).join(", ")}. They will score zero.
+          </p>
+        </div>
+      )}
+
 
       <table className="w-full">
         <thead className="hidden border-b text-left text-xs uppercase tracking-widest text-muted-foreground md:table-header-group">
