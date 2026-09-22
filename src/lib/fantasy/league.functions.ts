@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { League, FantasyTeam } from "./league";
 
 type TeamRow = {
@@ -8,6 +9,7 @@ type TeamRow = {
   color: string;
   starters: Array<string | null>;
   bench: string[];
+  userId?: string | null;
 };
 
 export type LeaguePayload = {
@@ -31,15 +33,29 @@ export function toPayload(league: League): LeaguePayload {
       color: t.color,
       starters: t.starters,
       bench: t.bench,
+      userId: t.userId ?? null,
     })),
   };
 }
 
-/** Writes the whole league. This is a private family league, so any visitor may edit. */
+async function isCommissioner(context: { supabase: any; userId: string }) {
+  const { data } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "commissioner",
+  });
+  return data === true;
+}
+
+/**
+ * Saves the league. Commissioners may change everything; everyone else may only
+ * change the lineup of the team they own.
+ */
 export const saveLeague = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: LeaguePayload) => data)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const commish = await isCommissioner(context);
 
     const { data: existing } = await supabaseAdmin
       .from("league")
@@ -48,6 +64,30 @@ export const saveLeague = createServerFn({ method: "POST" })
       .maybeSingle();
 
     let leagueId = existing?.id;
+
+    if (!commish) {
+      if (!leagueId) throw new Error("Only the commissioner can create the league.");
+      const { data: myTeam } = await supabaseAdmin
+        .from("teams")
+        .select("id, slot")
+        .eq("league_id", leagueId)
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      if (!myTeam) throw new Error("You do not have a team in this league yet.");
+      const mine = data.teams.find((t) => t.slot === myTeam.slot);
+      if (!mine) throw new Error("Your team was not part of this change.");
+      const { error } = await supabaseAdmin
+        .from("teams")
+        .update({
+          starters: mine.starters,
+          bench: mine.bench,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", myTeam.id);
+      if (error) throw new Error(error.message);
+      return { ok: true, scope: "team" as const };
+    }
+
     if (!leagueId) {
       const { data: created, error } = await supabaseAdmin
         .from("league")
@@ -84,6 +124,7 @@ export const saveLeague = createServerFn({ method: "POST" })
       color: t.color,
       starters: t.starters,
       bench: t.bench,
+      user_id: t.userId ?? null,
       updated_at: new Date().toISOString(),
     }));
 
@@ -99,6 +140,54 @@ export const saveLeague = createServerFn({ method: "POST" })
       .gte("slot", data.teams.length);
     if (pruneError) throw new Error(pruneError.message);
 
+    return { ok: true, scope: "league" as const };
+  });
+
+/** Commissioner links a family member's account to one team. */
+export const assignTeam = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { slot: number; userId: string | null }) => data)
+  .handler(async ({ data, context }) => {
+    if (!(await isCommissioner(context))) throw new Error("Commissioners only.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: leagueRow } = await supabaseAdmin
+      .from("league")
+      .select("id")
+      .eq("slug", "main")
+      .maybeSingle();
+    if (!leagueRow) throw new Error("No league yet.");
+
+    if (data.userId) {
+      // one team per person
+      await supabaseAdmin
+        .from("teams")
+        .update({ user_id: null })
+        .eq("league_id", leagueRow.id)
+        .eq("user_id", data.userId);
+    }
+
+    const { error } = await supabaseAdmin
+      .from("teams")
+      .update({ user_id: data.userId, updated_at: new Date().toISOString() })
+      .eq("league_id", leagueRow.id)
+      .eq("slot", data.slot);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Commissioner promotes or demotes another family member. */
+export const setMemberRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; role: "commissioner" | "member" }) => data)
+  .handler(async ({ data, context }) => {
+    if (!(await isCommissioner(context))) throw new Error("Commissioners only.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+    const { error } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: data.userId, role: data.role });
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -114,8 +203,10 @@ export type SeasonInput = {
 };
 
 export const saveSeason = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: SeasonInput) => data)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    if (!(await isCommissioner(context))) throw new Error("Commissioners only.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("season_history")
@@ -125,8 +216,10 @@ export const saveSeason = createServerFn({ method: "POST" })
   });
 
 export const deleteSeason = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: { season: number }) => data)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    if (!(await isCommissioner(context))) throw new Error("Commissioners only.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("season_history")
