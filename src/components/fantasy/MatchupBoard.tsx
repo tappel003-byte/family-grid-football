@@ -44,11 +44,13 @@ function Side({
   align,
   week,
   league,
+  flagged,
 }: {
   player: SlimPlayer | undefined;
   align: "left" | "right";
   week: number;
   league: League;
+  flagged: boolean;
 }) {
   if (!player) {
     return (
@@ -61,7 +63,8 @@ function Side({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3",
+        "flex items-center justify-between gap-3 rounded-lg",
+        flagged && "-mx-2 bg-injury-out/15 px-2 py-1",
         align === "right" && "flex-row-reverse",
       )}
     >
@@ -153,25 +156,35 @@ export function MatchupBoard({
         {SLOTS.map((slot, i) => {
           const hp = home.starters[i] ? byId.get(home.starters[i]!) : undefined;
           const ap = away.starters[i] ? byId.get(away.starters[i]!) : undefined;
-          const flagged = (hp && isInactive(hp.injury)) || (ap && isInactive(ap.injury));
+          const hpOut = !!hp && isInactive(hp.injury);
+          const apOut = !!ap && isInactive(ap.injury);
           return (
             <div
               key={`${slot}-${i}`}
-              className={cn(
-                "grid grid-cols-1 items-center gap-2 p-3 md:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)] md:gap-4 md:p-4",
-                flagged && "bg-injury-out/10",
-              )}
+              className="grid grid-cols-1 items-center gap-2 p-3 md:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)] md:gap-4 md:p-4"
             >
               <div className="md:hidden">
                 <span className="rounded bg-secondary px-2 py-0.5 text-xs font-bold uppercase tracking-widest">
                   {slot}
                 </span>
               </div>
-              <Side player={hp} align="left" week={week} league={league} />
+              <Side
+                player={hp}
+                align="left"
+                week={week}
+                league={league}
+                flagged={hpOut}
+              />
               <div className="hidden text-center font-display text-sm font-bold uppercase tracking-widest text-muted-foreground md:block">
                 {slot}
               </div>
-              <Side player={ap} align="right" week={week} league={league} />
+              <Side
+                player={ap}
+                align="right"
+                week={week}
+                league={league}
+                flagged={apOut}
+              />
             </div>
           );
         })}
