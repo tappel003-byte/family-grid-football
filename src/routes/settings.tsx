@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { toast } from "sonner";
 import { CommissionerOnly } from "@/components/fantasy/AuthGate";
@@ -13,7 +14,16 @@ import {
 import { setScoreOverride } from "@/lib/fantasy/overrides.functions";
 import { allOverrides, reloadLeague, reloadOverrides, scoreOverride } from "@/lib/fantasy/store";
 import { RULE_POSITIONS } from "@/lib/fantasy/rules";
-import { WEEKS } from "@/lib/fantasy/league";
+import { WEEKS, rosterIds, type League } from "@/lib/fantasy/league";
+import {
+  cancelClaim,
+  listClaims,
+  runWaivers,
+  type ClaimRow,
+} from "@/lib/fantasy/waivers.functions";
+import { saveSeasonToHistory } from "@/lib/fantasy/results.functions";
+import { weekDataQueryOptions } from "@/lib/fantasy/hooks";
+import { scoreStats, ZERO_STATS } from "@/lib/fantasy/scoring";
 import { useState } from "react";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { Button } from "@/components/ui/button";
