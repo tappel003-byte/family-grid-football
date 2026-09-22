@@ -6,7 +6,7 @@ import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSession } from "@/lib/auth";
+import { useAuth, useSession } from "@/lib/auth";
 
 function SignInScreen() {
   const [mode, setMode] = useState<"in" | "up">("in");
@@ -142,5 +142,22 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
   if (!session) return <SignInScreen />;
+  return <>{children}</>;
+}
+
+/** Only commissioners see the contents; everyone else gets a friendly note. */
+export function CommissionerOnly({ children }: { children: ReactNode }) {
+  const { isCommissioner, loading } = useAuth();
+  if (loading) return <div className="py-10 text-lg text-muted-foreground">Loading…</div>;
+  if (!isCommissioner) {
+    return (
+      <div className="rounded-2xl border bg-card p-6 text-lg">
+        <p className="font-display text-2xl font-bold">Commissioner only</p>
+        <p className="mt-2 text-muted-foreground">
+          Ask the commissioner to make this change for you.
+        </p>
+      </div>
+    );
+  }
   return <>{children}</>;
 }
