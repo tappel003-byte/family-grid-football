@@ -44,15 +44,24 @@ export const Route = createFileRoute("/")({
 
 function MatchupsPage() {
   const { league, byId } = useLeague();
+  const { user } = useAuth();
   const [week, setWeek] = useState<number | null>(null);
-  const [selected, setSelected] = useState(0);
+  const [picked, setPicked] = useState<number | null>(null);
   const activeWeek = week ?? league?.currentWeek ?? 1;
   useWeekData(activeWeek);
 
   if (!league) return <LoadingScreen label="Drafting your family league…" />;
 
   const pairs = league.schedule[activeWeek - 1] ?? [];
-  const pair = pairs[Math.min(selected, pairs.length - 1)];
+  const myTeam = league.teams.find((t) => !!user && t.userId === user.id);
+  const myIndex = myTeam
+    ? Math.max(
+        0,
+        pairs.findIndex((p) => p[0] === myTeam.slot || p[1] === myTeam.slot),
+      )
+    : 0;
+  const selected = Math.min(picked ?? myIndex, Math.max(0, pairs.length - 1));
+  const pair = pairs[selected];
   const home = pair ? league.teams[pair[0]] : undefined;
   const away = pair ? league.teams[pair[1]] : undefined;
 
