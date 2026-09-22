@@ -65,6 +65,7 @@ export function RosterTable({
   editable?: boolean;
 }) {
   const [flash, setFlash] = useState<string | null>(null);
+  const insights = useInsights();
 
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
@@ -129,6 +130,10 @@ export function RosterTable({
   const inactiveStarters = rows
     .map((r) => r.player)
     .filter((p): p is SlimPlayer => !!p && isInactive(p.injury));
+
+  const byeStarters = rows
+    .map((r) => r.player)
+    .filter((p): p is SlimPlayer => !!p && isOnBye(insights, p, week));
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
