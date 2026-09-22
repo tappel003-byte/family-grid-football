@@ -84,7 +84,7 @@ function Shell({ children }: { children: ReactNode }) {
             </span>
           </Link>
           <nav className="col-span-2 flex flex-wrap items-center gap-1 sm:gap-2">
-            {nav.map((item) => (
+            {NAV.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -95,6 +95,7 @@ function Shell({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
+            <MoreNav items={more} />
             <span className="ml-auto flex items-center gap-2 sm:ml-2">
               <ChipLegend />
               <Link
