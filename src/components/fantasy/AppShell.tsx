@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { HelpCircle, LogOut } from "lucide-react";
+import { HelpCircle, LogOut, Settings, UserRound } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function Football({ className }: { className?: string }) {
@@ -17,6 +19,7 @@ import type { ReactNode } from "react";
 import { AuthGate } from "./AuthGate";
 import { signOut, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { getMyAccount } from "@/lib/fantasy/account.functions";
 
 const NAV = [
   { to: "/", label: "Matchups" },
@@ -26,11 +29,9 @@ const NAV = [
 ] as const;
 
 const NAV_MORE = [
-  { to: "/playoffs", label: "Playoffs", commissionerOnly: false },
-  { to: "/teams", label: "Teams", commissionerOnly: false },
-  { to: "/trades", label: "Trades", commissionerOnly: false },
-  { to: "/history", label: "History", commissionerOnly: false },
-  { to: "/settings", label: "Commissioner", commissionerOnly: true },
+  { to: "/teams", label: "Teams" },
+  { to: "/trades", label: "Trades" },
+  { to: "/history", label: "History" },
 ] as const;
 
 const LEGEND = [
@@ -101,9 +102,55 @@ function MoreNav({
   );
 }
 
+function ProfileNav({
+  displayName,
+  teamName,
+  isCommissioner,
+}: {
+  displayName: string;
+  teamName: string | undefined;
+  isCommissioner: boolean;
+}) {
+  const firstName = displayName.trim().split(/\s+/)[0] || "Account";
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="secondary" size="sm" className="max-w-28 gap-1.5 px-2.5 text-sm font-semibold sm:max-w-36">
+          <UserRound className="h-4 w-4" />
+          <span className="truncate">{firstName}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 p-2">
+        <div className="border-b px-2 py-2">
+          <p className="truncate font-display text-lg font-bold">{displayName || "My Account"}</p>
+          {teamName && <p className="truncate text-sm text-muted-foreground">{teamName}</p>}
+        </div>
+        <div className="flex flex-col py-1">
+          <Link to="/account" className="flex items-center gap-2 rounded-md px-3 py-2.5 font-semibold hover:bg-secondary">
+            <UserRound className="h-4 w-4" /> My Account
+          </Link>
+          {isCommissioner && (
+            <Link to="/settings" className="flex items-center gap-2 rounded-md px-3 py-2.5 font-semibold hover:bg-secondary">
+              <Settings className="h-4 w-4" /> Commissioner
+            </Link>
+          )}
+          <Button variant="ghost" onClick={() => void signOut()} className="h-auto justify-start px-3 py-2.5 font-semibold">
+            <LogOut className="h-4 w-4" /> Sign out
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function Shell({ children }: { children: ReactNode }) {
-  const { isCommissioner, displayName } = useAuth();
-  const more = NAV_MORE.filter((item) => !item.commissionerOnly || isCommissioner);
+  const { isCommissioner, displayName, user } = useAuth();
+  const fetchAccount = useServerFn(getMyAccount);
+  const { data: account } = useQuery({
+    queryKey: ["my-header-person", user?.id],
+    enabled: Boolean(user),
+    queryFn: () => fetchAccount(),
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -129,27 +176,14 @@ function Shell({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
-            <MoreNav items={more} />
+            <MoreNav items={NAV_MORE} />
             <span className="ml-auto flex items-center gap-2 sm:ml-2">
               <ChipLegend />
-              <Link
-                to="/account"
-                className="max-w-[10rem] truncate rounded-lg px-3 py-2 text-base font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                activeProps={{ className: "bg-secondary text-foreground" }}
-              >
-                {displayName || "My Account"}
-                {isCommissioner ? " · Commissioner" : ""}
-              </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => void signOut()}
-                className="font-semibold"
-                aria-label="Sign out"
-              >
-                <LogOut className="h-4 w-4 sm:mr-1.5" />
-                <span className="hidden sm:inline">Sign out</span>
-              </Button>
+              <ProfileNav
+                displayName={account?.displayName || displayName}
+                teamName={account?.team?.name}
+                isCommissioner={isCommissioner}
+              />
             </span>
           </nav>
         </div>
