@@ -87,6 +87,7 @@ export const saveLeague = createServerFn({ method: "POST" })
         .update({
           starters: mine.starters,
           bench: mine.bench,
+          ir: mine.ir ?? [],
           updated_at: new Date().toISOString(),
         })
         .eq("id", myTeam.id);
@@ -132,6 +133,7 @@ export const saveLeague = createServerFn({ method: "POST" })
       color: t.color,
       starters: t.starters,
       bench: t.bench,
+      ir: t.ir ?? [],
       user_id: t.userId ?? null,
       division: t.division ?? "",
       updated_at: new Date().toISOString(),
