@@ -129,6 +129,10 @@ const SORT_GROUPS: { label: string; keys: SortKey[] }[] = [
   { label: "Production", keys: ["PROJ", "PTS", "AVG", "HOT", "RANK"] },
   { label: "Ownership", keys: ["OWNED", "STARTED", "RISING"] },
   { label: "Hype", keys: ["ADDS", "DROPS", "PICKUP"] },
+  {
+    label: "All",
+    keys: ["PROJ", "PTS", "AVG", "HOT", "RANK", "OWNED", "STARTED", "RISING", "ADDS", "DROPS", "PICKUP"],
+  },
 ];
 
 const GROUP_HELP: Record<string, ReadonlyArray<{ short: string; text: string }>> = {
