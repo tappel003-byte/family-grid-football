@@ -312,6 +312,11 @@ export function RosterTable({
                 {editable && (
                   <td className="block px-4 pb-3 pt-2 md:table-cell md:py-3 md:text-right">
                     <div className="flex flex-wrap gap-2 md:justify-end">
+                      {locked(player) ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1.5 text-sm font-semibold text-muted-foreground">
+                          <Lock className="h-4 w-4" /> Game started
+                        </span>
+                      ) : (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm" className="font-semibold">
@@ -324,9 +329,14 @@ export function RosterTable({
                             <DropdownMenuItem disabled>No eligible bench player</DropdownMenuItem>
                           )}
                           {eligibleBench(slot).map((p) => (
-                            <DropdownMenuItem key={p.id} onSelect={() => swapIn(index, p.id)}>
+                            <DropdownMenuItem
+                              key={p.id}
+                              disabled={locked(p)}
+                              onSelect={() => swapIn(index, p.id)}
+                            >
                               <span className="truncate">
                                 {p.name} · {p.pos}
+                                {locked(p) ? " · locked" : ""}
                               </span>
                               <span className="ml-auto tabular-nums">
                                 {scoreFor(p, week, league).projected.toFixed(1)}
@@ -335,11 +345,14 @@ export function RosterTable({
                           ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      )}
                       {player && (
                         <>
-                          <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
-                            Bench
-                          </Button>
+                          {!locked(player) && (
+                            <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
+                              Bench
+                            </Button>
+                          )}
                           {irOpen && isInactive(player.injury) && (
                             <Button
                               variant="outline"
