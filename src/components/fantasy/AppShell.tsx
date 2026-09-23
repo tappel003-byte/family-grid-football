@@ -158,7 +158,8 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
-        <div className="mx-auto grid max-w-[1400px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:flex sm:justify-between">
+        {/* Top row: brand on the left, help + profile on the right */}
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-2.5 sm:py-3">
           <Link to="/" className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
               <Football className="h-5 w-5" />
@@ -167,7 +168,38 @@ function Shell({ children }: { children: ReactNode }) {
               La Familia
             </span>
           </Link>
-          <nav className="col-span-2 flex flex-wrap items-center gap-1 sm:gap-2">
+          <span className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <ChipLegend />
+            <ProfileNav
+              displayName={account?.displayName || displayName}
+              teamName={account?.team?.name}
+              isCommissioner={isCommissioner}
+            />
+          </span>
+        </div>
+        {/* Mobile: even five-slot nav strip under the brand row */}
+        <nav className="border-t px-2 py-1.5 sm:hidden">
+          <div className="grid grid-cols-5 gap-1">
+            {NAV.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                activeOptions={{ exact: item.to === "/" }}
+                className="rounded-lg px-1 py-2 text-center text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                activeProps={{ className: "bg-secondary text-foreground" }}
+              >
+                {item.label}
+              </Link>
+            ))}
+            <MoreNav
+              items={NAV_MORE}
+              className="h-auto w-full rounded-lg px-1 py-2 text-sm font-semibold text-muted-foreground"
+            />
+          </div>
+        </nav>
+        {/* Desktop: inline nav row */}
+        <div className="mx-auto hidden max-w-[1400px] px-4 pb-3 sm:block">
+          <nav className="flex items-center gap-2">
             {NAV.map((item) => (
               <Link
                 key={item.to}
@@ -180,14 +212,6 @@ function Shell({ children }: { children: ReactNode }) {
               </Link>
             ))}
             <MoreNav items={NAV_MORE} />
-            <span className="ml-auto flex items-center gap-2 sm:ml-2">
-              <ChipLegend />
-              <ProfileNav
-                displayName={account?.displayName || displayName}
-                teamName={account?.team?.name}
-                isCommissioner={isCommissioner}
-              />
-            </span>
           </nav>
         </div>
       </header>
