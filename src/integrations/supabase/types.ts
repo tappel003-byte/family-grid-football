@@ -561,6 +561,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_league_member: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "commissioner" | "member"
