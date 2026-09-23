@@ -417,37 +417,9 @@ function PlayersPage() {
               </DropdownMenu>
             </div>
 
-            {/* Column headers, aligned with the rows below */}
-            <div
-              className={cn(
-                ROW_GRID,
-                "border-b px-3 py-2 text-[10px] font-bold uppercase tracking-wide sm:px-4",
-              )}
-            >
-              <span className="text-muted-foreground">Player</span>
-              {(
-                [
-                  ["PROJ", "Proj"],
-                  ["PTS", "Pts"],
-                  ["HOT", "L3"],
-                  ["OWNED", "%Rst"],
-                  ["STARTED", "%Str"],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setSort(key)}
-                  className={cn(
-                    "justify-self-end",
-                    sort === key
-                      ? "text-primary underline underline-offset-2"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
+            {/* Hint row: every stat on a player is tappable and sorts the list */}
+            <div className="border-b px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:px-4">
+              Tap any stat on a player to sort by it
             </div>
 
             <ul className="divide-y">
