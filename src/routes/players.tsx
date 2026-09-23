@@ -442,7 +442,7 @@ function PlayersPage() {
                         activeGroup === "Production" ? "grid-cols-5" : "grid-cols-3",
                       )}
                     >
-                      {(activeGroup === "Production"
+                      {((activeGroup === "Production"
                         ? [
                             ["PROJ", "Proj", proj.toFixed(1)],
                             ["PTS", "Pts", seasonPts.toFixed(1)],
@@ -461,7 +461,7 @@ function PlayersPage() {
                               ["DROPS", "Drops", drops > 0 ? COMPACT.format(drops) : "—"],
                               ["PICKUP", "Pickup", rec?.label ?? "—"],
                             ]
-                      ).map(([key, label, value]) => (
+                      ) as [SortKey, string, string][]).map(([key, label, value]) => (
                         <StatCell
                           key={key}
                           label={label}
