@@ -50,6 +50,13 @@
       "when": 1790120405831,
       "tag": "0006_add_profile_time_zone",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790130234797,
+      "tag": "0007_add_watchlists_and_trade_block",
+      "breakpoints": true
     }
   ]
 }
