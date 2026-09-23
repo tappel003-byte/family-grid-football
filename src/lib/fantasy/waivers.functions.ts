@@ -60,6 +60,50 @@ function idsOf(team: TeamRow): string[] {
   ];
 }
 
+/**
+ * Worst record picks first. Records come from the archived weekly results,
+ * so this needs no live feed.
+ */
+async function standingsOrder(
+  admin: any,
+  leagueId: string,
+  slots: number[],
+): Promise<number[]> {
+  const { data: leagueRow } = await admin
+    .from("league")
+    .select("schedule")
+    .eq("id", leagueId)
+    .maybeSingle();
+  const schedule = (leagueRow?.schedule ?? []) as Array<Array<[number, number]>>;
+  const { data: rows } = await admin
+    .from("weekly_results")
+    .select("week, team_slot, points")
+    .eq("league_id", leagueId);
+  const results = (rows ?? []) as Array<{ week: number; team_slot: number; points: number }>;
+  if (!results.length) return [];
+
+  const pointsOf = (slot: number, week: number) =>
+    Number(results.find((r) => r.team_slot === slot && r.week === week)?.points ?? 0);
+
+  const weeks = [...new Set(results.map((r) => r.week))].sort((a, b) => a - b);
+  const records = slots.map((slot) => {
+    let score = 0;
+    let pf = 0;
+    for (const week of weeks) {
+      const pair = (schedule[week - 1] ?? []).find(([h, a]) => h === slot || a === slot);
+      if (!pair) continue;
+      const mine = pointsOf(slot, week);
+      const theirs = pointsOf(pair[0] === slot ? pair[1] : pair[0], week);
+      pf += mine;
+      if (mine > theirs) score += 2;
+      else if (mine === theirs) score += 1;
+    }
+    return { slot, score, pf };
+  });
+  records.sort((a, b) => a.score - b.score || a.pf - b.pf || a.slot - b.slot);
+  return records.map((r) => r.slot);
+}
+
 /** Pending claims first, then recently resolved. */
 export const listClaims = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -280,7 +324,7 @@ export const runWaivers = createServerFn({ method: "POST" })
       const idx = order.indexOf(slot);
       return [idx === -1 ? 999 : idx, slot];
     };
-    const ordered = claims.slice().sort((a, b) => {
+    const ordered = toRun.slice().sort((a, b) => {
       const [pa, sa] = priority(a.team_slot);
       const [pb, sb] = priority(b.team_slot);
       return pa - pb || sa - sb;
