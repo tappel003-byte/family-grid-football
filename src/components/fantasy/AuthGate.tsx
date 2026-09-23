@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth, useSession } from "@/lib/auth";
+import { Checkbox } from "@/components/ui/checkbox";
+import { setKeepSignedIn, useAuth, useSession } from "@/lib/auth";
 import { claimTeam, listClaimTeams } from "@/lib/fantasy/claim.functions";
 import { teamLogo } from "@/lib/fantasy/logos";
 
@@ -15,6 +16,7 @@ function ClaimScreen() {
   const [slot, setSlot] = useState<number | null>(null);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -35,11 +37,12 @@ function ClaimScreen() {
         toast.error(res.message);
         return;
       }
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: signedIn, error } = await supabase.auth.signInWithPassword({
         email: res.email,
         password,
       });
       if (error) throw error;
+      setKeepSignedIn(remember, signedIn.session);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not get you in");
     } finally {
@@ -142,6 +145,16 @@ function ClaimScreen() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="keep-signed-in"
+                checked={remember}
+                onCheckedChange={(checked) => setRemember(checked === true)}
+              />
+              <Label htmlFor="keep-signed-in" className="cursor-pointer text-base font-semibold">
+                Keep me signed in on this device
+              </Label>
             </div>
             <Button type="submit" disabled={busy} className="h-12 text-base font-semibold">
               {busy ? "Getting you in…" : "This is my team"}
