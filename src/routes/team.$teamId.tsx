@@ -10,10 +10,10 @@ import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/team/$teamId")({
-  validateSearch: (search: Record<string, unknown>): { commish?: boolean } =>
-    search.commish === true || search.commish === "true" || search.commish === 1 || search.commish === "1"
-      ? { commish: true }
-      : {},
+  validateSearch: (search: Record<string, unknown>): { commish?: boolean } => {
+    const v = search["commish"];
+    return v === true || v === "true" || v === 1 || v === "1" ? { commish: true } : {};
+  },
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
