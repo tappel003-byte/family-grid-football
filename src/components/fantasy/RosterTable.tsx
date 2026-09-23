@@ -130,6 +130,9 @@ export function RosterTable({
 
   const locked = (p: SlimPlayer | undefined) => isPlayerLocked(p, week, league);
 
+  const teamSlot = league.teams.indexOf(team);
+  const onBlock = useTeamTradeBlock(teamSlot);
+
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
       setTeam(l, team.id, (t) => {
