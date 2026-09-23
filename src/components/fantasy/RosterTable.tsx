@@ -332,7 +332,7 @@ export function RosterTable({
                 </td>
                 {editable && (
                   <td className="block px-4 pb-3 pt-2 md:table-cell md:py-3 md:text-right">
-                    <div className="flex flex-wrap gap-2 md:justify-end">
+                    <div className="flex flex-wrap items-center gap-2 md:justify-end">
                       {locked(player) ? (
                         <span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1.5 text-sm font-semibold text-muted-foreground">
                           <Lock className="h-4 w-4" /> Game started
@@ -340,7 +340,7 @@ export function RosterTable({
                       ) : (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="font-semibold">
+                          <Button variant="outline" size="sm" className="h-9 px-3 font-semibold">
                             <ArrowLeftRight className="mr-1.5 h-4 w-4" /> Swap
                           </Button>
                         </DropdownMenuTrigger>
@@ -369,14 +369,13 @@ export function RosterTable({
                       )}
                       {player && (
                         <>
-                          <TradeFlagToggle
-                            teamSlot={teamSlot}
-                            playerId={player.id}
-                            playerName={player.name}
-                            listed={onBlock.has(player.id)}
-                          />
                           {!locked(player) && (
-                            <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 px-3 font-semibold"
+                              onClick={() => benchStarter(index)}
+                            >
                               Bench
                             </Button>
                           )}
@@ -384,6 +383,7 @@ export function RosterTable({
                             <Button
                               variant="outline"
                               size="sm"
+                              className="h-9 px-3 font-semibold"
                               disabled={pending}
                               onClick={() => void moveToIR(player, true)}
                             >
@@ -391,14 +391,21 @@ export function RosterTable({
                             </Button>
                           )}
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            className="text-destructive"
+                            className="h-9 px-3 font-semibold text-destructive"
                             disabled={pending}
                             onClick={() => setDropTarget(player)}
                           >
                             Drop
                           </Button>
+                          <TradeFlagToggle
+                            teamSlot={teamSlot}
+                            playerId={player.id}
+                            playerName={player.name}
+                            listed={onBlock.has(player.id)}
+                            className="ml-auto"
+                          />
                         </>
                       )}
                     </div>
@@ -444,18 +451,17 @@ export function RosterTable({
                 </div>
                 {editable && (
                   <>
-                    <TradeFlagToggle
-                      teamSlot={teamSlot}
-                      playerId={p.id}
-                      playerName={p.name}
-                      listed={onBlock.has(p.id)}
-                    />
                     {locked(p) ? (
                       <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
                         <Lock className="h-4 w-4" /> Locked
                       </span>
                     ) : (
-                      <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 px-3 font-semibold"
+                        onClick={() => startBenchPlayer(p.id)}
+                      >
                         Start
                       </Button>
                     )}
@@ -463,6 +469,7 @@ export function RosterTable({
                       <Button
                         variant="outline"
                         size="sm"
+                        className="h-9 px-3 font-semibold"
                         disabled={pending}
                         onClick={() => void moveToIR(p, true)}
                       >
@@ -472,12 +479,19 @@ export function RosterTable({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-destructive"
+                      className="h-9 px-3 font-semibold text-destructive"
                       disabled={pending}
                       onClick={() => setDropTarget(p)}
                     >
                       Drop
                     </Button>
+                    <TradeFlagToggle
+                      teamSlot={teamSlot}
+                      playerId={p.id}
+                      playerName={p.name}
+                      listed={onBlock.has(p.id)}
+                      className="ml-auto"
+                    />
                   </>
                 )}
               </div>
@@ -514,6 +528,7 @@ export function RosterTable({
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-9 px-3 font-semibold"
                       disabled={pending}
                       onClick={() => void moveToIR(p, false)}
                     >
@@ -522,7 +537,7 @@ export function RosterTable({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-destructive"
+                      className="h-9 px-3 font-semibold text-destructive"
                       disabled={pending}
                       onClick={() => setDropTarget(p)}
                     >

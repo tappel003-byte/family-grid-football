@@ -37,11 +37,13 @@ export function TradeFlagToggle({
   playerId,
   playerName,
   listed,
+  className,
 }: {
   teamSlot: number;
   playerId: string;
   playerName: string;
   listed: boolean;
+  className?: string;
 }) {
   const queryClient = useQueryClient();
   const update = useServerFn(updateTradeBlock);
@@ -76,6 +78,7 @@ export function TradeFlagToggle({
         listed
           ? "border-primary bg-primary/10 text-primary"
           : "border-input bg-background text-muted-foreground hover:bg-accent",
+        className,
       )}
     >
       <span
