@@ -133,11 +133,6 @@ function HistoryPage() {
     toast.success(`${row.season} season saved`);
   };
 
-  const remove = async (season: number) => {
-    await deleteSeason({ data: { season } });
-    await queryClient.invalidateQueries({ queryKey: ["season-history"] });
-    toast.success(`${season} season removed`);
-  };
 
   return (
     <>
