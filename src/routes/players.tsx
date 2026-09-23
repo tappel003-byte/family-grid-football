@@ -413,9 +413,11 @@ function PlayersPage() {
               <span className="text-muted-foreground">Player</span>
               {(
                 [
-                  ["OWNED", "%Rost"],
-                  ["STARTED", "%Start"],
-                  [sort === "PTS" ? "PTS" : "PROJ", sort === "PTS" ? "Pts" : "Proj"],
+                  ["PROJ", "Proj"],
+                  ["PTS", "Pts"],
+                  ["HOT", "L3"],
+                  ["OWNED", "%Rst"],
+                  ["STARTED", "%Str"],
                 ] as const
               ).map(([key, label]) => (
                 <button
