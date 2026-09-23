@@ -165,7 +165,7 @@ function MobileSide({
 
   return (
     <div className={cn("min-w-0 rounded-md p-2", flagged && "bg-injury-out/15")}>
-      <PlayerCell player={player} align="left" compact week={week} />
+      <PlayerCell player={player} align="left" compact mobileMatchup week={week} />
       <div className="mt-2 border-t border-border/70 pt-2">
         <div className="font-display text-2xl font-bold tabular-nums">{score.actual.toFixed(1)}</div>
         <div className="text-xs font-medium text-muted-foreground">
