@@ -3,7 +3,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Check, ChevronDown, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { Bookmark, Check, ChevronDown, ChevronUp, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
@@ -135,35 +135,38 @@ const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass
 /** Compact number formatting for hype counts (511,590 -> 512K). */
 const COMPACT = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 
-/** One tappable stat cell — tapping sorts the whole list by that stat. */
-function StatCell({
-  label,
-  value,
-  active,
-  onSort,
-}: {
-  label: string;
-  value: string;
-  active: boolean;
-  onSort: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSort}
-      aria-pressed={active}
-      className={cn(
-        "flex min-w-12 flex-col items-center rounded-lg border px-1.5 py-1 transition-colors",
-        active
-          ? "border-primary bg-primary/10 text-primary"
-          : "border-border bg-card text-foreground hover:border-primary/40",
-      )}
-    >
-      <span className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
-      <span className="font-display text-sm font-bold tabular-nums leading-tight">{value}</span>
-    </button>
-  );
-}
+/** Shape of the row data each stat column reads from. */
+type PlayerRow = {
+  rank: number;
+  proj: number;
+  own: { owned: number; started: number; change: number } | null;
+  last3Avg: number;
+  seasonPts: number;
+  seasonAvg: number;
+  adds: number;
+  drops: number;
+  rec: { label: string } | null;
+};
+
+/** One scrolling stat column: short heading, width, and how to print the value. */
+const COLUMNS: Record<SortKey, { short: string; w: string; value: (r: PlayerRow) => string }> = {
+  PROJ: { short: "Proj", w: "w-16", value: (r) => r.proj.toFixed(1) },
+  PTS: { short: "Pts", w: "w-16", value: (r) => r.seasonPts.toFixed(1) },
+  AVG: { short: "Avg", w: "w-16", value: (r) => r.seasonAvg.toFixed(1) },
+  HOT: { short: "L3", w: "w-16", value: (r) => (r.last3Avg > 0 ? r.last3Avg.toFixed(1) : "—") },
+  RANK: { short: "Rnk", w: "w-16", value: (r) => `#${r.rank}` },
+  OWNED: { short: "Rst%", w: "w-16", value: (r) => (r.own ? `${r.own.owned}%` : "—") },
+  STARTED: { short: "Str%", w: "w-16", value: (r) => (r.own ? `${r.own.started}%` : "—") },
+  RISING: {
+    short: "Ris%",
+    w: "w-16",
+    value: (r) => (r.own ? `${r.own.change > 0 ? "+" : ""}${r.own.change}` : "—"),
+  },
+  ADDS: { short: "Adds", w: "w-16", value: (r) => (r.adds > 0 ? COMPACT.format(r.adds) : "—") },
+  DROPS: { short: "Drops", w: "w-16", value: (r) => (r.drops > 0 ? COMPACT.format(r.drops) : "—") },
+  PICKUP: { short: "Pickup", w: "w-24", value: (r) => r.rec?.label ?? "—" },
+};
+
 
 function PlayersPage() {
   const { league, players, byId } = useLeague();
@@ -172,8 +175,40 @@ function PlayersPage() {
   const [pos, setPos] = useState("ALL");
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
   const [watchedOnly, setWatchedOnly] = useState(false);
+  const [group, setGroup] = useState(SORT_GROUPS[0]!.label);
   const [sort, setSort] = useState<SortKey>("PROJ");
+  const [dir, setDir] = useState<"desc" | "asc">("desc");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sortOpen, setSortOpen] = useState(false);
+
+  const columns = SORT_GROUPS.find((g) => g.label === group)?.keys ?? SORT_GROUPS[0]!.keys;
+
+  /** Tap a heading: sort by it, tap again to flip the direction. */
+  const headingTap = (key: SortKey) => {
+    if (key === sort) setDir((d) => (d === "desc" ? "asc" : "desc"));
+    else {
+      setSort(key);
+      setDir("desc");
+    }
+  };
+
+  const pickGroup = (label: string) => {
+    setGroup(label);
+    const first = SORT_GROUPS.find((g) => g.label === label)?.keys[0];
+    if (first) {
+      setSort(first);
+      setDir("desc");
+    }
+  };
+
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
 
   // Close the sort menu as soon as the user starts scrolling the list.
   useEffect(() => {
@@ -260,7 +295,8 @@ function PlayersPage() {
           }),
         };
       });
-    list.sort((a, b) => {
+    type Row = (typeof list)[number];
+    const desc = (a: Row, b: Row) => {
       switch (sort) {
         case "PROJ":
           return b.proj - a.proj;
@@ -289,7 +325,10 @@ function PlayersPage() {
         default:
           return a.rank - b.rank;
       }
-    });
+    };
+    const factor = dir === "asc" ? -1 : 1;
+    list.sort((a, b) => factor * desc(a, b));
+
     return list.slice(0, 100);
   }, [
     players,
@@ -297,6 +336,7 @@ function PlayersPage() {
     pos,
     avail,
     sort,
+    dir,
     ownerByPlayer,
     league,
     week,
@@ -314,7 +354,6 @@ function PlayersPage() {
     await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
   };
 
-  const activeGroup = SORT_GROUPS.find((group) => group.keys.includes(sort))?.label ?? "Production";
 
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
@@ -404,120 +443,151 @@ function PlayersPage() {
               <DropdownMenu modal={false} open={sortOpen} onOpenChange={setSortOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold">
-                    Sort: {SORT_LABEL[sort]}
+                    {group}
                     <ChevronDown className="h-4 w-4 shrink-0" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {SORT_GROUPS.map((group, gi) => (
-                    <div key={group.label}>
-                      {gi > 0 && <DropdownMenuSeparator />}
-                      <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        {group.label}
-                      </DropdownMenuLabel>
-                      {group.keys.map((key) => (
-                        <DropdownMenuItem
-                          key={key}
-                          onClick={() => setSort(key)}
-                          className="h-9 justify-between text-sm font-medium"
-                        >
-                          {SORT_LABEL[key]}
-                          {sort === key && <Check className="h-4 w-4" />}
-                        </DropdownMenuItem>
-                      ))}
-                    </div>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Stats shown
+                  </DropdownMenuLabel>
+                  {SORT_GROUPS.map((g) => (
+                    <DropdownMenuItem
+                      key={g.label}
+                      onClick={() => pickGroup(g.label)}
+                      className="h-9 justify-between text-sm font-medium"
+                    >
+                      {g.label}
+                      {group === g.label && <Check className="h-4 w-4" />}
+                    </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+
             </div>
 
-            <ul className="divide-y">
-              {results.map(({ player, rank, owner, proj, own, news, last3Avg, seasonPts, seasonAvg, rec, adds, drops }) => (
-                <li key={player.id} className="px-3 py-2.5 sm:px-4 sm:py-3">
-                  <PlayerCell player={player} week={week} photo="desktop" />
-                  <div className="mt-1 text-sm">
-                    {owner ? (
-                      <span className="text-muted-foreground">On {owner}</span>
-                    ) : (
-                      <span className="font-semibold text-accent-foreground">Free agent</span>
-                    )}
+            {/* Locked player column on the left, stat columns scroll sideways. */}
+            <div className="overflow-x-auto">
+              <div className="min-w-max">
+                <div className="flex items-stretch border-b bg-secondary/40">
+                  <div className="sticky left-0 z-10 w-56 shrink-0 border-r bg-secondary/40 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:w-72">
+                    Players
                   </div>
+                  {columns.map((key) => {
+                    const active = sort === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => headingTap(key)}
+                        aria-label={`Sort by ${SORT_LABEL[key]}`}
+                        className={cn(
+                          "flex shrink-0 items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors",
+                          COLUMNS[key].w,
+                          active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {COLUMNS[key].short}
+                        {active &&
+                          (dir === "desc" ? (
+                            <ChevronDown className="h-3 w-3" />
+                          ) : (
+                            <ChevronUp className="h-3 w-3" />
+                          ))}
+                      </button>
+                    );
+                  })}
+                </div>
 
-                  {/* Show only the selected sort category as one compact line. */}
-                  <div className="mt-2">
-                    <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-                      {activeGroup}
-                    </div>
-                    <div
-                      className={cn(
-                        "mt-0.5 grid gap-1",
-                        activeGroup === "Production" ? "grid-cols-5" : "grid-cols-3",
-                      )}
-                    >
-                      {((activeGroup === "Production"
-                        ? [
-                            ["PROJ", "Proj", proj.toFixed(1)],
-                            ["PTS", "Pts", seasonPts.toFixed(1)],
-                            ["AVG", "Avg", seasonAvg.toFixed(1)],
-                            ["HOT", "L3", last3Avg > 0 ? last3Avg.toFixed(1) : "—"],
-                            ["RANK", "Rnk", `#${rank}`],
-                          ]
-                        : activeGroup === "Ownership"
-                          ? [
-                              ["OWNED", "Rst%", own ? `${own.owned}` : "—"],
-                              ["STARTED", "Str%", own ? `${own.started}` : "—"],
-                              ["RISING", "Ris%", own ? `${own.change > 0 ? "+" : ""}${own.change}` : "—"],
-                            ]
-                          : [
-                              ["ADDS", "Adds", adds > 0 ? COMPACT.format(adds) : "—"],
-                              ["DROPS", "Drops", drops > 0 ? COMPACT.format(drops) : "—"],
-                              ["PICKUP", "Pickup", rec?.label ?? "—"],
-                            ]
-                      ) as [SortKey, string, string][]).map(([key, label, value]) => (
-                        <StatCell
+                {results.map((row) => {
+                  const { player, owner, news, rec } = row;
+                  const open = expanded.has(player.id);
+                  return (
+                    <div key={player.id} className="flex items-stretch border-b last:border-b-0">
+                      <div className="sticky left-0 z-10 w-56 shrink-0 border-r bg-card px-3 py-2.5 sm:w-72">
+                        <PlayerCell player={player} week={week} photo="desktop" />
+                        <div className="mt-1 text-sm">
+                          {owner ? (
+                            <span className="text-muted-foreground">On {owner}</span>
+                          ) : (
+                            <span className="font-semibold text-accent-foreground">Free agent</span>
+                          )}
+                        </div>
+                        {open && (
+                          <div className="mt-1.5">
+                            {rec && <p className="text-sm text-muted-foreground">{rec.reason}</p>}
+                            {news && (
+                              <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
+                                <Newspaper className="mt-0.5 h-4 w-4 shrink-0" />
+                                {news.link ? (
+                                  <a
+                                    href={news.link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="underline underline-offset-2 hover:text-foreground"
+                                  >
+                                    {news.headline}
+                                  </a>
+                                ) : (
+                                  news.headline
+                                )}
+                              </p>
+                            )}
+                            <PlayerInsightChips player={player} week={week} showForm={false} />
+                          </div>
+                        )}
+                        <div className="mt-2 flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-2 text-xs font-semibold"
+                            aria-expanded={open}
+                            onClick={() => toggleExpanded(player.id)}
+                          >
+                            {open ? "Less" : "Details"}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant={watched.has(player.id) ? "default" : "outline"}
+                            aria-label={
+                              watched.has(player.id)
+                                ? `Remove ${player.name} from watchlist`
+                                : `Watch ${player.name}`
+                            }
+                            onClick={() => void toggleWatch(player.id)}
+                          >
+                            <Bookmark
+                              className="h-4 w-4"
+                              fill={watched.has(player.id) ? "currentColor" : "none"}
+                            />
+                          </Button>
+                          {league && <AddDropButton player={player} league={league} byId={byId} />}
+                        </div>
+                      </div>
+                      {columns.map((key) => (
+                        <div
                           key={key}
-                          label={label}
-                          value={value}
-                          active={sort === key}
-                          onSort={() => setSort(key)}
-                        />
+                          className={cn(
+                            "flex shrink-0 items-center justify-center px-1 text-sm font-bold tabular-nums",
+                            COLUMNS[key].w,
+                            sort === key ? "bg-primary/5 text-primary" : "text-foreground",
+                          )}
+                        >
+                          {COLUMNS[key].value(row)}
+                        </div>
                       ))}
                     </div>
-                  </div>
+                  );
+                })}
 
-                  {rec && <p className="mt-1.5 text-sm text-muted-foreground">{rec.reason}</p>}
-                  {news && (
-                    <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
-                      <Newspaper className="mt-0.5 h-4 w-4 shrink-0" />
-                      {news.link ? (
-                        <a
-                          href={news.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline underline-offset-2 hover:text-foreground"
-                        >
-                          {news.headline}
-                        </a>
-                      ) : (
-                        news.headline
-                      )}
-                    </p>
-                  )}
-                  <PlayerInsightChips player={player} week={week} showForm={false} />
-                  <div className="mt-2 flex items-center justify-end gap-2">
-                    <Button size="icon" variant={watched.has(player.id) ? "default" : "outline"} aria-label={watched.has(player.id) ? `Remove ${player.name} from watchlist` : `Watch ${player.name}`} onClick={() => void toggleWatch(player.id)}>
-                      <Bookmark className="h-4 w-4" fill={watched.has(player.id) ? "currentColor" : "none"} />
-                    </Button>
-                    {league && <AddDropButton player={player} league={league} byId={byId} />}
+                {!results.length && (
+                  <div className="px-4 py-8 text-center text-muted-foreground">
+                    No players match that search.
                   </div>
-                </li>
-              ))}
-              {!results.length && (
-                <li className="px-4 py-8 text-center text-muted-foreground">
-                  No players match that search.
-                </li>
-              )}
-            </ul>
+                )}
+              </div>
+            </div>
+
           </div>
         </TabsContent>
 
