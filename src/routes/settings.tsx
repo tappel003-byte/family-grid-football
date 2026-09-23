@@ -13,7 +13,7 @@ import {
 } from "@/lib/fantasy/league.functions";
 import { setScoreOverride } from "@/lib/fantasy/overrides.functions";
 import { allOverrides, reloadLeague, reloadOverrides, scoreOverride } from "@/lib/fantasy/store";
-import { RULE_POSITIONS } from "@/lib/fantasy/rules";
+import { RULE_POSITIONS, WEEKDAYS } from "@/lib/fantasy/rules";
 import { WEEKS, rosterIds, type League } from "@/lib/fantasy/league";
 import {
   cancelClaim,
