@@ -132,22 +132,36 @@ const SORT_GROUPS: { label: string; keys: SortKey[] }[] = [
 
 const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass: 1 };
 
-/** Shared grid so the column headers and every player row line up. */
-const ROW_GRID =
-  "grid grid-cols-[minmax(0,1fr)_repeat(5,2.6rem)] gap-x-1 sm:grid-cols-[minmax(0,1fr)_repeat(5,4rem)] sm:gap-x-2";
+/** Compact number formatting for hype counts (511,590 -> 512K). */
+const COMPACT = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 
-/** One right-aligned number column (ESPN-style). */
-function NumCol({ label, value, active }: { label: string; value: string; active?: boolean }) {
+/** One tappable stat cell — tapping sorts the whole list by that stat. */
+function StatCell({
+  label,
+  value,
+  active,
+  onSort,
+}: {
+  label: string;
+  value: string;
+  active: boolean;
+  onSort: () => void;
+}) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onSort}
+      aria-pressed={active}
       className={cn(
-        "pt-0.5 text-right font-display text-xs font-bold tabular-nums sm:text-sm",
-        active ? "text-primary underline decoration-primary/40 underline-offset-4" : "text-foreground",
+        "flex min-w-12 flex-col items-center rounded-lg border px-1.5 py-1 transition-colors",
+        active
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border bg-card text-foreground hover:border-primary/40",
       )}
     >
-      <span className="sr-only">{label}: </span>
-      {value}
-    </div>
+      <span className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="font-display text-sm font-bold tabular-nums leading-tight">{value}</span>
+    </button>
   );
 }
 
