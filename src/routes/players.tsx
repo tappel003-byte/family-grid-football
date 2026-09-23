@@ -500,7 +500,7 @@ function PlayersPage() {
                 <DropdownMenu modal={false} open={sortOpen} onOpenChange={setSortOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold">
-                      {group}
+                      {group === "All" ? "All stats" : group}
                       <ChevronDown className="h-4 w-4 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
