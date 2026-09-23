@@ -200,6 +200,7 @@ function Shell({ children }: { children: ReactNode }) {
             </span>
           </Link>
           <span className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <RefreshNav />
             <ProfileNav
               displayName={account?.displayName || displayName}
               teamName={account?.team?.name}
