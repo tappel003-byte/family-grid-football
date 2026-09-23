@@ -1,7 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { ZERO_STATS, type StatLine } from "./fantasy/scoring";
 
-export type GameInfo = { status: "final" | "live" | "scheduled" | "none"; label: string; startsAt?: string };
+export type GameInfo = {
+  status: "final" | "live" | "scheduled" | "none";
+  label: string;
+  startsAt?: string;
+  /** TV network showing the game, e.g. "FOX". */
+  network?: string;
+  /** Game seconds still to be played (3600 before kickoff, 0 once final). */
+  secondsLeft?: number;
+};
 
 export type WeekData = {
   season: string;
@@ -80,8 +88,14 @@ type ScheduleGame = { status: string; date: string; home: string; away: string; 
 type Scoreboard = {
   events?: Array<{
     date?: string;
-    status?: { type?: { state?: string; completed?: boolean } };
+    status?: {
+      clock?: number;
+      displayClock?: string;
+      period?: number;
+      type?: { state?: string; completed?: boolean };
+    };
     competitions?: Array<{
+      broadcasts?: Array<{ names?: string[] }>;
       competitors?: Array<{ team?: { abbreviation?: string } }>;
     }>;
   }>;
