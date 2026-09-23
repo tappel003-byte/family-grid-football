@@ -118,6 +118,8 @@ export function RosterTable({
     }
   };
 
+  const locked = (p: SlimPlayer | undefined) => isPlayerLocked(p, week, league);
+
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
       setTeam(l, team.id, (t) => {
