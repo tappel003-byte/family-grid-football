@@ -4,18 +4,28 @@ import { supabase } from "@/integrations/supabase/client";
 
 type Standing = { place: number; team: string; owner: string; record?: string };
 
+const ordinal = (place: number) => (place === 1 ? "Champion" : place === 2 ? "Runner-up" : place === 3 ? "3rd place" : `${place}th place`);
+
 export function TrophyCase({ owner }: { owner: string }) {
   const { data = [] } = useQuery({
     queryKey: ["trophy-case", owner],
     enabled: Boolean(owner),
     queryFn: async () => {
-      const { data: rows, error } = await supabase.from("season_history").select("season, champion, champion_owner, runner_up, runner_up_owner, standings").order("season", { ascending: false });
+      const [{ data: teams }, { data: rows, error }] = await Promise.all([
+        supabase.from("teams").select("name, owner"),
+        supabase.from("season_history").select("season, champion, champion_owner, runner_up, runner_up_owner, standings").order("season", { ascending: false }),
+      ]);
       if (error) throw new Error(error.message);
+      const norm = (value?: string | null) => (value ?? "").trim().toLowerCase();
+      const me = norm(owner);
+      const myTeams = new Set((teams ?? []).filter((t) => norm(t.owner) === me).map((t) => norm(t.name)));
+      const mine = (team?: string | null, teamOwner?: string | null) => (teamOwner ? norm(teamOwner) === me : false) || myTeams.has(norm(team));
       return (rows ?? []).flatMap((row) => {
-        if (row.champion_owner === owner) return [{ season: row.season, place: 1, label: "Champion", team: row.champion }];
-        if (row.runner_up_owner === owner) return [{ season: row.season, place: 2, label: "Runner-up", team: row.runner_up }];
-        const standing = ((row.standings as Standing[]) ?? []).find((s) => s.owner === owner && s.place <= 3);
-        return standing ? [{ season: row.season, place: standing.place, label: `${standing.place}${standing.place === 3 ? "rd" : "th"} place`, team: standing.team }] : [];
+        const standing = ((row.standings as Standing[]) ?? []).find((s) => mine(s.team, s.owner) && s.place <= 3);
+        if (standing) return [{ season: row.season, place: standing.place, label: ordinal(standing.place), team: standing.team }];
+        if (mine(row.champion, row.champion_owner)) return [{ season: row.season, place: 1, label: "Champion", team: row.champion }];
+        if (mine(row.runner_up, row.runner_up_owner)) return [{ season: row.season, place: 2, label: "Runner-up", team: row.runner_up }];
+        return [];
       });
     },
   });
