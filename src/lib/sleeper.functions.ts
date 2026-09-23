@@ -75,7 +75,7 @@ export const getTrending = createServerFn({ method: "GET" })
   }))
   .handler(async ({ data }): Promise<TrendingEntry[]> => {
     const res = await fetch(
-      `https://api.sleeper.app/v1/players/nfl/trending/${data.type}?lookback_hours=24&limit=25`,
+      `https://api.sleeper.app/v1/players/nfl/trending/${data.type}?lookback_hours=24&limit=200`,
     );
     if (!res.ok) return [];
     const json = (await res.json()) as Array<{ player_id: string; count: number }>;

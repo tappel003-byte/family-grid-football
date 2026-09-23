@@ -73,7 +73,10 @@ export const Route = createFileRoute("/players")({
 function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, SlimPlayer> }) {
   const { data, isPending } = useQuery(trendingQueryOptions(type));
   if (isPending) return <p className="p-4 text-muted-foreground">Loading trends…</p>;
-  const rows = (data ?? []).map((e) => ({ ...e, player: byId.get(e.id) })).filter((r) => r.player);
+  const rows = (data ?? [])
+    .map((e) => ({ ...e, player: byId.get(e.id) }))
+    .filter((r) => r.player)
+    .slice(0, 25);
   if (!rows.length) return <p className="p-4 text-muted-foreground">No trend data right now.</p>;
   return (
     <ul className="divide-y">
@@ -91,14 +94,53 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
 }
 
 const SORTS = [
-  ["PROJ", "Top projected"],
-  ["HOT", "Hot last 3 weeks"],
-  ["OWNED", "Most rostered"],
-  ["STARTED", "Most started"],
+  ["PROJ", "Projection"],
+  ["HOT", "Last 3 avg"],
+  ["AVG", "Season avg"],
+  ["OWNED", "Rostered %"],
+  ["STARTED", "Started %"],
+  ["RISING", "Rising %"],
+  ["ADDS", "Trending adds"],
+  ["DROPS", "Trending drops"],
+  ["PICKUP", "Best pickup"],
   ["RANK", "Overall rank"],
 ] as const;
 
 type SortKey = (typeof SORTS)[number][0];
+
+const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass: 1 };
+
+type StatCell = { label: string; value: string; hint: string; good?: boolean; active?: boolean };
+
+/** The numbers for one player, laid out in an even grid so columns line up. */
+function StatGrid({ cells }: { cells: StatCell[] }) {
+  return (
+    <dl className="mt-2 grid grid-cols-4 gap-1 sm:grid-cols-8">
+      {cells.map((c) => (
+        <div
+          key={c.label}
+          title={c.hint}
+          className={cn(
+            "rounded-md border px-1.5 py-1 text-center",
+            c.active ? "border-primary bg-primary/10" : "border-transparent bg-secondary/50",
+          )}
+        >
+          <dt className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {c.label}
+          </dt>
+          <dd
+            className={cn(
+              "font-display text-sm font-bold tabular-nums",
+              c.good && "text-emerald-600",
+            )}
+          >
+            {c.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 function PlayersPage() {
   const { league, players, byId } = useLeague();
@@ -116,8 +158,10 @@ function PlayersPage() {
   });
   const { data: market } = useQuery(marketQueryOptions);
   const { data: adds } = useQuery(trendingQueryOptions("add"));
+  const { data: drops } = useQuery(trendingQueryOptions("drop"));
 
   const addsById = useMemo(() => new Map((adds ?? []).map((a) => [a.id, a.count])), [adds]);
+  const dropsById = useMemo(() => new Map((drops ?? []).map((a) => [a.id, a.count])), [drops]);
 
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();
@@ -148,6 +192,8 @@ function PlayersPage() {
           last3Avg: info?.last3Avg ?? 0,
           seasonAvg: info?.seasonAvg ?? 0,
           hot: info?.last3Avg ?? 0,
+          adds: addsById.get(p.id) ?? 0,
+          drops: dropsById.get(p.id) ?? 0,
           rec: recommendFor({
             free,
             own,
@@ -167,16 +213,43 @@ function PlayersPage() {
           return b.proj - a.proj;
         case "HOT":
           return b.hot - a.hot;
+        case "AVG":
+          return b.seasonAvg - a.seasonAvg;
         case "OWNED":
           return (b.own?.owned ?? -1) - (a.own?.owned ?? -1);
         case "STARTED":
           return (b.own?.started ?? -1) - (a.own?.started ?? -1);
+        case "RISING":
+          return (b.own?.change ?? -999) - (a.own?.change ?? -999);
+        case "ADDS":
+          return b.adds - a.adds || b.proj - a.proj;
+        case "DROPS":
+          return b.drops - a.drops || b.proj - a.proj;
+        case "PICKUP":
+          return (
+            (PICKUP_ORDER[b.rec?.level ?? ""] ?? 0) - (PICKUP_ORDER[a.rec?.level ?? ""] ?? 0) ||
+            b.last3Avg - a.last3Avg ||
+            b.proj - a.proj
+          );
         default:
           return a.player.rank - b.player.rank;
       }
     });
     return list.slice(0, 100);
-  }, [players, query, pos, avail, sort, ownerByPlayer, league, week, insights, market, addsById]);
+  }, [
+    players,
+    query,
+    pos,
+    avail,
+    sort,
+    ownerByPlayer,
+    league,
+    week,
+    insights,
+    market,
+    addsById,
+    dropsById,
+  ]);
 
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
@@ -238,60 +311,96 @@ function PlayersPage() {
                   {label}
                 </Button>
               ))}
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  const i = SORTS.findIndex(([v]) => v === sort);
-                  setSort(SORTS[(i + 1) % SORTS.length]![0]);
-                }}
-                className="font-semibold"
-              >
-                <ArrowUpDown className="mr-1.5 h-4 w-4" />
-                {SORTS.find(([v]) => v === sort)?.[1]}
-              </Button>
+            </div>
+            <div className="rounded-xl border bg-card p-3">
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                <ArrowUpDown className="h-4 w-4" /> Sort by
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {SORTS.map(([value, label]) => (
+                  <Button
+                    key={value}
+                    size="sm"
+                    variant={sort === value ? "default" : "outline"}
+                    onClick={() => setSort(value)}
+                    aria-pressed={sort === value}
+                    className="h-9 justify-center px-2 text-sm font-semibold"
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <ul className="divide-y">
-              {results.map(({ player, owner, proj, own, news, last3Avg, seasonAvg, rec }) => (
+              {results.map(({ player, owner, proj, own, news, last3Avg, seasonAvg, rec, adds, drops }) => (
                 <li
                   key={player.id}
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
                 >
                   <div className="min-w-0">
                     <PlayerCell player={player} week={week} />
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                    <div className="mt-1 text-sm">
                       {owner ? (
                         <span className="text-muted-foreground">On {owner}</span>
                       ) : (
                         <span className="font-semibold text-accent-foreground">Free agent</span>
                       )}
-                      {own && (
-                        <>
-                          <span
-                            className="text-muted-foreground"
-                            title="Share of fantasy leagues across the country where this player is on a roster"
-                          >
-                            Rostered <b className="text-foreground tabular-nums">{own.owned}%</b>
-                          </span>
-                          <span
-                            className="text-muted-foreground"
-                            title="Share of leagues that have him in their starting lineup this week"
-                          >
-                            Started <b className="text-foreground tabular-nums">{own.started}%</b>
-                          </span>
-                          {own.change >= 1 && (
-                            <span className="font-semibold text-emerald-600">
-                              +{own.change}% this week
-                            </span>
-                          )}
-                        </>
-                      )}
-                      <span className="text-muted-foreground" title="Average points per game">
-                        Avg <b className="text-foreground tabular-nums">{seasonAvg.toFixed(1)}</b> ·
-                        last 3 <b className="text-foreground tabular-nums">{last3Avg.toFixed(1)}</b>
-                      </span>
                     </div>
+                    <StatGrid
+                      cells={[
+                        {
+                          label: "Rostered",
+                          value: own ? `${own.owned}%` : "—",
+                          hint: "Share of leagues nationwide where he is on a roster",
+                          active: sort === "OWNED",
+                        },
+                        {
+                          label: "Started",
+                          value: own ? `${own.started}%` : "—",
+                          hint: "Share of leagues starting him this week",
+                          active: sort === "STARTED",
+                        },
+                        {
+                          label: "Rising",
+                          value: own ? `${own.change > 0 ? "+" : ""}${own.change}%` : "—",
+                          hint: "Change in rostered % this week",
+                          good: (own?.change ?? 0) >= 1,
+                          active: sort === "RISING",
+                        },
+                        {
+                          label: "Avg",
+                          value: seasonAvg.toFixed(1),
+                          hint: "Season average points per game",
+                          active: sort === "AVG",
+                        },
+                        {
+                          label: "Last 3",
+                          value: last3Avg.toFixed(1),
+                          hint: "Average over his last three games",
+                          active: sort === "HOT",
+                        },
+                        {
+                          label: "Adds",
+                          value: adds ? adds.toLocaleString() : "—",
+                          hint: "Times added across the country in 24 hours",
+                          active: sort === "ADDS",
+                        },
+                        {
+                          label: "Drops",
+                          value: drops ? drops.toLocaleString() : "—",
+                          hint: "Times dropped across the country in 24 hours",
+                          active: sort === "DROPS",
+                        },
+                        {
+                          label: `Proj wk ${week}`,
+                          value: proj.toFixed(1),
+                          hint: "Projected points this week",
+                          active: sort === "PROJ",
+                        },
+                      ]}
+                    />
                     {rec && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
                         <span
@@ -327,13 +436,7 @@ function PlayersPage() {
                     )}
                     <PlayerInsightChips player={player} week={week} showForm={false} />
                   </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <div className="text-right">
-                      <div className="font-display text-xl font-bold tabular-nums">
-                        {proj.toFixed(1)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">proj wk {week}</div>
-                    </div>
+                  <div className="flex shrink-0 items-center">
                     {league && <AddDropButton player={player} league={league} byId={byId} />}
                   </div>
                 </li>
