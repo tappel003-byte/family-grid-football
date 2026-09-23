@@ -9,6 +9,8 @@ export type GameInfo = {
   network?: string;
   /** Game seconds still to be played (3600 before kickoff, 0 once final). */
   secondsLeft?: number;
+  /** True while this team has possession of the ball in a live game. */
+  hasBall?: boolean;
 };
 
 export type WeekData = {
@@ -96,7 +98,8 @@ type Scoreboard = {
     };
     competitions?: Array<{
       broadcasts?: Array<{ names?: string[] }>;
-      competitors?: Array<{ team?: { abbreviation?: string } }>;
+      situation?: { possession?: string };
+      competitors?: Array<{ id?: string; team?: { id?: string; abbreviation?: string } }>;
     }>;
   }>;
 };
