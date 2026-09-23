@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { HelpCircle, LogOut, RefreshCw, Settings, UserRound } from "lucide-react";
+import { HelpCircle, LogOut, RefreshCw, Settings, UserRound, Wrench } from "lucide-react";
+import { useLeague } from "@/lib/fantasy/hooks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -137,6 +138,40 @@ function RefreshNav() {
   );
 }
 
+/** Commissioner-only: jump straight into any team to fix its lineup. */
+function FixTeamMenu() {
+  const { league } = useLeague();
+  const [open, setOpen] = useState(false);
+  if (!league) return null;
+  return (
+    <div className="border-t mt-1 pt-1">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between rounded-md px-3 py-2.5 font-semibold hover:bg-secondary"
+      >
+        <span className="flex items-center gap-2"><Wrench className="h-4 w-4" /> Fix a team</span>
+        <span className="text-muted-foreground">{open ? "▴" : "▾"}</span>
+      </button>
+      {open && (
+        <div className="flex max-h-64 flex-col overflow-y-auto pl-4">
+          {league.teams.map((t) => (
+            <Link
+              key={t.id}
+              to="/team/$teamId"
+              params={{ teamId: t.id }}
+              className="rounded-md px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              {t.name}
+              {t.owner && <span className="block text-xs font-normal">{t.owner}</span>}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProfileNav({
   displayName,
   teamName,
@@ -169,6 +204,7 @@ function ProfileNav({
               <Settings className="h-4 w-4" /> Commissioner
             </Link>
           )}
+          {isCommissioner && <FixTeamMenu />}
           <Button variant="ghost" onClick={() => void signOut()} className="h-auto justify-start px-3 py-2.5 font-semibold">
             <LogOut className="h-4 w-4" /> Sign out
           </Button>
