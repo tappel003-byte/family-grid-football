@@ -203,6 +203,16 @@ function PlayersPage() {
   const addsById = useMemo(() => new Map((adds ?? []).map((a) => [a.id, a.count])), [adds]);
   const dropsById = useMemo(() => new Map((drops ?? []).map((a) => [a.id, a.count])), [drops]);
 
+  /** Our own overall rank: every player ordered by season points in this league's scoring. */
+  const rankById = useMemo(() => {
+    const map = new Map<string, number>();
+    players
+      .map((p) => [p.id, insights?.players[p.id]?.seasonPts ?? 0, p.name] as const)
+      .sort((a, b) => b[1] - a[1] || a[2].localeCompare(b[2]))
+      .forEach(([id], i) => map.set(id, i + 1));
+    return map;
+  }, [players, insights]);
+
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();
     for (const t of league?.teams ?? []) for (const id of ownedIds(t)) map.set(id, t.name);
@@ -226,6 +236,7 @@ function PlayersPage() {
         const free = !ownerByPlayer.has(p.id);
         return {
           player: p,
+          rank: rankById.get(p.id) ?? 9999,
           owner: ownerByPlayer.get(p.id) ?? null,
           proj,
           own,
@@ -276,7 +287,7 @@ function PlayersPage() {
             b.proj - a.proj
           );
         default:
-          return a.player.rank - b.player.rank;
+          return a.rank - b.rank;
       }
     });
     return list.slice(0, 100);
@@ -293,6 +304,7 @@ function PlayersPage() {
     market,
     addsById,
     dropsById,
+    rankById,
     watchedOnly,
     watched,
   ]);
@@ -420,7 +432,7 @@ function PlayersPage() {
             </div>
 
             <ul className="divide-y">
-              {results.map(({ player, owner, proj, own, news, last3Avg, seasonPts, seasonAvg, rec, adds, drops }) => (
+              {results.map(({ player, rank, owner, proj, own, news, last3Avg, seasonPts, seasonAvg, rec, adds, drops }) => (
                 <li key={player.id} className="px-3 py-2.5 sm:px-4 sm:py-3">
                   <PlayerCell player={player} week={week} photo="desktop" />
                   <div className="mt-1 text-sm">
@@ -448,7 +460,7 @@ function PlayersPage() {
                             ["PTS", "Pts", seasonPts.toFixed(1)],
                             ["AVG", "Avg", seasonAvg.toFixed(1)],
                             ["HOT", "L3", last3Avg > 0 ? last3Avg.toFixed(1) : "—"],
-                            ["RANK", "Rnk", `#${player.rank}`],
+                            ["RANK", "Rnk", `#${rank}`],
                           ]
                         : activeGroup === "Ownership"
                           ? [
