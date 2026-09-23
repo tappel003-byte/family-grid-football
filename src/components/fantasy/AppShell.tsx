@@ -45,7 +45,7 @@ const LEGEND = [
   { chip: "OUT / Q / D", text: "Injury status. OUT (red) means he won't play. Q means questionable — a game-time decision. D means doubtful." },
 ] as const;
 
-function ChipLegend() {
+export function ChipLegend() {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -159,7 +159,7 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
-        {/* Top row: brand on the left, help + profile on the right */}
+          {/* Top row: brand on the left, profile on the right */}
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-2.5 sm:py-3">
           <Link to="/" className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
@@ -170,7 +170,6 @@ function Shell({ children }: { children: ReactNode }) {
             </span>
           </Link>
           <span className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <ChipLegend />
             <ProfileNav
               displayName={account?.displayName || displayName}
               teamName={account?.team?.name}
