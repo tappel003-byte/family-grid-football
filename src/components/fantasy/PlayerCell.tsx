@@ -185,7 +185,8 @@ export function PlayerCell({
         {showGame && gameLine && (
           <div
             className={cn(
-              "mt-0.5 truncate text-xs font-semibold text-foreground/75",
+              "mt-0.5 text-xs font-semibold leading-snug text-foreground/75",
+              mobileMatchup ? "whitespace-normal" : "truncate",
               onField && "text-primary",
               align === "right" && "text-right",
             )}

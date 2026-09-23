@@ -1,9 +1,61 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { Session, User } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 let cachedSession: Session | null = null;
+const KEEP_SIGNED_IN_KEY = "la-familia-keep-signed-in";
+const SESSION_BACKUP_KEY = "la-familia-session-backup";
+const ACTIVE_TAB_KEY = "la-familia-active-tab";
+
+function canUseStorage() {
+  return typeof window !== "undefined";
+}
+
+function keepSignedIn() {
+  return !canUseStorage() || window.localStorage.getItem(KEEP_SIGNED_IN_KEY) !== "false";
+}
+
+function saveSessionBackup(session: Session | null) {
+  if (!canUseStorage()) return;
+  if (session && keepSignedIn()) {
+    window.localStorage.setItem(SESSION_BACKUP_KEY, JSON.stringify(session));
+  }
+}
+
+async function restoreRememberedSession() {
+  if (!canUseStorage() || !keepSignedIn()) return null;
+  const raw = window.localStorage.getItem(SESSION_BACKUP_KEY);
+  if (!raw) return null;
+  try {
+    const saved = JSON.parse(raw) as Partial<Session>;
+    if (typeof saved.access_token !== "string" || typeof saved.refresh_token !== "string") return null;
+    const { data, error } = await supabase.auth.setSession({
+      access_token: saved.access_token,
+      refresh_token: saved.refresh_token,
+    });
+    if (error) {
+      window.localStorage.removeItem(SESSION_BACKUP_KEY);
+      return null;
+    }
+    return data.session;
+  } catch {
+    window.localStorage.removeItem(SESSION_BACKUP_KEY);
+    return null;
+  }
+}
+
+export function setKeepSignedIn(value: boolean, session: Session | null) {
+  if (!canUseStorage()) return;
+  window.localStorage.setItem(KEEP_SIGNED_IN_KEY, String(value));
+  if (value) {
+    window.sessionStorage.removeItem(ACTIVE_TAB_KEY);
+    saveSessionBackup(session);
+  } else {
+    window.localStorage.removeItem(SESSION_BACKUP_KEY);
+    window.sessionStorage.setItem(ACTIVE_TAB_KEY, "true");
+  }
+}
 
 /** The signed-in family member, or null when nobody is signed in. */
 export function useSession() {
@@ -14,14 +66,23 @@ export function useSession() {
     let active = true;
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       cachedSession = next;
+      saveSessionBackup(next);
       if (!active) return;
       setSession(next);
       setLoading(false);
     });
-    void supabase.auth.getSession().then(({ data }) => {
-      cachedSession = data.session;
+    void supabase.auth.getSession().then(async ({ data }) => {
+      let next = data.session;
+      if (next && !keepSignedIn() && !window.sessionStorage.getItem(ACTIVE_TAB_KEY)) {
+        await supabase.auth.signOut();
+        next = null;
+      } else if (!next) {
+        next = await restoreRememberedSession();
+      }
+      cachedSession = next;
+      saveSessionBackup(next);
       if (!active) return;
-      setSession(data.session);
+      setSession(next);
       setLoading(false);
     });
     return () => {
@@ -89,6 +150,10 @@ export function useAuth() {
 }
 
 export async function signOut() {
+  if (canUseStorage()) {
+    window.localStorage.removeItem(SESSION_BACKUP_KEY);
+    window.sessionStorage.removeItem(ACTIVE_TAB_KEY);
+  }
   await supabase.auth.signOut();
   window.location.href = "/";
 }
