@@ -160,6 +160,8 @@ function PlayersPage() {
           last3Avg: info?.last3Avg ?? 0,
           seasonAvg: info?.seasonAvg ?? 0,
           hot: info?.last3Avg ?? 0,
+          adds: addsById.get(p.id) ?? 0,
+          drops: dropsById.get(p.id) ?? 0,
           rec: recommendFor({
             free,
             own,
