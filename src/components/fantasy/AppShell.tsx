@@ -30,6 +30,7 @@ const NAV = [
 ] as const;
 
 const NAV_MORE = [
+  { to: "/start-sit", label: "Start/Sit" },
   { to: "/teams", label: "Teams" },
   { to: "/trades", label: "Trades" },
   { to: "/history", label: "History" },
