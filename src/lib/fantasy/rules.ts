@@ -75,6 +75,12 @@ export function normalizeRules(raw: unknown): LeagueRules {
       const ir = Number(r.irSlots);
       return Number.isFinite(ir) && ir >= 0 ? Math.min(ir, 3) : DEFAULT_RULES.irSlots;
     })(),
+    lockAtKickoff: r.lockAtKickoff !== false,
+    waiverDay: (() => {
+      const day = Number(r.waiverDay);
+      return Number.isInteger(day) && day >= 0 && day <= 6 ? day : DEFAULT_RULES.waiverDay;
+    })(),
+    autoWaiverOrder: r.autoWaiverOrder !== false,
   };
 }
 
