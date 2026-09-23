@@ -302,45 +302,73 @@ function PlayersPage() {
           </div>
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <ul className="divide-y">
-              {results.map(({ player, owner, proj, own, news, last3Avg, seasonAvg, rec }) => (
+              {results.map(({ player, owner, proj, own, news, last3Avg, seasonAvg, rec, adds, drops }) => (
                 <li
                   key={player.id}
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
                 >
                   <div className="min-w-0">
                     <PlayerCell player={player} week={week} />
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                    <div className="mt-1 text-sm">
                       {owner ? (
                         <span className="text-muted-foreground">On {owner}</span>
                       ) : (
                         <span className="font-semibold text-accent-foreground">Free agent</span>
                       )}
-                      {own && (
-                        <>
-                          <span
-                            className="text-muted-foreground"
-                            title="Share of fantasy leagues across the country where this player is on a roster"
-                          >
-                            Rostered <b className="text-foreground tabular-nums">{own.owned}%</b>
-                          </span>
-                          <span
-                            className="text-muted-foreground"
-                            title="Share of leagues that have him in their starting lineup this week"
-                          >
-                            Started <b className="text-foreground tabular-nums">{own.started}%</b>
-                          </span>
-                          {own.change >= 1 && (
-                            <span className="font-semibold text-emerald-600">
-                              +{own.change}% this week
-                            </span>
-                          )}
-                        </>
-                      )}
-                      <span className="text-muted-foreground" title="Average points per game">
-                        Avg <b className="text-foreground tabular-nums">{seasonAvg.toFixed(1)}</b> ·
-                        last 3 <b className="text-foreground tabular-nums">{last3Avg.toFixed(1)}</b>
-                      </span>
                     </div>
+                    <StatGrid
+                      cells={[
+                        {
+                          label: "Rostered",
+                          value: own ? `${own.owned}%` : "—",
+                          hint: "Share of leagues nationwide where he is on a roster",
+                          active: sort === "OWNED",
+                        },
+                        {
+                          label: "Started",
+                          value: own ? `${own.started}%` : "—",
+                          hint: "Share of leagues starting him this week",
+                          active: sort === "STARTED",
+                        },
+                        {
+                          label: "Rising",
+                          value: own ? `${own.change > 0 ? "+" : ""}${own.change}%` : "—",
+                          hint: "Change in rostered % this week",
+                          good: (own?.change ?? 0) >= 1,
+                          active: sort === "RISING",
+                        },
+                        {
+                          label: "Avg",
+                          value: seasonAvg.toFixed(1),
+                          hint: "Season average points per game",
+                          active: sort === "AVG",
+                        },
+                        {
+                          label: "Last 3",
+                          value: last3Avg.toFixed(1),
+                          hint: "Average over his last three games",
+                          active: sort === "HOT",
+                        },
+                        {
+                          label: "Adds",
+                          value: adds ? adds.toLocaleString() : "—",
+                          hint: "Times added across the country in 24 hours",
+                          active: sort === "ADDS",
+                        },
+                        {
+                          label: "Drops",
+                          value: drops ? drops.toLocaleString() : "—",
+                          hint: "Times dropped across the country in 24 hours",
+                          active: sort === "DROPS",
+                        },
+                        {
+                          label: `Proj wk ${week}`,
+                          value: proj.toFixed(1),
+                          hint: "Projected points this week",
+                          active: sort === "PROJ",
+                        },
+                      ]}
+                    />
                     {rec && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
                         <span
