@@ -246,13 +246,12 @@ export const runWaivers = createServerFn({ method: "POST" })
     const claims = (pending ?? []) as unknown as ClaimRow[];
     if (!claims.length) return { won: 0, lost: 0 };
 
-    const oldest = claims.reduce(
-      (min, c) => Math.min(min, Date.parse(c.created_at) || Date.now()),
-      Number.POSITIVE_INFINITY,
+    const now = Date.now();
+    const ready = claims.filter(
+      (c) => now >= nextWaiverRun(Date.parse(c.created_at) || now, rules.waiverDay),
     );
-    if (!data.force && Date.now() - oldest < AUTO_PROCESS_MS) {
-      return { won: 0, lost: 0, waiting: true };
-    }
+    const toRun = data.force ? claims : ready;
+    if (toRun.length === 0) return { won: 0, lost: 0, waiting: true };
 
     const { data: teamRows } = await supabaseAdmin
       .from("teams")
@@ -261,8 +260,24 @@ export const runWaivers = createServerFn({ method: "POST" })
       .order("slot", { ascending: true });
     const teams = ((teamRows ?? []) as unknown as TeamRow[]).slice();
 
+    let order = rules.waiverOrder;
+    if (rules.autoWaiverOrder) {
+      const computed = await standingsOrder(
+        supabaseAdmin,
+        leagueRow.id,
+        teams.map((t) => t.slot),
+      );
+      if (computed.length) {
+        order = computed;
+        await supabaseAdmin
+          .from("league")
+          .update({ rules: { ...rules, waiverOrder: computed } as never })
+          .eq("id", leagueRow.id);
+      }
+    }
+
     const priority = (slot: number): [number, number] => {
-      const idx = rules.waiverOrder.indexOf(slot);
+      const idx = order.indexOf(slot);
       return [idx === -1 ? 999 : idx, slot];
     };
     const ordered = claims.slice().sort((a, b) => {
