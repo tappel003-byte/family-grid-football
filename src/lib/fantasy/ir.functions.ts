@@ -7,7 +7,7 @@ export type IrInput = {
   playerName: string;
   /** true = park them on injured reserve, false = bring them back to the bench. */
   toIR: boolean;
-  /** Legacy input; ownership is always derived from the signed-in account. */
+  /** Target team slot; only commissioners may target another team. */
   slot?: number | null;
 };
 
@@ -35,8 +35,19 @@ export const setInjuredReserve = createServerFn({ method: "POST" })
     if (teamsError) throw new Error(teamsError.message);
     const teams = teamRows ?? [];
 
-    const target = teams.find((t) => t.user_id === context.userId);
+    const own = teams.find((t) => t.user_id === context.userId);
+    let target = own;
+    if (typeof data.slot === "number" && data.slot !== own?.slot) {
+      const { data: isCommish } = await context.supabase.rpc("has_role", {
+        _user_id: context.userId,
+        _role: "commissioner",
+      });
+      if (isCommish !== true) throw new Error("Only your team can be changed.");
+      target = teams.find((t) => t.slot === data.slot);
+      if (!target) throw new Error("That team is not in the league.");
+    }
     if (!target) throw new Error("You do not have a team in this league yet.");
+    const byCommish = target.id !== own?.id;
 
     const starters = ((target.starters as Array<string | null>) ?? []).slice();
     const bench = ((target.bench as string[]) ?? []).slice();
@@ -86,7 +97,7 @@ export const setInjuredReserve = createServerFn({ method: "POST" })
       league_id: leagueRow.id,
       team_slot: target.slot,
       team_name: target.name,
-      kind: data.toIR ? "ir" : "activate",
+      kind: (byCommish ? "commish_" : "") + (data.toIR ? "ir" : "activate"),
       added_player_id: data.toIR ? null : data.playerId,
       added_player_name: data.toIR ? "" : data.playerName,
       dropped_player_id: data.toIR ? data.playerId : null,
