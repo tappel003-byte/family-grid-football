@@ -52,20 +52,16 @@ export function ActivityFeed({ limit = 50 }: { limit?: number }) {
       {data.map((m) => (
         <li key={m.id} className="px-4 py-3">
           <p className="text-base font-semibold">
-            {activityText(m) ?? <>
-            {m.team_name}
-            {m.added_player_name && (
+            {activityText(m) ?? (
               <>
-                {" added "}
-                <span className="text-green-700 dark:text-green-400">{m.added_player_name}</span>
-              </>
-            )}
-            </>}
-            {m.added_player_name && m.dropped_player_name && " and"}
-            {m.dropped_player_name && (
-              <>
-                {" dropped "}
-                <span className="text-red-700 dark:text-red-400">{m.dropped_player_name}</span>
+                {m.team_name}
+                {m.added_player_name && (
+                  <>{" added "}<span className="text-green-700 dark:text-green-400">{m.added_player_name}</span></>
+                )}
+                {m.added_player_name && m.dropped_player_name && " and"}
+                {m.dropped_player_name && (
+                  <>{" dropped "}<span className="text-red-700 dark:text-red-400">{m.dropped_player_name}</span></>
+                )}
               </>
             )}
           </p>
