@@ -198,25 +198,42 @@ function Side({
 
 function MobileSide({
   player,
+  align,
   week,
   league,
   flagged,
 }: {
   player: SlimPlayer | undefined;
+  align: "left" | "right";
   week: number;
   league: League;
   flagged: boolean;
 }) {
   if (!player) {
-    return <div className="flex min-h-28 items-center justify-center text-sm text-muted-foreground">Empty slot</div>;
+    return (
+      <div
+        className={cn(
+          "flex min-h-28 items-center text-sm text-muted-foreground",
+          align === "right" ? "justify-end text-right" : "justify-start",
+        )}
+      >
+        Empty slot
+      </div>
+    );
   }
 
   const score = scoreFor(player, week, league);
 
   return (
-    <div className={cn("min-h-36 min-w-0 rounded-md p-2", flagged && "bg-injury-out/15")}>
-      <PlayerCell player={player} align="left" compact mobileMatchup week={week} />
-      <div className="mt-2 border-t border-border/70 pt-2">
+    <div
+      className={cn(
+        "min-h-36 min-w-0 rounded-md p-2",
+        align === "right" && "text-right",
+        flagged && "bg-injury-out/15",
+      )}
+    >
+      <PlayerCell player={player} align={align} compact mobileMatchup week={week} />
+      <div className={cn("mt-2 border-t border-border/70 pt-2", align === "right" && "text-right")}>
         <div className="font-display text-2xl font-bold tabular-nums">{score.actual.toFixed(1)}</div>
         <div className="text-xs font-medium text-muted-foreground">
           Projected {score.projected.toFixed(1)}
@@ -336,11 +353,11 @@ export function MatchupBoard({
           const apOut = !!ap && isInactive(ap.injury);
           return (
             <div key={`mobile-${slot}-${i}`} className="grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-stretch gap-1 px-2 py-3">
-              <MobileSide player={hp} week={week} league={league} flagged={hpOut} />
+               <MobileSide player={hp} align="left" week={week} league={league} flagged={hpOut} />
               <div className="flex items-center justify-center border-x border-border/70 bg-secondary/45 px-1">
                 <span className="text-center font-display text-xs font-bold uppercase text-muted-foreground">{slot}</span>
               </div>
-              <MobileSide player={ap} week={week} league={league} flagged={apOut} />
+               <MobileSide player={ap} align="right" week={week} league={league} flagged={apOut} />
             </div>
           );
         })}
