@@ -1,7 +1,7 @@
 // ============= Full file contents =============
 
 import { createFileRoute } from "@tanstack/react-router";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bookmark, Check, ChevronDown, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -373,7 +373,7 @@ function PlayersPage() {
               <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 {results.length} players
               </span>
-              <DropdownMenu modal={false}>
+              <DropdownMenu modal={false} open={sortOpen} onOpenChange={setSortOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold">
                     Sort: {SORT_LABEL[sort]}
