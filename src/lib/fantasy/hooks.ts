@@ -4,6 +4,7 @@ import { getPlayers, getTrending, type SlimPlayer } from "../sleeper.functions";
 import { buildLeague, type League } from "./league";
 import { hydrateLeague, leagueStatus, setLeague, useLeagueStore } from "./store";
 import { getWeekData, type WeekData } from "../nfl.functions";
+import { getMarket } from "../market.functions";
 import { scoreStats, ZERO_STATS, type StatLine } from "./scoring";
 
 const ZERO: StatLine = ZERO_STATS;
@@ -41,6 +42,12 @@ export const playersQueryOptions = queryOptions({
   queryKey: ["nfl-players"],
   queryFn: () => getPlayers(),
   staleTime: 1000 * 60 * 60,
+});
+
+export const marketQueryOptions = queryOptions({
+  queryKey: ["nfl-market"],
+  queryFn: () => getMarket(),
+  staleTime: 1000 * 60 * 30,
 });
 
 export const trendingQueryOptions = (type: "add" | "drop") =>
