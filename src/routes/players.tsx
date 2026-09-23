@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpDown, History, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowUpDown, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { AddDropButton } from "@/components/fantasy/AddDropButton";
@@ -10,12 +11,16 @@ import {
   InsightsProvider,
   PlayerInsightChips,
   insightsQueryOptions,
+  isOnBye,
+  matchupFor,
 } from "@/components/fantasy/PlayerInsights";
+import { recommendFor } from "@/lib/fantasy/recommend";
 import { STANDARD_SCORING } from "@/lib/fantasy/scoring";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
+  marketQueryOptions,
   playersQueryOptions,
   trendingQueryOptions,
   useLeague,
@@ -85,13 +90,23 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
   );
 }
 
+const SORTS = [
+  ["PROJ", "Top projected"],
+  ["HOT", "Hot last 3 weeks"],
+  ["OWNED", "Most rostered"],
+  ["STARTED", "Most started"],
+  ["RANK", "Overall rank"],
+] as const;
+
+type SortKey = (typeof SORTS)[number][0];
+
 function PlayersPage() {
   const { league, players, byId } = useLeague();
   const { f } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [pos, setPos] = useState("ALL");
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
-  const [sort, setSort] = useState<"PROJ" | "RANK" | "HOT">("PROJ");
+  const [sort, setSort] = useState<SortKey>("PROJ");
 
   const week = league?.currentWeek ?? 1;
   useWeekData(week);
@@ -99,6 +114,10 @@ function PlayersPage() {
     ...insightsQueryOptions(week, league?.scoring ?? STANDARD_SCORING),
     enabled: !!league,
   });
+  const { data: market } = useQuery(marketQueryOptions);
+  const { data: adds } = useQuery(trendingQueryOptions("add"));
+
+  const addsById = useMemo(() => new Map((adds ?? []).map((a) => [a.id, a.count])), [adds]);
 
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();
@@ -115,17 +134,49 @@ function PlayersPage() {
         const owned = ownerByPlayer.has(p.id);
         return avail === "FA" ? !owned : owned;
       })
-      .map((p) => ({
-        player: p,
-        owner: ownerByPlayer.get(p.id) ?? null,
-        proj: league ? scoreFor(p, week, league).projected : 0,
-        hot: insights?.players[p.id]?.last3Avg ?? 0,
-      }));
-    list.sort((a, b) =>
-      sort === "PROJ" ? b.proj - a.proj : sort === "HOT" ? b.hot - a.hot : a.player.rank - b.player.rank,
-    );
+      .map((p) => {
+        const info = insights?.players[p.id];
+        const own = market?.ownership[p.id] ?? null;
+        const proj = league ? scoreFor(p, week, league).projected : 0;
+        const free = !ownerByPlayer.has(p.id);
+        return {
+          player: p,
+          owner: ownerByPlayer.get(p.id) ?? null,
+          proj,
+          own,
+          news: market?.news[p.id] ?? null,
+          last3Avg: info?.last3Avg ?? 0,
+          seasonAvg: info?.seasonAvg ?? 0,
+          hot: info?.last3Avg ?? 0,
+          rec: recommendFor({
+            free,
+            own,
+            last3Avg: info?.last3Avg ?? 0,
+            seasonAvg: info?.seasonAvg ?? 0,
+            projected: proj,
+            onBye: isOnBye(insights ?? null, p, week),
+            injury: p.injury,
+            matchup: matchupFor(insights ?? null, p)?.grade?.grade ?? null,
+            trendingAdds: addsById.get(p.id) ?? 0,
+          }),
+        };
+      });
+    list.sort((a, b) => {
+      switch (sort) {
+        case "PROJ":
+          return b.proj - a.proj;
+        case "HOT":
+          return b.hot - a.hot;
+        case "OWNED":
+          return (b.own?.owned ?? -1) - (a.own?.owned ?? -1);
+        case "STARTED":
+          return (b.own?.started ?? -1) - (a.own?.started ?? -1);
+        default:
+          return a.player.rank - b.player.rank;
+      }
+    });
     return list.slice(0, 100);
-  }, [players, query, pos, avail, sort, ownerByPlayer, league, week, insights]);
+  }, [players, query, pos, avail, sort, ownerByPlayer, league, week, insights, market, addsById]);
 
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
@@ -189,33 +240,92 @@ function PlayersPage() {
               ))}
               <Button
                 variant="secondary"
-                onClick={() =>
-                  setSort(sort === "PROJ" ? "HOT" : sort === "HOT" ? "RANK" : "PROJ")
-                }
+                onClick={() => {
+                  const i = SORTS.findIndex(([v]) => v === sort);
+                  setSort(SORTS[(i + 1) % SORTS.length]![0]);
+                }}
                 className="font-semibold"
               >
                 <ArrowUpDown className="mr-1.5 h-4 w-4" />
-                {sort === "PROJ" ? "Top projected" : sort === "HOT" ? "Hot last 3 weeks" : "Overall rank"}
+                {SORTS.find(([v]) => v === sort)?.[1]}
               </Button>
             </div>
           </div>
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <ul className="divide-y">
-              {results.map(({ player, owner, proj }) => (
+              {results.map(({ player, owner, proj, own, news, last3Avg, seasonAvg, rec }) => (
                 <li
                   key={player.id}
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
                 >
                   <div className="min-w-0">
                     <PlayerCell player={player} week={week} />
-                    <div className="mt-1 text-sm">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                       {owner ? (
                         <span className="text-muted-foreground">On {owner}</span>
                       ) : (
                         <span className="font-semibold text-accent-foreground">Free agent</span>
                       )}
+                      {own && (
+                        <>
+                          <span
+                            className="text-muted-foreground"
+                            title="Share of fantasy leagues across the country where this player is on a roster"
+                          >
+                            Rostered <b className="text-foreground tabular-nums">{own.owned}%</b>
+                          </span>
+                          <span
+                            className="text-muted-foreground"
+                            title="Share of leagues that have him in their starting lineup this week"
+                          >
+                            Started <b className="text-foreground tabular-nums">{own.started}%</b>
+                          </span>
+                          {own.change >= 1 && (
+                            <span className="font-semibold text-emerald-600">
+                              +{own.change}% this week
+                            </span>
+                          )}
+                        </>
+                      )}
+                      <span className="text-muted-foreground" title="Average points per game">
+                        Avg <b className="text-foreground tabular-nums">{seasonAvg.toFixed(1)}</b> ·
+                        last 3 <b className="text-foreground tabular-nums">{last3Avg.toFixed(1)}</b>
+                      </span>
                     </div>
-                    <PlayerInsightChips player={player} week={week} />
+                    {rec && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
+                        <span
+                          className={cn(
+                            "rounded-md px-2 py-0.5 font-display text-xs font-bold uppercase tracking-wide",
+                            rec.level === "must" && "bg-emerald-600 text-white",
+                            rec.level === "good" && "bg-emerald-600/15 text-emerald-700",
+                            rec.level === "stream" && "bg-secondary text-secondary-foreground",
+                            rec.level === "pass" && "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {rec.label}
+                        </span>
+                        <span className="text-muted-foreground">{rec.reason}</span>
+                      </div>
+                    )}
+                    {news && (
+                      <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
+                        <Newspaper className="mt-0.5 h-4 w-4 shrink-0" />
+                        {news.link ? (
+                          <a
+                            href={news.link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline underline-offset-2 hover:text-foreground"
+                          >
+                            {news.headline}
+                          </a>
+                        ) : (
+                          news.headline
+                        )}
+                      </p>
+                    )}
+                    <PlayerInsightChips player={player} week={week} showForm={false} />
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <div className="text-right">

@@ -14,4 +14,4 @@
 - [ ] Decide: should IR moves require commissioner approval? (owner-managed for now)
 
 10. [x] League settings match ESPN — lineups lock at each game's kickoff, waivers with a claim day, order resets to inverse standings, trade deadline
-- [ ] Players screen: start %, rostered %, season + last-3 averages, projections, free-agent recommendation (Tim, Sep 22)
+11. [x] Players screen: rostered %, started %, weekly rostered change, season + last-3 averages, projections, plain-language pickup advice, latest player headline, new sorts
