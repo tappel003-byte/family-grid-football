@@ -126,8 +126,10 @@ function PlayersPage() {
   });
   const { data: market } = useQuery(marketQueryOptions);
   const { data: adds } = useQuery(trendingQueryOptions("add"));
+  const { data: drops } = useQuery(trendingQueryOptions("drop"));
 
   const addsById = useMemo(() => new Map((adds ?? []).map((a) => [a.id, a.count])), [adds]);
+  const dropsById = useMemo(() => new Map((drops ?? []).map((a) => [a.id, a.count])), [drops]);
 
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();
