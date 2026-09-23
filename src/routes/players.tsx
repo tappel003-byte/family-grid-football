@@ -316,7 +316,7 @@ function PlayersPage() {
               <div className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 <ArrowUpDown className="h-4 w-4" /> Sort by
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-5 sm:overflow-visible">
                 {SORTS.map(([value, label]) => (
                   <Button
                     key={value}
@@ -324,7 +324,7 @@ function PlayersPage() {
                     variant={sort === value ? "default" : "outline"}
                     onClick={() => setSort(value)}
                     aria-pressed={sort === value}
-                    className="h-9 justify-center px-2 text-sm font-semibold"
+                    className="h-9 shrink-0 snap-start justify-center rounded-full px-3 text-sm font-semibold sm:rounded-md sm:px-2"
                   >
                     {label}
                   </Button>
@@ -337,10 +337,10 @@ function PlayersPage() {
               {results.map(({ player, owner, proj, own, news, last3Avg, seasonAvg, rec, adds, drops }) => (
                 <li
                   key={player.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3"
                 >
                   <div className="min-w-0">
-                    <PlayerCell player={player} week={week} />
+                    <PlayerCell player={player} week={week} photo="desktop" />
                     <div className="mt-1 text-sm">
                       {owner ? (
                         <span className="text-muted-foreground">On {owner}</span>
