@@ -150,20 +150,20 @@ type PlayerRow = {
 
 /** One scrolling stat column: short heading, width, and how to print the value. */
 const COLUMNS: Record<SortKey, { short: string; w: string; value: (r: PlayerRow) => string }> = {
-  PROJ: { short: "Proj", w: "w-16", value: (r) => r.proj.toFixed(1) },
-  PTS: { short: "Pts", w: "w-16", value: (r) => r.seasonPts.toFixed(1) },
-  AVG: { short: "Avg", w: "w-16", value: (r) => r.seasonAvg.toFixed(1) },
-  HOT: { short: "L3", w: "w-16", value: (r) => (r.last3Avg > 0 ? r.last3Avg.toFixed(1) : "—") },
-  RANK: { short: "Rnk", w: "w-16", value: (r) => `#${r.rank}` },
-  OWNED: { short: "Rst%", w: "w-16", value: (r) => (r.own ? `${r.own.owned}%` : "—") },
-  STARTED: { short: "Str%", w: "w-16", value: (r) => (r.own ? `${r.own.started}%` : "—") },
+  PROJ: { short: "Proj", w: "w-14", value: (r) => r.proj.toFixed(1) },
+  PTS: { short: "Pts", w: "w-14", value: (r) => r.seasonPts.toFixed(1) },
+  AVG: { short: "Avg", w: "w-14", value: (r) => r.seasonAvg.toFixed(1) },
+  HOT: { short: "L3", w: "w-14", value: (r) => (r.last3Avg > 0 ? r.last3Avg.toFixed(1) : "—") },
+  RANK: { short: "Rnk", w: "w-14", value: (r) => `#${r.rank}` },
+  OWNED: { short: "Rst%", w: "w-14", value: (r) => (r.own ? `${r.own.owned}%` : "—") },
+  STARTED: { short: "Str%", w: "w-14", value: (r) => (r.own ? `${r.own.started}%` : "—") },
   RISING: {
     short: "Ris%",
-    w: "w-16",
+    w: "w-14",
     value: (r) => (r.own ? `${r.own.change > 0 ? "+" : ""}${r.own.change}` : "—"),
   },
-  ADDS: { short: "Adds", w: "w-16", value: (r) => (r.adds > 0 ? COMPACT.format(r.adds) : "—") },
-  DROPS: { short: "Drops", w: "w-16", value: (r) => (r.drops > 0 ? COMPACT.format(r.drops) : "—") },
+  ADDS: { short: "Adds", w: "w-14", value: (r) => (r.adds > 0 ? COMPACT.format(r.adds) : "—") },
+  DROPS: { short: "Drops", w: "w-14", value: (r) => (r.drops > 0 ? COMPACT.format(r.drops) : "—") },
   PICKUP: { short: "Pickup", w: "w-24", value: (r) => r.rec?.label ?? "—" },
 };
 
@@ -470,7 +470,7 @@ function PlayersPage() {
             <div className="overflow-x-auto">
               <div className="min-w-max">
                 <div className="flex items-stretch border-b bg-secondary/40">
-                  <div className="sticky left-0 z-10 w-56 shrink-0 border-r bg-secondary/40 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:w-72">
+                  <div className="sticky left-0 z-10 w-44 shrink-0 border-r bg-secondary/40 px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:w-72 sm:px-3">
                     Players
                   </div>
                   {columns.map((key) => {
@@ -504,17 +504,16 @@ function PlayersPage() {
                   const open = expanded.has(player.id);
                   return (
                     <div key={player.id} className="flex items-stretch border-b last:border-b-0">
-                      <div className="sticky left-0 z-10 w-56 shrink-0 border-r bg-card px-3 py-2.5 sm:w-72">
+                      <div className="sticky left-0 z-10 w-44 shrink-0 border-r bg-card px-2 py-2 sm:w-72 sm:px-3">
                         <PlayerCell player={player} week={week} photo="desktop" />
-                        <div className="mt-1 text-sm">
-                          {owner ? (
-                            <span className="text-muted-foreground">On {owner}</span>
-                          ) : (
-                            <span className="font-semibold text-accent-foreground">Free agent</span>
-                          )}
-                        </div>
+                        {!owner && (
+                          <div className="mt-1 text-xs font-semibold text-accent-foreground">
+                            Free agent
+                          </div>
+                        )}
                         {open && (
                           <div className="mt-1.5">
+                            {owner && <p className="text-sm text-muted-foreground">On {owner}</p>}
                             {rec && <p className="text-sm text-muted-foreground">{rec.reason}</p>}
                             {news && (
                               <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
@@ -536,11 +535,11 @@ function PlayersPage() {
                             <PlayerInsightChips player={player} week={week} showForm={false} />
                           </div>
                         )}
-                        <div className="mt-2 flex items-center gap-2">
+                        <div className="mt-1.5 flex items-center gap-1.5 [&_button]:h-7 [&_button]:px-2 [&_button]:text-xs">
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-8 px-2 text-xs font-semibold"
+                            className="h-7 px-1.5 text-xs font-semibold"
                             aria-expanded={open}
                             onClick={() => toggleExpanded(player.id)}
                           >

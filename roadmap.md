@@ -6,3 +6,5 @@
 - [x] Make date, kickoff time, and TV channel consistent on Players, Matchups, and My Team
 - [x] Add resilient hosted schedule fallback and preserve rich schedule fields
 - [x] Verify representative positions and all three screens on phone and desktop
+- [ ] Confirm "Total points" sort puts the top scorer at #1
+- [ ] Slim the locked player column on Players (stack info, fewer lines) so more stat columns fit on phone

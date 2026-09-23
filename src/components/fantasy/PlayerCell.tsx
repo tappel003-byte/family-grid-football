@@ -182,7 +182,7 @@ export function PlayerCell({
         {gameLine && (
           <div
             className={cn(
-              "mt-0.5 text-xs font-semibold text-foreground/75",
+              "mt-0.5 truncate text-xs font-semibold text-foreground/75",
               onField && "text-primary",
               align === "right" && "text-right",
             )}
