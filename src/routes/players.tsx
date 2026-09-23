@@ -295,7 +295,8 @@ function PlayersPage() {
           }),
         };
       });
-    list.sort((a, b) => {
+    type Row = (typeof list)[number];
+    const desc = (a: Row, b: Row) => {
       switch (sort) {
         case "PROJ":
           return b.proj - a.proj;
@@ -324,7 +325,10 @@ function PlayersPage() {
         default:
           return a.rank - b.rank;
       }
-    });
+    };
+    const factor = dir === "asc" ? -1 : 1;
+    list.sort((a, b) => factor * desc(a, b));
+
     return list.slice(0, 100);
   }, [
     players,
