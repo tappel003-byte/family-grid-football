@@ -102,7 +102,7 @@ function AccountPage() {
     setSaving(true);
     try {
       await save({
-        data: { displayName: name, teamName, color: data.team?.color ?? COLORS[0]!, timeZone },
+        data: { displayName: name, teamName, color: data?.team?.color ?? COLORS[0]!, timeZone },
       });
       await queryClient.invalidateQueries();
       toast.success("Saved");
@@ -129,7 +129,7 @@ function AccountPage() {
             ) : (
               <div
                 className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl font-display text-2xl font-bold text-white"
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: data.team?.color ?? COLORS[0] }}
               >
                 {initialsOf(teamName || name)}
               </div>
