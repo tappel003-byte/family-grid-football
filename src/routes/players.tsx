@@ -1,7 +1,9 @@
+// ============= Full file contents =============
+
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpDown, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { Check, ChevronDown, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
@@ -19,6 +21,14 @@ import { STANDARD_SCORING } from "@/lib/fantasy/scoring";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   marketQueryOptions,
   playersQueryOptions,
@@ -108,37 +118,33 @@ const SORTS = [
 
 type SortKey = (typeof SORTS)[number][0];
 
+const SORT_LABEL: Record<SortKey, string> = Object.fromEntries(SORTS) as Record<SortKey, string>;
+
+/** The 10 sorts, grouped the way you'd talk about them. */
+const SORT_GROUPS: { label: string; keys: SortKey[] }[] = [
+  { label: "Production", keys: ["PROJ", "AVG", "HOT", "RANK"] },
+  { label: "Ownership", keys: ["OWNED", "STARTED", "RISING"] },
+  { label: "Hype", keys: ["ADDS", "DROPS", "PICKUP"] },
+];
+
 const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass: 1 };
 
-type StatCell = { label: string; value: string; hint: string; good?: boolean; active?: boolean };
+/** Shared grid so the column headers and every player row line up. */
+const ROW_GRID =
+  "grid grid-cols-[minmax(0,1fr)_3.25rem_3.25rem_3.25rem] gap-x-1.5 sm:grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem] sm:gap-x-3";
 
-/** The numbers for one player, laid out in an even grid so columns line up. */
-function StatGrid({ cells }: { cells: StatCell[] }) {
+/** One right-aligned number column (ESPN-style). */
+function NumCol({ label, value, active }: { label: string; value: string; active?: boolean }) {
   return (
-    <dl className="mt-2 grid grid-cols-4 gap-1 sm:grid-cols-8">
-      {cells.map((c) => (
-        <div
-          key={c.label}
-          title={c.hint}
-          className={cn(
-            "rounded-md border px-1.5 py-1 text-center",
-            c.active ? "border-primary bg-primary/10" : "border-transparent bg-secondary/50",
-          )}
-        >
-          <dt className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {c.label}
-          </dt>
-          <dd
-            className={cn(
-              "font-display text-sm font-bold tabular-nums",
-              c.good && "text-emerald-600",
-            )}
-          >
-            {c.value}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div
+      className={cn(
+        "pt-0.5 text-right font-display text-sm font-bold tabular-nums",
+        active ? "text-primary underline decoration-primary/40 underline-offset-4" : "text-foreground",
+      )}
+    >
+      <span className="sr-only">{label}: </span>
+      {value}
+    </div>
   );
 }
 
@@ -271,30 +277,35 @@ function PlayersPage() {
         </TabsList>
 
         <TabsContent value="search" className="mt-4">
-          <div className="mb-4 flex flex-col gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search any NFL player"
-                aria-label="Search players"
-                className="h-12 pl-11 text-base"
-              />
+          {/* One slim control band: search + position chips, then availability */}
+          <div className="mb-3 flex flex-col gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[9rem] flex-1 sm:w-52 sm:flex-none">
+                <Search className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search any NFL player"
+                  aria-label="Search players"
+                  className="h-10 pl-10 text-base"
+                />
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {POSITIONS.map((p) => (
+                  <Button
+                    key={p}
+                    size="sm"
+                    variant={pos === p ? "default" : "outline"}
+                    onClick={() => setPos(p)}
+                    aria-pressed={pos === p}
+                    className="h-10 rounded-full px-3.5 text-sm font-semibold"
+                  >
+                    {p}
+                  </Button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {POSITIONS.map((p) => (
-                <Button
-                  key={p}
-                  variant={pos === p ? "default" : "outline"}
-                  onClick={() => setPos(p)}
-                  className="font-semibold"
-                >
-                  {p}
-                </Button>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 gap-1 rounded-xl bg-secondary p-1" role="group" aria-label="Show">
               {(
                 [
                   ["ALL", "All players"],
@@ -302,42 +313,96 @@ function PlayersPage() {
                   ["ROSTERED", "On a team"],
                 ] as const
               ).map(([v, label]) => (
-                <Button
+                <button
                   key={v}
-                  variant={avail === v ? "default" : "outline"}
+                  type="button"
                   onClick={() => setAvail(v)}
-                  className="font-semibold"
+                  aria-pressed={avail === v}
+                  className={cn(
+                    "h-9 rounded-lg text-sm font-semibold transition-colors",
+                    avail === v
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
                 >
                   {label}
-                </Button>
+                </button>
               ))}
             </div>
-            <div className="rounded-xl border bg-card p-3">
-              <div className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                <ArrowUpDown className="h-4 w-4" /> Sort by
-              </div>
-              <div className="flex flex-wrap gap-2 sm:grid sm:grid-cols-5">
-                {SORTS.map(([value, label]) => (
-                  <Button
-                    key={value}
-                    size="sm"
-                    variant={sort === value ? "default" : "outline"}
-                    onClick={() => setSort(value)}
-                    aria-pressed={sort === value}
-                    className="h-9 shrink-0 snap-start justify-center rounded-full px-3 text-sm font-semibold sm:rounded-md sm:px-2"
-                  >
-                    {label}
-                  </Button>
-                ))}
-              </div>
-            </div>
           </div>
+
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            {/* List header: count + grouped sort dropdown (ESPN-style) */}
+            <div className="flex items-center justify-between gap-2 border-b bg-secondary/60 px-3 py-2 sm:px-4">
+              <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                {results.length} players
+              </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold">
+                    Sort: {SORT_LABEL[sort]}
+                    <ChevronDown className="h-4 w-4 shrink-0" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {SORT_GROUPS.map((group, gi) => (
+                    <div key={group.label}>
+                      {gi > 0 && <DropdownMenuSeparator />}
+                      <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        {group.label}
+                      </DropdownMenuLabel>
+                      {group.keys.map((key) => (
+                        <DropdownMenuItem
+                          key={key}
+                          onClick={() => setSort(key)}
+                          className="h-9 justify-between text-sm font-medium"
+                        >
+                          {SORT_LABEL[key]}
+                          {sort === key && <Check className="h-4 w-4" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Column headers, aligned with the rows below */}
+            <div
+              className={cn(
+                ROW_GRID,
+                "border-b px-3 py-2 text-[10px] font-bold uppercase tracking-wide sm:px-4",
+              )}
+            >
+              <span className="text-muted-foreground">Player</span>
+              {(
+                [
+                  ["OWNED", "%Rost"],
+                  ["STARTED", "%Start"],
+                  ["PROJ", "Proj"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSort(key)}
+                  className={cn(
+                    "justify-self-end",
+                    sort === key
+                      ? "text-primary underline underline-offset-2"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             <ul className="divide-y">
-              {results.map(({ player, owner, proj, own, news, last3Avg, seasonAvg, rec, adds, drops }) => (
+              {results.map(({ player, owner, proj, own, news, last3Avg, rec, adds, drops }) => (
                 <li
                   key={player.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3"
+                  className={cn(ROW_GRID, "items-start px-3 py-2.5 sm:px-4 sm:py-3")}
                 >
                   <div className="min-w-0">
                     <PlayerCell player={player} week={week} photo="desktop" />
@@ -348,59 +413,17 @@ function PlayersPage() {
                         <span className="font-semibold text-accent-foreground">Free agent</span>
                       )}
                     </div>
-                    <StatGrid
-                      cells={[
-                        {
-                          label: "Rostered",
-                          value: own ? `${own.owned}%` : "—",
-                          hint: "Share of leagues nationwide where he is on a roster",
-                          active: sort === "OWNED",
-                        },
-                        {
-                          label: "Started",
-                          value: own ? `${own.started}%` : "—",
-                          hint: "Share of leagues starting him this week",
-                          active: sort === "STARTED",
-                        },
-                        {
-                          label: "Rising",
-                          value: own ? `${own.change > 0 ? "+" : ""}${own.change}%` : "—",
-                          hint: "Change in rostered % this week",
-                          good: (own?.change ?? 0) >= 1,
-                          active: sort === "RISING",
-                        },
-                        {
-                          label: "Avg",
-                          value: seasonAvg.toFixed(1),
-                          hint: "Season average points per game",
-                          active: sort === "AVG",
-                        },
-                        {
-                          label: "Last 3",
-                          value: last3Avg.toFixed(1),
-                          hint: "Average over his last three games",
-                          active: sort === "HOT",
-                        },
-                        {
-                          label: "Adds",
-                          value: adds ? adds.toLocaleString() : "—",
-                          hint: "Times added across the country in 24 hours",
-                          active: sort === "ADDS",
-                        },
-                        {
-                          label: "Drops",
-                          value: drops ? drops.toLocaleString() : "—",
-                          hint: "Times dropped across the country in 24 hours",
-                          active: sort === "DROPS",
-                        },
-                        {
-                          label: `Proj wk ${week}`,
-                          value: proj.toFixed(1),
-                          hint: "Projected points this week",
-                          active: sort === "PROJ",
-                        },
-                      ]}
-                    />
+                    {(last3Avg > 0 || adds > 0 || drops > 0) && (
+                      <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+                        {[
+                          last3Avg > 0 ? `Last 3 ${last3Avg.toFixed(1)}` : null,
+                          adds > 0 ? `${adds.toLocaleString()} adds` : null,
+                          drops > 0 ? `${drops.toLocaleString()} drops` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
                     {rec && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
                         <span
@@ -436,7 +459,10 @@ function PlayersPage() {
                     )}
                     <PlayerInsightChips player={player} week={week} showForm={false} />
                   </div>
-                  <div className="flex shrink-0 items-center">
+                  <NumCol label="Rostered percent" value={own ? `${own.owned}` : "—"} active={sort === "OWNED"} />
+                  <NumCol label="Started percent" value={own ? `${own.started}` : "—"} active={sort === "STARTED"} />
+                  <NumCol label="Projected points" value={proj.toFixed(1)} active={sort === "PROJ"} />
+                  <div className="col-start-2 flex justify-end sm:col-start-2">
                     {league && <AddDropButton player={player} league={league} byId={byId} />}
                   </div>
                 </li>
