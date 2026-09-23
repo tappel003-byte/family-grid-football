@@ -362,6 +362,12 @@ export function RosterTable({
                       )}
                       {player && (
                         <>
+                          <TradeFlagToggle
+                            teamSlot={teamSlot}
+                            playerId={player.id}
+                            playerName={player.name}
+                            listed={onBlock.has(player.id)}
+                          />
                           {!locked(player) && (
                             <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
                               Bench
