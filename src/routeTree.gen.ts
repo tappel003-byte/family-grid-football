@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as MyTeamRouteImport } from './routes/my-team'
@@ -31,6 +32,11 @@ const IndexRoute = IndexRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivityRoute = ActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -92,6 +98,7 @@ const ApiPublicNflScheduleRoute = ApiPublicNflScheduleRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/activity': typeof ActivityRoute
   '/history': typeof HistoryRoute
   '/import': typeof ImportRoute
   '/my-team': typeof MyTeamRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/activity': typeof ActivityRoute
   '/history': typeof HistoryRoute
   '/import': typeof ImportRoute
   '/my-team': typeof MyTeamRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/activity': typeof ActivityRoute
   '/history': typeof HistoryRoute
   '/import': typeof ImportRoute
   '/my-team': typeof MyTeamRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/account'
+    | '/activity'
     | '/history'
     | '/import'
     | '/my-team'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/account'
+    | '/activity'
     | '/history'
     | '/import'
     | '/my-team'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/account'
+    | '/activity'
     | '/history'
     | '/import'
     | '/my-team'
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
+  ActivityRoute: typeof ActivityRoute
   HistoryRoute: typeof HistoryRoute
   ImportRoute: typeof ImportRoute
   MyTeamRoute: typeof MyTeamRoute
@@ -213,6 +226,13 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activity': {
+      id: '/activity'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof ActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -298,6 +318,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
+  ActivityRoute: ActivityRoute,
   HistoryRoute: HistoryRoute,
   ImportRoute: ImportRoute,
   MyTeamRoute: MyTeamRoute,
