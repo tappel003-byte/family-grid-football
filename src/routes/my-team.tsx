@@ -89,7 +89,6 @@ function MyTeamPage() {
         </div>
         <WeekSelector week={activeWeek} onChange={setWeek} />
       </div>
-      <TradeBlockManager team={team} teamSlot={league.teams.indexOf(team)} byId={byId} />
       <InsightsProvider week={activeWeek} scoring={league.scoring}>
         <RosterTable team={team} league={league} byId={byId} week={activeWeek} editable />
       </InsightsProvider>
