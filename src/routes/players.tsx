@@ -3,7 +3,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Check, ChevronDown, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { Bookmark, Check, ChevronDown, ChevronUp, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
@@ -442,31 +442,27 @@ function PlayersPage() {
               <DropdownMenu modal={false} open={sortOpen} onOpenChange={setSortOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold">
-                    Sort: {SORT_LABEL[sort]}
+                    {group}
                     <ChevronDown className="h-4 w-4 shrink-0" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {SORT_GROUPS.map((group, gi) => (
-                    <div key={group.label}>
-                      {gi > 0 && <DropdownMenuSeparator />}
-                      <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        {group.label}
-                      </DropdownMenuLabel>
-                      {group.keys.map((key) => (
-                        <DropdownMenuItem
-                          key={key}
-                          onClick={() => setSort(key)}
-                          className="h-9 justify-between text-sm font-medium"
-                        >
-                          {SORT_LABEL[key]}
-                          {sort === key && <Check className="h-4 w-4" />}
-                        </DropdownMenuItem>
-                      ))}
-                    </div>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Stats shown
+                  </DropdownMenuLabel>
+                  {SORT_GROUPS.map((g) => (
+                    <DropdownMenuItem
+                      key={g.label}
+                      onClick={() => pickGroup(g.label)}
+                      className="h-9 justify-between text-sm font-medium"
+                    >
+                      {g.label}
+                      {group === g.label && <Check className="h-4 w-4" />}
+                    </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+
             </div>
 
             {/* Locked player column on the left, stat columns scroll sideways. */}
