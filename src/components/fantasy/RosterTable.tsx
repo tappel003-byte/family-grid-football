@@ -418,9 +418,15 @@ export function RosterTable({
                 </div>
                 {editable && (
                   <>
-                    <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
-                      Start
-                    </Button>
+                    {locked(p) ? (
+                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                        <Lock className="h-4 w-4" /> Locked
+                      </span>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
+                        Start
+                      </Button>
+                    )}
                     {irOpen && isInactive(p.injury) && (
                       <Button
                         variant="outline"
