@@ -10,12 +10,16 @@ import {
   InsightsProvider,
   PlayerInsightChips,
   insightsQueryOptions,
+  isOnBye,
+  matchupFor,
 } from "@/components/fantasy/PlayerInsights";
+import { recommendFor } from "@/lib/fantasy/recommend";
 import { STANDARD_SCORING } from "@/lib/fantasy/scoring";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
+  marketQueryOptions,
   playersQueryOptions,
   trendingQueryOptions,
   useLeague,
