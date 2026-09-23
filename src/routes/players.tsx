@@ -325,7 +325,7 @@ function PlayersPage() {
                         )}
                       </p>
                     )}
-                    <PlayerInsightChips player={player} week={week} />
+                    <PlayerInsightChips player={player} week={week} showForm={false} />
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <div className="text-right">
