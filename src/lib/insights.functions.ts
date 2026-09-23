@@ -13,6 +13,8 @@ export type PlayerInsight = {
   last3: number[];
   last3Avg: number;
   seasonAvg: number;
+  /** Total fantasy points scored so far this season. */
+  seasonPts: number;
   games: number;
   /** Average targets over the last three weeks (receivers and backs). */
   targets: number;
@@ -146,6 +148,7 @@ export const getInsights = createServerFn({ method: "GET" })
         last3,
         last3Avg: Math.round((last3.reduce((a, b) => a + b, 0) / played) * 10) / 10,
         seasonAvg: games > 0 ? Math.round((seasonPts / games) * 10) / 10 : 0,
+        seasonPts: Math.round(seasonPts * 10) / 10,
         games,
         targets: Math.round((targets / played) * 10) / 10,
         snapPct: snapDen > 0 ? Math.round((snapNum / snapDen) * 100) : null,
