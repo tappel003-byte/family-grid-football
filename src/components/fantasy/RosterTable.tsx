@@ -369,14 +369,13 @@ export function RosterTable({
                       )}
                       {player && (
                         <>
-                          <TradeFlagToggle
-                            teamSlot={teamSlot}
-                            playerId={player.id}
-                            playerName={player.name}
-                            listed={onBlock.has(player.id)}
-                          />
                           {!locked(player) && (
-                            <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 px-3 font-semibold"
+                              onClick={() => benchStarter(index)}
+                            >
                               Bench
                             </Button>
                           )}
@@ -384,6 +383,7 @@ export function RosterTable({
                             <Button
                               variant="outline"
                               size="sm"
+                              className="h-9 px-3 font-semibold"
                               disabled={pending}
                               onClick={() => void moveToIR(player, true)}
                             >
@@ -391,14 +391,21 @@ export function RosterTable({
                             </Button>
                           )}
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            className="text-destructive"
+                            className="h-9 px-3 font-semibold text-destructive"
                             disabled={pending}
                             onClick={() => setDropTarget(player)}
                           >
                             Drop
                           </Button>
+                          <TradeFlagToggle
+                            teamSlot={teamSlot}
+                            playerId={player.id}
+                            playerName={player.name}
+                            listed={onBlock.has(player.id)}
+                            className="ml-auto"
+                          />
                         </>
                       )}
                     </div>
