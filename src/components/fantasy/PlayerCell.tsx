@@ -75,12 +75,15 @@ export function PlayerCell({
   align = "left",
   compact = false,
   mobileMatchup = false,
+  photo = "always",
   week,
 }: {
   player: SlimPlayer;
   align?: "left" | "right";
   compact?: boolean;
   mobileMatchup?: boolean;
+  /** "desktop" hides the headshot on phones to keep list rows tight. */
+  photo?: "always" | "desktop";
   week?: number;
 }) {
   const info = injuryInfo(player.injury);
@@ -102,7 +105,7 @@ export function PlayerCell({
         align === "right" && "flex-row-reverse text-right",
       )}
     >
-      <div className="relative shrink-0">
+      <div className={cn("relative shrink-0", photo === "desktop" && "hidden sm:block")}>
         <img
           src={headshotUrl(player.id, player.pos, player.team)}
           alt=""
