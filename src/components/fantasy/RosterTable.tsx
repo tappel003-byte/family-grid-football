@@ -30,6 +30,7 @@ import { AlertTriangle, CalendarOff } from "lucide-react";
 import { isPlayerLocked } from "@/lib/fantasy/locks";
 import { Lock } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
+import { TradeAvailableBadge, TradeFlagToggle, useTeamTradeBlock } from "./TradeFlag";
 import { PlayerInsightChips, useInsights, isOnBye } from "./PlayerInsights";
 import { cn } from "@/lib/utils";
 
@@ -129,6 +130,9 @@ export function RosterTable({
   };
 
   const locked = (p: SlimPlayer | undefined) => isPlayerLocked(p, week, league);
+
+  const teamSlot = league.teams.indexOf(team);
+  const onBlock = useTeamTradeBlock(teamSlot);
 
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
@@ -303,6 +307,9 @@ export function RosterTable({
                   {player ? (
                     <div className="min-w-0">
                       <PlayerCell player={player} week={week} />
+                      {!editable && onBlock.has(player.id) && (
+                        <TradeAvailableBadge className="mt-1" />
+                      )}
                       <PlayerInsightChips player={player} week={week} />
                     </div>
                   ) : (
@@ -362,6 +369,12 @@ export function RosterTable({
                       )}
                       {player && (
                         <>
+                          <TradeFlagToggle
+                            teamSlot={teamSlot}
+                            playerId={player.id}
+                            playerName={player.name}
+                            listed={onBlock.has(player.id)}
+                          />
                           {!locked(player) && (
                             <Button variant="ghost" size="sm" onClick={() => benchStarter(index)}>
                               Bench
@@ -419,9 +432,10 @@ export function RosterTable({
             >
               <div className="min-w-0">
                 <PlayerCell player={p} compact week={week} />
+                {!editable && onBlock.has(p.id) && <TradeAvailableBadge className="mt-1" />}
                 <PlayerInsightChips player={p} week={week} />
               </div>
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                 <div className="text-right">
                   <div className="font-display text-lg font-bold tabular-nums">
                     {s.actual.toFixed(1)}
@@ -430,6 +444,12 @@ export function RosterTable({
                 </div>
                 {editable && (
                   <>
+                    <TradeFlagToggle
+                      teamSlot={teamSlot}
+                      playerId={p.id}
+                      playerName={p.name}
+                      listed={onBlock.has(p.id)}
+                    />
                     {locked(p) ? (
                       <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
                         <Lock className="h-4 w-4" /> Locked

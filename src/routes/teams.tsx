@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { useLeague } from "@/lib/fantasy/hooks";
+import { useTradeBlock } from "@/components/fantasy/TradeFlag";
+import { Handshake } from "lucide-react";
 import { playersQueryOptions } from "@/lib/fantasy/hooks";
 
 export const Route = createFileRoute("/teams")({
@@ -42,14 +44,19 @@ export const Route = createFileRoute("/teams")({
 
 function TeamsPage() {
   const { league, byId } = useLeague();
+  const { data: block = [] } = useTradeBlock();
   if (!league) return <LoadingScreen label="Setting up your league…" />;
 
   return (
     <>
       <PageTitle title="League Teams" subtitle={`${league.teams.length} family teams`} />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {league.teams.map((team) => {
+        {league.teams.map((team, slot) => {
           const t = teamTotals(team, league.currentWeek, league, byId);
+          const available = block
+            .filter((row) => row.team_slot === slot)
+            .map((row) => byId.get(row.player_id)?.name)
+            .filter((name): name is string => !!name);
           return (
             <Link
               key={team.id}
@@ -68,6 +75,12 @@ function TeamsPage() {
                 </div>
                 <div className="text-xs text-muted-foreground">proj {t.projected.toFixed(1)}</div>
               </div>
+              {available.length > 0 && (
+                <p className="col-span-3 flex items-start gap-2 rounded-xl bg-primary/10 px-3 py-2 text-sm font-semibold text-primary">
+                  <Handshake className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>Up for trade: {available.join(", ")}</span>
+                </p>
+              )}
             </Link>
           );
         })}
