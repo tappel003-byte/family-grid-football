@@ -72,13 +72,15 @@ function ChipLegend() {
 /** Secondary pages tucked into a "More" menu so the top bar stays tidy. */
 function MoreNav({
   items,
+  className,
 }: {
   items: ReadonlyArray<{ to: string; label: string }>;
+  className?: string;
 }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="px-3 text-base font-semibold text-muted-foreground">
+        <Button variant="ghost" size="sm" className={className ?? "px-3 text-base font-semibold text-muted-foreground"}>
           More
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
             <path d="m6 9 6 6 6-6" />
