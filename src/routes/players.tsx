@@ -422,7 +422,7 @@ function PlayersPage() {
             </div>
 
             <ul className="divide-y">
-              {results.map(({ player, owner, proj, own, news, last3Avg, rec, adds, drops }) => (
+              {results.map(({ player, owner, proj, own, news, last3Avg, seasonPts, rec, adds, drops }) => (
                 <li
                   key={player.id}
                   className={cn(ROW_GRID, "items-start px-3 py-2.5 sm:px-4 sm:py-3")}
@@ -440,6 +440,7 @@ function PlayersPage() {
                       <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
                         {[
                           last3Avg > 0 ? `Last 3 ${last3Avg.toFixed(1)}` : null,
+                          seasonPts > 0 ? `${seasonPts.toFixed(1)} pts on the season` : null,
                           adds > 0 ? `${adds.toLocaleString()} adds` : null,
                           drops > 0 ? `${drops.toLocaleString()} drops` : null,
                         ]
