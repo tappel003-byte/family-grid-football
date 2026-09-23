@@ -120,7 +120,7 @@ export function RosterTable({
   const moveToIR = async (p: SlimPlayer, toIR: boolean) => {
     setPending(true);
     try {
-      await irMove({ data: { playerId: p.id, playerName: p.name, toIR } });
+      await irMove({ data: { playerId: p.id, playerName: p.name, toIR, slot: league.teams.indexOf(team) } });
       await reloadLeague();
       toast.success(toIR ? `${p.name} moved to injured reserve` : `${p.name} is back on your bench`);
     } catch (err) {
@@ -182,7 +182,7 @@ export function RosterTable({
     setPending(true);
     try {
       await move({
-        data: { addId: null, addName: p.name, addPos: p.pos, dropId: p.id, dropName: p.name },
+        data: { addId: null, addName: p.name, addPos: p.pos, dropId: p.id, dropName: p.name, slot: teamSlot },
       });
       await reloadLeague();
       toast.success(`Dropped ${p.name}`);

@@ -43,7 +43,7 @@ export const Route = createFileRoute("/team/$teamId")({
 function TeamPage() {
   const { teamId } = Route.useParams();
   const { league, byId } = useLeague();
-  const { user } = useAuth();
+  const { user, isCommissioner } = useAuth();
   const [week, setWeek] = useState<number | null>(null);
   const activeWeek = week ?? league?.currentWeek ?? 1;
   useWeekData(activeWeek);
@@ -53,7 +53,9 @@ function TeamPage() {
   if (!team) throw notFound();
 
   const totals = teamTotals(team, activeWeek, league, byId);
-  const canEdit = !!user && team.userId === user.id;
+  const isOwner = !!user && team.userId === user.id;
+  const commishMode = !!user && isCommissioner && !isOwner;
+  const canEdit = isOwner || commishMode;
 
   return (
     <>
@@ -71,6 +73,11 @@ function TeamPage() {
         </div>
         <WeekSelector week={activeWeek} onChange={setWeek} />
       </div>
+      {commishMode && (
+        <p className="mb-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-base font-semibold">
+          Commissioner mode: you are editing {team.owner ? `${team.owner}'s` : "this"} team. Changes show up in League Activity.
+        </p>
+      )}
       {!canEdit && (
         <p className="mb-3 rounded-xl border bg-secondary/50 px-4 py-3 text-base text-muted-foreground">
           You can look at this roster, but only {team.owner || "its manager"} can change the lineup.

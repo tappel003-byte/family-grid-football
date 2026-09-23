@@ -130,21 +130,6 @@ export const saveLeague = createServerFn({ method: "POST" })
         })
         .eq("id", myTeam.id);
       if (error) throw new Error(error.message);
-      const changedLineup = JSON.stringify(myTeam.starters ?? []) !== JSON.stringify(mine.starters);
-      if (changedLineup) {
-        const { data: profile } = await supabaseAdmin.from("profiles").select("display_name").eq("id", context.userId).maybeSingle();
-        await supabaseAdmin.from("transactions").insert({
-          league_id: leagueId,
-          team_slot: myTeam.slot,
-          team_name: mine.name,
-          kind: "lineup",
-          added_player_name: "",
-          dropped_player_name: "",
-          actor_id: context.userId,
-          actor_name: profile?.display_name ?? mine.owner,
-          week: data.currentWeek,
-        });
-      }
       return { ok: true, scope: "team" as const };
     }
 
@@ -186,29 +171,77 @@ export const saveLeague = createServerFn({ method: "POST" })
       .eq("league_id", leagueId);
     if (currentTeamsError) throw new Error(currentTeamsError.message);
     const currentBySlot = new Map((currentTeams ?? []).map((team) => [team.slot, team]));
+    const helped: TeamRow[] = [];
 
     const rows = data.teams.map((t) => {
       const current = currentBySlot.get(t.slot);
       const maySetRoster = !current || current.user_id === context.userId;
+      // Commissioners may rearrange another team's lineup (same players, same IR).
+      const mayRearrange =
+        !!current &&
+        !maySetRoster &&
+        samePlayers(
+          [...((current.starters as Array<string | null>) ?? []), ...((current.bench as string[]) ?? [])],
+          [...t.starters, ...t.bench],
+        ) &&
+        samePlayers((current.ir as string[]) ?? [], t.ir ?? []);
+      if (mayRearrange && JSON.stringify(current.starters ?? []) !== JSON.stringify(t.starters)) {
+        helped.push(t);
+      }
+      const useNew = maySetRoster || mayRearrange;
       return {
       league_id: leagueId,
       slot: t.slot,
       name: t.name,
       owner: t.owner,
       color: t.color,
-      starters: maySetRoster ? t.starters : current.starters,
-      bench: maySetRoster ? t.bench : current.bench,
-      ir: maySetRoster ? (t.ir ?? []) : current.ir,
+      starters: useNew ? t.starters : current!.starters,
+      bench: useNew ? t.bench : current!.bench,
+      ir: useNew ? (t.ir ?? []) : current!.ir,
       user_id: t.userId ?? null,
       division: t.division ?? "",
       updated_at: new Date().toISOString(),
     };
     });
 
+    if (helped.length > 0 && (data.rules as { lockAtKickoff?: boolean })?.lockAtKickoff !== false) {
+      const { lockedChecker } = await import("./kickoff.server");
+      const isLocked = await lockedChecker(data.currentWeek);
+      for (const t of helped) {
+        const before = ((currentBySlot.get(t.slot)?.starters as Array<string | null>) ?? []);
+        const span = Math.max(before.length, t.starters.length);
+        for (let i = 0; i < span; i++) {
+          const a = before[i] ?? null;
+          const b = t.starters[i] ?? null;
+          if (a === b) continue;
+          if ((a && isLocked(a)) || (b && isLocked(b))) {
+            throw new Error("That game has already kicked off, so those players are locked.");
+          }
+        }
+      }
+    }
+
     const { error: upsertError } = await supabaseAdmin
       .from("teams")
       .upsert(rows, { onConflict: "league_id,slot" });
     if (upsertError) throw new Error(upsertError.message);
+
+    if (helped.length > 0) {
+      const { data: profile } = await supabaseAdmin.from("profiles").select("display_name").eq("id", context.userId).maybeSingle();
+      await supabaseAdmin.from("transactions").insert(
+        helped.map((t) => ({
+          league_id: leagueId!,
+          team_slot: t.slot,
+          team_name: t.name,
+          kind: "commish_lineup",
+          added_player_name: "",
+          dropped_player_name: "",
+          actor_id: context.userId,
+          actor_name: profile?.display_name ?? "Commissioner",
+          week: data.currentWeek,
+        })),
+      );
+    }
 
     const { error: pruneError } = await supabaseAdmin
       .from("teams")
