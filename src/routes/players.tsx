@@ -316,7 +316,7 @@ function PlayersPage() {
               <div className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 <ArrowUpDown className="h-4 w-4" /> Sort by
               </div>
-              <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-5 sm:overflow-visible">
+              <div className="flex flex-wrap gap-2 sm:grid sm:grid-cols-5">
                 {SORTS.map(([value, label]) => (
                   <Button
                     key={value}
