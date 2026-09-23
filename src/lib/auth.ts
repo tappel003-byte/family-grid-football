@@ -64,13 +64,9 @@ export function useSession() {
 
   useEffect(() => {
     let active = true;
-    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       cachedSession = next;
-      if (event === "SIGNED_OUT") {
-        if (canUseStorage()) window.localStorage.removeItem(SESSION_BACKUP_KEY);
-      } else {
-        saveSessionBackup(next);
-      }
+      saveSessionBackup(next);
       if (!active) return;
       setSession(next);
       setLoading(false);
@@ -154,6 +150,10 @@ export function useAuth() {
 }
 
 export async function signOut() {
+  if (canUseStorage()) {
+    window.localStorage.removeItem(SESSION_BACKUP_KEY);
+    window.sessionStorage.removeItem(ACTIVE_TAB_KEY);
+  }
   await supabase.auth.signOut();
   window.location.href = "/";
 }
