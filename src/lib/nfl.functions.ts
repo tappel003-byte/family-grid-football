@@ -113,19 +113,40 @@ function gameLabel(game: ScheduleGame): GameInfo {
   return { status: "scheduled", label: `${day} ${d.getUTCMonth() + 1}/${d.getUTCDate()}` };
 }
 
+/** Game seconds still to play: 3600 before kickoff, clock-aware while live, 0 when final. */
+function secondsLeftFor(status: GameInfo["status"], period: number, clock: number): number {
+  if (status === "scheduled") return 3600;
+  if (status !== "live") return 0;
+  if (period >= 5) return Math.max(0, Math.round(clock));
+  const quartersAfter = Math.max(0, 4 - Math.max(1, period));
+  return Math.max(0, Math.round(clock)) + quartersAfter * 15 * 60;
+}
+
 function scoreboardGames(scoreboard: Scoreboard): Record<string, GameInfo> {
   const games: Record<string, GameInfo> = {};
   for (const event of scoreboard.events ?? []) {
     const startsAt = event.date;
     const state = event.status?.type?.state;
     const status = event.status?.type?.completed ? "final" : state === "in" ? "live" : "scheduled";
-    const label = status === "final" ? "Final" : status === "live" ? "Live" : "Scheduled";
+    const clockText = event.status?.displayClock;
+    const period = Number(event.status?.period ?? 0);
+    const label =
+      status === "final"
+        ? "Final"
+        : status === "live"
+          ? period && clockText
+            ? `Q${period} ${clockText}`
+            : "Live"
+          : "Scheduled";
+    const network = event.competitions?.[0]?.broadcasts?.[0]?.names?.[0];
+    const secondsLeft = secondsLeftFor(status, period, Number(event.status?.clock ?? 0));
     for (const competitor of event.competitions?.[0]?.competitors ?? []) {
       const abbreviation = competitor.team?.abbreviation;
       if (abbreviation) {
-        games[abbreviation === "WSH" ? "WAS" : abbreviation] = startsAt
-          ? { status, label, startsAt }
-          : { status, label };
+        const info: GameInfo = { status, label, secondsLeft };
+        if (startsAt) info.startsAt = startsAt;
+        if (network) info.network = network;
+        games[abbreviation === "WSH" ? "WAS" : abbreviation] = info;
       }
     }
   }
