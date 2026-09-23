@@ -42,6 +42,7 @@ export const Route = createFileRoute("/teams")({
 
 function TeamsPage() {
   const { league, byId } = useLeague();
+  const { data: block = [] } = useTradeBlock();
   if (!league) return <LoadingScreen label="Setting up your league…" />;
 
   return (
