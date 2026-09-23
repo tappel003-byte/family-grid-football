@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { League, FantasyTeam } from "@/lib/fantasy/league";
 import { SLOTS } from "@/lib/fantasy/league";
-import { scoreFor } from "@/lib/fantasy/hooks";
+import { gameInfoFor, scoreFor } from "@/lib/fantasy/hooks";
 import { scoreOverride } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle } from "lucide-react";
@@ -30,6 +30,59 @@ export function teamTotals(team: FantasyTeam, week: number, league: League, byId
     projected: Math.round(projected * 10) / 10,
     corrected: fixed != null,
   };
+}
+
+/** How many starters are playing right now, how many haven't played, and game minutes left. */
+function teamLiveStatus(team: FantasyTeam, week: number, byId: Map<string, SlimPlayer>) {
+  let playing = 0;
+  let yetToPlay = 0;
+  let secondsLeft = 0;
+  for (const id of team.starters) {
+    const p = id ? byId.get(id) : undefined;
+    if (!p) continue;
+    const game = gameInfoFor(p.team, week);
+    if (game?.status === "live") playing += 1;
+    if (game?.status === "scheduled") yetToPlay += 1;
+    secondsLeft += game?.secondsLeft ?? (game?.status === "scheduled" ? 3600 : 0);
+  }
+  return { playing, yetToPlay, minutesLeft: Math.round(secondsLeft / 60) };
+}
+
+function StatusBox({
+  team,
+  week,
+  byId,
+  projected,
+  align = "left",
+}: {
+  team: FantasyTeam;
+  week: number;
+  byId: Map<string, SlimPlayer>;
+  projected: number;
+  align?: "left" | "right";
+}) {
+  const live = teamLiveStatus(team, week, byId);
+  const rows: Array<[string, string]> = [
+    ["Playing now", String(live.playing)],
+    ["Yet to play", String(live.yetToPlay)],
+    ["Proj total", projected.toFixed(1)],
+    ["Mins left", String(live.minutesLeft)],
+  ];
+  return (
+    <div className={cn("min-w-0", align === "right" && "text-right")}>
+      <div className="mb-1 truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {team.name}
+      </div>
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
+        {rows.map(([label, value]) => (
+          <div key={label} className={cn("flex items-baseline gap-1.5", align === "right" && "justify-end")}>
+            <dt className="truncate text-xs text-muted-foreground">{label}:</dt>
+            <dd className="font-display text-sm font-bold tabular-nums">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
 }
 
 function TeamCrest({ team, size = "md" }: { team: FantasyTeam; size?: "md" | "lg" }) {
@@ -241,6 +294,10 @@ export function MatchupBoard({
             <div className="mt-1 font-display text-sm font-bold text-primary">Projected {a.projected.toFixed(1)}</div>
           </div>
         </Link>
+        <div className="col-span-3 grid grid-cols-2 gap-3 border-t pt-3 sm:gap-6">
+          <StatusBox team={home} week={week} byId={byId} projected={h.projected} />
+          <StatusBox team={away} week={week} byId={byId} projected={a.projected} align="right" />
+        </div>
       </header>
 
       {inactivePlayers.length > 0 && (

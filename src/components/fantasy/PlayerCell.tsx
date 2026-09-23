@@ -3,6 +3,7 @@ import { gameInfoFor, headshotUrl, teamLogoUrl } from "@/lib/fantasy/hooks";
 import { cn } from "@/lib/utils";
 import { ByeBadge } from "./PlayerInsights";
 import { formatGameTime, useTimeZone } from "@/lib/timezone";
+import { FootballIcon } from "./FootballIcon";
 
 export type InjurySeverity = "out" | "doubtful" | "questionable";
 
@@ -86,6 +87,13 @@ export function PlayerCell({
   const timeZone = useTimeZone();
   const game = week === undefined ? undefined : gameInfoFor(player.team, week);
   const kickoff = formatGameTime(game?.startsAt, timeZone);
+  const onField = game?.status === "live";
+  const gameLine =
+    game?.status === "live"
+      ? `On the field · ${game.label}${game.network ? ` · ${game.network}` : ""}`
+      : game?.status === "scheduled" && kickoff
+        ? `${kickoff}${game.network ? ` · ${game.network}` : ""}`
+        : null;
   return (
     <div
       className={cn(
@@ -126,6 +134,14 @@ export function PlayerCell({
           )}
         >
           <span className={cn("truncate text-base font-semibold leading-tight sm:text-lg", mobileMatchup && "block text-sm sm:text-base")}>
+            {onField && (
+              <FootballIcon
+                className={cn(
+                  "mr-1 inline-block h-4 w-4 align-[-2px] text-primary",
+                  align === "right" && !mobileMatchup && "ml-1 mr-0",
+                )}
+              />
+            )}
             {player.name}
           </span>
           {!mobileMatchup && <InjuryBadge injury={player.injury} size={compact ? "sm" : "md"} />}
@@ -155,8 +171,16 @@ export function PlayerCell({
             </span>
           )}
         </div>
-        {kickoff && game?.status === "scheduled" && (
-          <div className={cn("mt-0.5 text-xs font-semibold text-foreground/75", align === "right" && "text-right")}>{kickoff}</div>
+        {gameLine && (
+          <div
+            className={cn(
+              "mt-0.5 text-xs font-semibold text-foreground/75",
+              onField && "text-primary",
+              align === "right" && "text-right",
+            )}
+          >
+            {gameLine}
+          </div>
         )}
       </div>
     </div>
