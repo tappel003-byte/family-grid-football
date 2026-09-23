@@ -423,71 +423,88 @@ function PlayersPage() {
             </div>
 
             <ul className="divide-y">
-              {results.map(({ player, owner, proj, own, news, last3Avg, seasonPts, rec, adds, drops }) => (
-                <li
-                  key={player.id}
-                  className={cn(ROW_GRID, "items-start px-3 py-2.5 sm:px-4 sm:py-3")}
-                >
-                  <div className="min-w-0">
-                    <PlayerCell player={player} week={week} photo="desktop" />
-                    <div className="mt-1 text-sm">
-                      {owner ? (
-                        <span className="text-muted-foreground">On {owner}</span>
-                      ) : (
-                        <span className="font-semibold text-accent-foreground">Free agent</span>
-                      )}
-                    </div>
-                    {(adds > 0 || drops > 0) && (
-                      <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
-                        {[
-                          adds > 0 ? `${adds.toLocaleString()} adds` : null,
-                          drops > 0 ? `${drops.toLocaleString()} drops` : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
+              {results.map(({ player, owner, proj, own, news, last3Avg, seasonPts, seasonAvg, rec, adds, drops }) => (
+                <li key={player.id} className="px-3 py-2.5 sm:px-4 sm:py-3">
+                  <PlayerCell player={player} week={week} photo="desktop" />
+                  <div className="mt-1 text-sm">
+                    {owner ? (
+                      <span className="text-muted-foreground">On {owner}</span>
+                    ) : (
+                      <span className="font-semibold text-accent-foreground">Free agent</span>
                     )}
-                    {rec && (
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
-                        <span
-                          className={cn(
-                            "rounded-md px-2 py-0.5 font-display text-xs font-bold uppercase tracking-wide",
-                            rec.level === "must" && "bg-emerald-600 text-white",
-                            rec.level === "good" && "bg-emerald-600/15 text-emerald-700",
-                            rec.level === "stream" && "bg-secondary text-secondary-foreground",
-                            rec.level === "pass" && "bg-muted text-muted-foreground",
-                          )}
-                        >
-                          {rec.label}
-                        </span>
-                        <span className="text-muted-foreground">{rec.reason}</span>
-                      </div>
-                    )}
-                    {news && (
-                      <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
-                        <Newspaper className="mt-0.5 h-4 w-4 shrink-0" />
-                        {news.link ? (
-                          <a
-                            href={news.link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="underline underline-offset-2 hover:text-foreground"
-                          >
-                            {news.headline}
-                          </a>
-                        ) : (
-                          news.headline
-                        )}
-                      </p>
-                    )}
-                    <PlayerInsightChips player={player} week={week} showForm={false} />
                   </div>
-                  <NumCol label="Projected points" value={proj.toFixed(1)} active={sort === "PROJ"} />
-                  <NumCol label="Season points" value={seasonPts.toFixed(1)} active={sort === "PTS"} />
-                  <NumCol label="Last 3 average" value={last3Avg > 0 ? last3Avg.toFixed(1) : "—"} active={sort === "HOT"} />
-                  <NumCol label="Rostered percent" value={own ? `${own.owned}` : "—"} active={sort === "OWNED"} />
-                  <NumCol label="Started percent" value={own ? `${own.started}` : "—"} active={sort === "STARTED"} />
-                  <div className="col-span-5 flex items-center justify-end gap-2 pt-1.5">
+
+                  {/* Every stat, grouped — tap any cell to sort the list by it */}
+                  <div className="mt-2 space-y-1.5">
+                    {(
+                      [
+                        {
+                          label: "Production",
+                          cells: [
+                            ["PROJ", "Proj", proj.toFixed(1)],
+                            ["PTS", "Pts", seasonPts.toFixed(1)],
+                            ["AVG", "Avg", seasonAvg.toFixed(1)],
+                            ["HOT", "L3", last3Avg > 0 ? last3Avg.toFixed(1) : "—"],
+                            ["RANK", "Rnk", `#${player.rank}`],
+                          ],
+                        },
+                        {
+                          label: "Ownership",
+                          cells: [
+                            ["OWNED", "Rst%", own ? `${own.owned}` : "—"],
+                            ["STARTED", "Str%", own ? `${own.started}` : "—"],
+                            ["RISING", "Ris%", own ? `${own.change > 0 ? "+" : ""}${own.change}` : "—"],
+                          ],
+                        },
+                        {
+                          label: "Hype",
+                          cells: [
+                            ["ADDS", "Adds", adds > 0 ? COMPACT.format(adds) : "—"],
+                            ["DROPS", "Drops", drops > 0 ? COMPACT.format(drops) : "—"],
+                            ["PICKUP", "Pickup", rec?.label ?? "—"],
+                          ],
+                        },
+                      ] as { label: string; cells: [SortKey, string, string][] }[]
+                    ).map((group) => (
+                      <div key={group.label}>
+                        <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                          {group.label}
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap gap-1">
+                          {group.cells.map(([key, label, value]) => (
+                            <StatCell
+                              key={key}
+                              label={label}
+                              value={value}
+                              active={sort === key}
+                              onSort={() => setSort(key)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {rec && <p className="mt-1.5 text-sm text-muted-foreground">{rec.reason}</p>}
+                  {news && (
+                    <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
+                      <Newspaper className="mt-0.5 h-4 w-4 shrink-0" />
+                      {news.link ? (
+                        <a
+                          href={news.link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline underline-offset-2 hover:text-foreground"
+                        >
+                          {news.headline}
+                        </a>
+                      ) : (
+                        news.headline
+                      )}
+                    </p>
+                  )}
+                  <PlayerInsightChips player={player} week={week} showForm={false} />
+                  <div className="mt-2 flex items-center justify-end gap-2">
                     <Button size="icon" variant={watched.has(player.id) ? "default" : "outline"} aria-label={watched.has(player.id) ? `Remove ${player.name} from watchlist` : `Watch ${player.name}`} onClick={() => void toggleWatch(player.id)}>
                       <Bookmark className="h-4 w-4" fill={watched.has(player.id) ? "currentColor" : "none"} />
                     </Button>
