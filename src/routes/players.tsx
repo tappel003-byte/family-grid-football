@@ -155,6 +155,12 @@ const GROUP_HELP: Record<string, ReadonlyArray<{ short: string; text: string }>>
   ],
 };
 
+GROUP_HELP["All"] = [
+  ...(GROUP_HELP["Production"] ?? []),
+  ...(GROUP_HELP["Ownership"] ?? []),
+  ...(GROUP_HELP["Hype"] ?? []),
+];
+
 function StatLegend({ group }: { group: string }) {
   const rows = GROUP_HELP[group] ?? GROUP_HELP["Production"] ?? [];
   return (
@@ -164,8 +170,8 @@ function StatLegend({ group }: { group: string }) {
           <HelpCircle className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-72">
-        <p className="mb-2 font-display text-base font-bold">{group} stats</p>
+      <PopoverContent align="end" className="max-h-[70vh] w-72 overflow-y-auto">
+        <p className="mb-2 font-display text-base font-bold">{group === "All" ? "All stats" : `${group} stats`}</p>
         <ul className="space-y-2.5">
           {rows.map((row) => (
             <li key={row.short} className="grid grid-cols-[3.25rem_1fr] gap-2">
