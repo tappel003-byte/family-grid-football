@@ -77,6 +77,7 @@ export function PlayerCell({
   mobileMatchup = false,
   photo = "always",
   week,
+  showGame = true,
 }: {
   player: SlimPlayer;
   align?: "left" | "right";
@@ -85,6 +86,8 @@ export function PlayerCell({
   /** "desktop" hides the headshot on phones to keep list rows tight. */
   photo?: "always" | "desktop";
   week?: number;
+  /** Hides the kickoff/TV line (used on dense screens like Players). */
+  showGame?: boolean;
 }) {
   const info = injuryInfo(player.injury);
   const timeZone = useTimeZone();
@@ -179,7 +182,7 @@ export function PlayerCell({
             </span>
           )}
         </div>
-        {gameLine && (
+        {showGame && gameLine && (
           <div
             className={cn(
               "mt-0.5 truncate text-xs font-semibold text-foreground/75",
