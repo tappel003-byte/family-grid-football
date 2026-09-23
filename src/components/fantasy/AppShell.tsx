@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { HelpCircle, LogOut, MessageCircle, RefreshCw, Settings, UserRound } from "lucide-react";
+import { HelpCircle, LogOut, RefreshCw, Settings, UserRound } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -161,9 +161,6 @@ function ProfileNav({
           {teamName && <p className="truncate text-sm text-muted-foreground">{teamName}</p>}
         </div>
         <div className="flex flex-col py-1">
-          <Link to="/chat" className="flex items-center gap-2 rounded-md px-3 py-2.5 font-semibold hover:bg-secondary">
-            <MessageCircle className="h-4 w-4" /> League Chat
-          </Link>
           <Link to="/account" className="flex items-center gap-2 rounded-md px-3 py-2.5 font-semibold hover:bg-secondary">
             <UserRound className="h-4 w-4" /> My Account
           </Link>
