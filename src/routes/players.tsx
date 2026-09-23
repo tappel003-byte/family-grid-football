@@ -462,7 +462,7 @@ function PlayersPage() {
                   <NumCol label="Rostered percent" value={own ? `${own.owned}` : "—"} active={sort === "OWNED"} />
                   <NumCol label="Started percent" value={own ? `${own.started}` : "—"} active={sort === "STARTED"} />
                   <NumCol label="Projected points" value={proj.toFixed(1)} active={sort === "PROJ"} />
-                  <div className="col-start-2 flex justify-end sm:col-start-2">
+                  <div className="col-span-3 flex items-center justify-end pt-1.5">
                     {league && <AddDropButton player={player} league={league} byId={byId} />}
                   </div>
                 </li>
