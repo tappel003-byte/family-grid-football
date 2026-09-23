@@ -8,3 +8,5 @@
 - [x] Verify representative positions and all three screens on phone and desktop
 - [ ] Confirm "Total points" sort puts the top scorer at #1
 - [ ] Slim the locked player column on Players (stack info, fewer lines) so more stat columns fit on phone
+- [ ] Give matchup player rows enough height to show the complete game time and channel
+- [ ] Keep family members signed in when the app refreshes
