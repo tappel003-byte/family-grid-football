@@ -294,6 +294,10 @@ export function MatchupBoard({
             <div className="mt-1 font-display text-sm font-bold text-primary">Projected {a.projected.toFixed(1)}</div>
           </div>
         </Link>
+        <div className="col-span-3 grid grid-cols-2 gap-3 border-t pt-3 sm:gap-6">
+          <StatusBox team={home} week={week} byId={byId} projected={h.projected} />
+          <StatusBox team={away} week={week} byId={byId} projected={a.projected} align="right" />
+        </div>
       </header>
 
       {inactivePlayers.length > 0 && (
