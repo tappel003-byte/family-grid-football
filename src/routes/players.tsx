@@ -181,16 +181,43 @@ function PlayersPage() {
           return b.proj - a.proj;
         case "HOT":
           return b.hot - a.hot;
+        case "AVG":
+          return b.seasonAvg - a.seasonAvg;
         case "OWNED":
           return (b.own?.owned ?? -1) - (a.own?.owned ?? -1);
         case "STARTED":
           return (b.own?.started ?? -1) - (a.own?.started ?? -1);
+        case "RISING":
+          return (b.own?.change ?? -999) - (a.own?.change ?? -999);
+        case "ADDS":
+          return b.adds - a.adds || b.proj - a.proj;
+        case "DROPS":
+          return b.drops - a.drops || b.proj - a.proj;
+        case "PICKUP":
+          return (
+            (PICKUP_ORDER[b.rec?.level ?? ""] ?? 0) - (PICKUP_ORDER[a.rec?.level ?? ""] ?? 0) ||
+            b.last3Avg - a.last3Avg ||
+            b.proj - a.proj
+          );
         default:
           return a.player.rank - b.player.rank;
       }
     });
     return list.slice(0, 100);
-  }, [players, query, pos, avail, sort, ownerByPlayer, league, week, insights, market, addsById]);
+  }, [
+    players,
+    query,
+    pos,
+    avail,
+    sort,
+    ownerByPlayer,
+    league,
+    week,
+    insights,
+    market,
+    addsById,
+    dropsById,
+  ]);
 
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
