@@ -10,7 +10,7 @@
 8. [x] Mobile matchup rows — opposing players side by side with each score and projection grouped underneath
 9. [x] Lineup ownership — only each team's signed-in owner can change that lineup
 
-- [ ] Player Research screen: discuss and improve usefulness (Tim, Sep 22)
+- [x] Player Research screen: mobile-first compact rows (no headshots on phones), scrollable sort chips; desktop unchanged
 - [ ] Decide: should IR moves require commissioner approval? (owner-managed for now)
 
 10. [x] League settings match ESPN — lineups lock at each game's kickoff, waivers with a claim day, order resets to inverse standings, trade deadline
