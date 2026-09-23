@@ -147,7 +147,7 @@ function PlayerPicker({
   onPick: (id: string) => void;
   onClear: () => void;
   players: SlimPlayer[];
-  excludeId?: string;
+  excludeId?: string | undefined;
   label: string;
 }) {
   const [open, setOpen] = useState(false);
