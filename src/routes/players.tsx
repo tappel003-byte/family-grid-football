@@ -360,7 +360,7 @@ function PlayersPage() {
               <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 {results.length} players
               </span>
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold">
                     Sort: {SORT_LABEL[sort]}
