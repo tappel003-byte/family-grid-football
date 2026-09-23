@@ -21,6 +21,7 @@ import { Route as StandingsRouteImport } from './routes/standings'
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TradesRouteImport } from './routes/trades'
 import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
+import { Route as ApiPublicNflScheduleRouteImport } from './routes/api/public/nfl-schedule'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -82,6 +83,11 @@ const TeamTeamIdRoute = TeamTeamIdRouteImport.update({
   path: '/team/$teamId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicNflScheduleRoute = ApiPublicNflScheduleRouteImport.update({
+  id: '/api/public/nfl-schedule',
+  path: '/api/public/nfl-schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/teams': typeof TeamsRoute
   '/trades': typeof TradesRoute
   '/team/$teamId': typeof TeamTeamIdRoute
+  '/api/public/nfl-schedule': typeof ApiPublicNflScheduleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/teams': typeof TeamsRoute
   '/trades': typeof TradesRoute
   '/team/$teamId': typeof TeamTeamIdRoute
+  '/api/public/nfl-schedule': typeof ApiPublicNflScheduleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/teams': typeof TeamsRoute
   '/trades': typeof TradesRoute
   '/team/$teamId': typeof TeamTeamIdRoute
+  '/api/public/nfl-schedule': typeof ApiPublicNflScheduleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/trades'
     | '/team/$teamId'
+    | '/api/public/nfl-schedule'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/trades'
     | '/team/$teamId'
+    | '/api/public/nfl-schedule'
   id:
     | '__root__'
     | '/'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/trades'
     | '/team/$teamId'
+    | '/api/public/nfl-schedule'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   TeamsRoute: typeof TeamsRoute
   TradesRoute: typeof TradesRoute
   TeamTeamIdRoute: typeof TeamTeamIdRoute
+  ApiPublicNflScheduleRoute: typeof ApiPublicNflScheduleRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/nfl-schedule': {
+      id: '/api/public/nfl-schedule'
+      path: '/api/public/nfl-schedule'
+      fullPath: '/api/public/nfl-schedule'
+      preLoaderRoute: typeof ApiPublicNflScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -288,6 +308,7 @@ const rootRouteChildren: RootRouteChildren = {
   TeamsRoute: TeamsRoute,
   TradesRoute: TradesRoute,
   TeamTeamIdRoute: TeamTeamIdRoute,
+  ApiPublicNflScheduleRoute: ApiPublicNflScheduleRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

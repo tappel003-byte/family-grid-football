@@ -125,7 +125,7 @@ function secondsLeftFor(status: GameInfo["status"], period: number, clock: numbe
   return Math.max(0, Math.round(clock)) + quartersAfter * 15 * 60;
 }
 
-function scoreboardGames(scoreboard: Scoreboard): Record<string, GameInfo> {
+export function scoreboardGames(scoreboard: Scoreboard): Record<string, GameInfo> {
   const games: Record<string, GameInfo> = {};
   for (const event of scoreboard.events ?? []) {
     const startsAt = event.date;
@@ -228,3 +228,23 @@ export const getWeekData = createServerFn({ method: "GET" })
     }
     return result;
   });
+
+/**
+ * The hosted server can occasionally receive a reduced scoreboard response.
+ * Use a same-origin schedule endpoint as a second path for kickoff times,
+ * networks and live possession without discarding score data.
+ */
+export async function enrichWeekDataInBrowser(data: WeekData): Promise<WeekData> {
+  if (typeof window === "undefined") return data;
+  try {
+    const params = new URLSearchParams({ week: String(data.week), season: data.season });
+    const response = await fetch(`/api/public/nfl-schedule?${params}`);
+    if (!response.ok) return data;
+    const scoreboard = (await response.json()) as Scoreboard;
+    const games = scoreboardGames(scoreboard);
+    if (Object.keys(games).length === 0) return data;
+    return { ...data, games: { ...data.games, ...games } };
+  } catch {
+    return data;
+  }
+}
