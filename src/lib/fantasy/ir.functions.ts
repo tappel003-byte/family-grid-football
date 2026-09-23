@@ -7,7 +7,7 @@ export type IrInput = {
   playerName: string;
   /** true = park them on injured reserve, false = bring them back to the bench. */
   toIR: boolean;
-  /** Commissioners may act for another team. */
+  /** Legacy input; ownership is always derived from the signed-in account. */
   slot?: number | null;
 };
 

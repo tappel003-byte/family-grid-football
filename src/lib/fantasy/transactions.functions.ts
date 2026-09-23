@@ -11,7 +11,7 @@ export type MoveInput = {
   /** Player being released, if any. */
   dropId: string | null;
   dropName: string;
-  /** Commissioners may act for another team. */
+  /** Legacy input; ownership is always derived from the signed-in account. */
   slot?: number | null;
 };
 

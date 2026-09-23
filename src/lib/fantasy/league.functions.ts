@@ -152,7 +152,7 @@ export const saveLeague = createServerFn({ method: "POST" })
 
     const rows = data.teams.map((t) => {
       const current = currentBySlot.get(t.slot);
-      const maySetRoster = !current?.user_id || current.user_id === context.userId;
+      const maySetRoster = !current || current.user_id === context.userId;
       return {
       league_id: leagueId,
       slot: t.slot,
