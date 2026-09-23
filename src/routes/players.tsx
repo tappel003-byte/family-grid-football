@@ -110,6 +110,38 @@ type SortKey = (typeof SORTS)[number][0];
 
 const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass: 1 };
 
+type StatCell = { label: string; value: string; hint: string; good?: boolean; active?: boolean };
+
+/** The numbers for one player, laid out in an even grid so columns line up. */
+function StatGrid({ cells }: { cells: StatCell[] }) {
+  return (
+    <dl className="mt-2 grid grid-cols-4 gap-1 sm:grid-cols-8">
+      {cells.map((c) => (
+        <div
+          key={c.label}
+          title={c.hint}
+          className={cn(
+            "rounded-md border px-1.5 py-1 text-center",
+            c.active ? "border-primary bg-primary/10" : "border-transparent bg-secondary/50",
+          )}
+        >
+          <dt className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {c.label}
+          </dt>
+          <dd
+            className={cn(
+              "font-display text-sm font-bold tabular-nums",
+              c.good && "text-emerald-600",
+            )}
+          >
+            {c.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function PlayersPage() {
   const { league, players, byId } = useLeague();
   const { f } = Route.useSearch();
