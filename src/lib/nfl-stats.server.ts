@@ -87,3 +87,20 @@ export async function loadState(): Promise<{ season: string; week: number }> {
     week: state.display_week ?? state.week ?? 1,
   };
 }
+
+let espnIdCache: { at: number; map: Record<string, string> } | null = null;
+
+/** Maps ESPN athlete id -> Sleeper player id, so national data can be joined. */
+export async function loadEspnIdMap(): Promise<Record<string, string>> {
+  if (espnIdCache && Date.now() - espnIdCache.at < META_TTL) return espnIdCache.map;
+  const raw = await json<Record<string, { espn_id?: number | string | null }>>(
+    "https://api.sleeper.app/v1/players/nfl",
+    {},
+  );
+  const map: Record<string, string> = {};
+  for (const [id, p] of Object.entries(raw)) {
+    if (p.espn_id) map[String(p.espn_id)] = id;
+  }
+  espnIdCache = { at: Date.now(), map };
+  return map;
+}
