@@ -51,8 +51,12 @@ function TeamsPage() {
     <>
       <PageTitle title="League Teams" subtitle={`${league.teams.length} family teams`} />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {league.teams.map((team) => {
+        {league.teams.map((team, slot) => {
           const t = teamTotals(team, league.currentWeek, league, byId);
+          const available = block
+            .filter((row) => row.team_slot === slot)
+            .map((row) => byId.get(row.player_id)?.name)
+            .filter((name): name is string => !!name);
           return (
             <Link
               key={team.id}
