@@ -7,7 +7,6 @@ import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks";
 import { useAuth } from "@/lib/auth";
-import { TradeBlockManager } from "@/components/fantasy/TradeBlockManager";
 
 export const Route = createFileRoute("/my-team")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
