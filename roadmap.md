@@ -8,6 +8,7 @@
 6. [x] Chrome — Playoffs under Standings; account, commissioner tools and sign-out grouped under the person menu
 7. [x] Matchup clarity — pronounced week, team projections, exact kickoff times in each member's saved time zone
 8. [x] Mobile matchup rows — opposing players side by side with each score and projection grouped underneath
+9. [x] Lineup ownership — only each team's signed-in owner can change that lineup
 
 - [ ] Player Research screen: discuss and improve usefulness (Tim, Sep 22)
 - [ ] Decide: should IR moves require commissioner approval? (owner-managed for now)

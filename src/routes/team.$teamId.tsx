@@ -43,7 +43,7 @@ export const Route = createFileRoute("/team/$teamId")({
 function TeamPage() {
   const { teamId } = Route.useParams();
   const { league, byId } = useLeague();
-  const { user, isCommissioner } = useAuth();
+  const { user } = useAuth();
   const [week, setWeek] = useState<number | null>(null);
   const activeWeek = week ?? league?.currentWeek ?? 1;
   useWeekData(activeWeek);
@@ -53,7 +53,7 @@ function TeamPage() {
   if (!team) throw notFound();
 
   const totals = teamTotals(team, activeWeek, league, byId);
-  const canEdit = isCommissioner || (!!user && team.userId === user.id);
+  const canEdit = !!user && team.userId === user.id;
 
   return (
     <>
