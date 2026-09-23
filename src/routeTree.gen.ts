@@ -19,7 +19,6 @@ import { Route as PlayersRouteImport } from './routes/players'
 import { Route as PlayoffsRouteImport } from './routes/playoffs'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StandingsRouteImport } from './routes/standings'
-import { Route as StartSitRouteImport } from './routes/start-sit'
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TradesRouteImport } from './routes/trades'
 import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
@@ -75,11 +74,6 @@ const StandingsRoute = StandingsRouteImport.update({
   path: '/standings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StartSitRoute = StartSitRouteImport.update({
-  id: '/start-sit',
-  path: '/start-sit',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TeamsRoute = TeamsRouteImport.update({
   id: '/teams',
   path: '/teams',
@@ -112,7 +106,6 @@ export interface FileRoutesByFullPath {
   '/playoffs': typeof PlayoffsRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
-  '/start-sit': typeof StartSitRoute
   '/teams': typeof TeamsRoute
   '/trades': typeof TradesRoute
   '/team/$teamId': typeof TeamTeamIdRoute
@@ -129,7 +122,6 @@ export interface FileRoutesByTo {
   '/playoffs': typeof PlayoffsRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
-  '/start-sit': typeof StartSitRoute
   '/teams': typeof TeamsRoute
   '/trades': typeof TradesRoute
   '/team/$teamId': typeof TeamTeamIdRoute
@@ -147,7 +139,6 @@ export interface FileRoutesById {
   '/playoffs': typeof PlayoffsRoute
   '/settings': typeof SettingsRoute
   '/standings': typeof StandingsRoute
-  '/start-sit': typeof StartSitRoute
   '/teams': typeof TeamsRoute
   '/trades': typeof TradesRoute
   '/team/$teamId': typeof TeamTeamIdRoute
@@ -166,7 +157,6 @@ export interface FileRouteTypes {
     | '/playoffs'
     | '/settings'
     | '/standings'
-    | '/start-sit'
     | '/teams'
     | '/trades'
     | '/team/$teamId'
@@ -183,7 +173,6 @@ export interface FileRouteTypes {
     | '/playoffs'
     | '/settings'
     | '/standings'
-    | '/start-sit'
     | '/teams'
     | '/trades'
     | '/team/$teamId'
@@ -200,7 +189,6 @@ export interface FileRouteTypes {
     | '/playoffs'
     | '/settings'
     | '/standings'
-    | '/start-sit'
     | '/teams'
     | '/trades'
     | '/team/$teamId'
@@ -218,7 +206,6 @@ export interface RootRouteChildren {
   PlayoffsRoute: typeof PlayoffsRoute
   SettingsRoute: typeof SettingsRoute
   StandingsRoute: typeof StandingsRoute
-  StartSitRoute: typeof StartSitRoute
   TeamsRoute: typeof TeamsRoute
   TradesRoute: typeof TradesRoute
   TeamTeamIdRoute: typeof TeamTeamIdRoute
@@ -297,13 +284,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StandingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/start-sit': {
-      id: '/start-sit'
-      path: '/start-sit'
-      fullPath: '/start-sit'
-      preLoaderRoute: typeof StartSitRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/teams': {
       id: '/teams'
       path: '/teams'
@@ -346,7 +326,6 @@ const rootRouteChildren: RootRouteChildren = {
   PlayoffsRoute: PlayoffsRoute,
   SettingsRoute: SettingsRoute,
   StandingsRoute: StandingsRoute,
-  StartSitRoute: StartSitRoute,
   TeamsRoute: TeamsRoute,
   TradesRoute: TradesRoute,
   TeamTeamIdRoute: TeamTeamIdRoute,
