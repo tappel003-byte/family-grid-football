@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
+import { ChevronRight, Scale } from "lucide-react";
 import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { RosterTable } from "@/components/fantasy/RosterTable";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
@@ -89,6 +90,19 @@ function MyTeamPage() {
         </div>
         <WeekSelector week={activeWeek} onChange={setWeek} />
       </div>
+      <Link
+        to="/start-sit"
+        className="mb-4 flex items-center gap-3 rounded-2xl border bg-card px-4 py-3 transition-colors hover:bg-accent"
+      >
+        <Scale className="h-6 w-6 shrink-0 text-primary" />
+        <span className="min-w-0">
+          <span className="block font-display text-lg font-bold">Start 'Em, Sit 'Em</span>
+          <span className="block text-sm text-muted-foreground">
+            Not sure who to start? Compare two players.
+          </span>
+        </span>
+        <ChevronRight className="ml-auto h-5 w-5 shrink-0 text-muted-foreground" />
+      </Link>
       <TradeBlockManager team={team} teamSlot={league.teams.indexOf(team)} byId={byId} />
       <InsightsProvider week={activeWeek} scoring={league.scoring}>
         <RosterTable team={team} league={league} byId={byId} week={activeWeek} editable />
