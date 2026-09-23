@@ -3,8 +3,28 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { SLOTS, slotAccepts } from "./league";
 import { normalizeRules } from "./rules";
 
-/** How long a claim waits before it processes on its own (commissioner can run early). */
-const AUTO_PROCESS_MS = 1000 * 60 * 60 * 24;
+/** Claims sit until the league's waiver day comes around (about 4am Mountain). */
+const PROCESS_HOUR_UTC = 10;
+
+/** The moment a claim placed at `placedAt` is allowed to process. */
+export function nextWaiverRun(placedAt: number, waiverDay: number): number {
+  const d = new Date(placedAt);
+  const run = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+    PROCESS_HOUR_UTC,
+    0,
+    0,
+    0,
+  );
+  let ms = run;
+  // Walk forward to the next waiver day that is strictly after the claim.
+  while (ms <= placedAt || new Date(ms).getUTCDay() !== waiverDay) {
+    ms += 24 * 60 * 60 * 1000;
+  }
+  return ms;
+}
 
 export type ClaimRow = {
   id: string;
@@ -38,6 +58,50 @@ function idsOf(team: TeamRow): string[] {
     ...(((team.starters as Array<string | null>) ?? []).filter(Boolean) as string[]),
     ...(((team.bench as string[]) ?? []) as string[]),
   ];
+}
+
+/**
+ * Worst record picks first. Records come from the archived weekly results,
+ * so this needs no live feed.
+ */
+async function standingsOrder(
+  admin: any,
+  leagueId: string,
+  slots: number[],
+): Promise<number[]> {
+  const { data: leagueRow } = await admin
+    .from("league")
+    .select("schedule")
+    .eq("id", leagueId)
+    .maybeSingle();
+  const schedule = (leagueRow?.schedule ?? []) as Array<Array<[number, number]>>;
+  const { data: rows } = await admin
+    .from("weekly_results")
+    .select("week, team_slot, points")
+    .eq("league_id", leagueId);
+  const results = (rows ?? []) as Array<{ week: number; team_slot: number; points: number }>;
+  if (!results.length) return [];
+
+  const pointsOf = (slot: number, week: number) =>
+    Number(results.find((r) => r.team_slot === slot && r.week === week)?.points ?? 0);
+
+  const weeks = [...new Set(results.map((r) => r.week))].sort((a, b) => a - b);
+  const records = slots.map((slot) => {
+    let score = 0;
+    let pf = 0;
+    for (const week of weeks) {
+      const pair = (schedule[week - 1] ?? []).find(([h, a]) => h === slot || a === slot);
+      if (!pair) continue;
+      const mine = pointsOf(slot, week);
+      const theirs = pointsOf(pair[0] === slot ? pair[1] : pair[0], week);
+      pf += mine;
+      if (mine > theirs) score += 2;
+      else if (mine === theirs) score += 1;
+    }
+    return { slot, score, pf };
+  });
+  records.sort((a, b) => a.score - b.score || a.pf - b.pf || a.slot - b.slot);
+  return records.map((r) => r.slot);
 }
 
 /** Pending claims first, then recently resolved. */
@@ -226,13 +290,12 @@ export const runWaivers = createServerFn({ method: "POST" })
     const claims = (pending ?? []) as unknown as ClaimRow[];
     if (!claims.length) return { won: 0, lost: 0 };
 
-    const oldest = claims.reduce(
-      (min, c) => Math.min(min, Date.parse(c.created_at) || Date.now()),
-      Number.POSITIVE_INFINITY,
+    const now = Date.now();
+    const ready = claims.filter(
+      (c) => now >= nextWaiverRun(Date.parse(c.created_at) || now, rules.waiverDay),
     );
-    if (!data.force && Date.now() - oldest < AUTO_PROCESS_MS) {
-      return { won: 0, lost: 0, waiting: true };
-    }
+    const toRun = data.force ? claims : ready;
+    if (toRun.length === 0) return { won: 0, lost: 0, waiting: true };
 
     const { data: teamRows } = await supabaseAdmin
       .from("teams")
@@ -241,11 +304,27 @@ export const runWaivers = createServerFn({ method: "POST" })
       .order("slot", { ascending: true });
     const teams = ((teamRows ?? []) as unknown as TeamRow[]).slice();
 
+    let order = rules.waiverOrder;
+    if (rules.autoWaiverOrder) {
+      const computed = await standingsOrder(
+        supabaseAdmin,
+        leagueRow.id,
+        teams.map((t) => t.slot),
+      );
+      if (computed.length) {
+        order = computed;
+        await supabaseAdmin
+          .from("league")
+          .update({ rules: { ...rules, waiverOrder: computed } as never })
+          .eq("id", leagueRow.id);
+      }
+    }
+
     const priority = (slot: number): [number, number] => {
-      const idx = rules.waiverOrder.indexOf(slot);
+      const idx = order.indexOf(slot);
       return [idx === -1 ? 999 : idx, slot];
     };
-    const ordered = claims.slice().sort((a, b) => {
+    const ordered = toRun.slice().sort((a, b) => {
       const [pa, sa] = priority(a.team_slot);
       const [pb, sb] = priority(b.team_slot);
       return pa - pb || sa - sb;
