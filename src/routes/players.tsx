@@ -175,8 +175,40 @@ function PlayersPage() {
   const [pos, setPos] = useState("ALL");
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
   const [watchedOnly, setWatchedOnly] = useState(false);
+  const [group, setGroup] = useState(SORT_GROUPS[0]!.label);
   const [sort, setSort] = useState<SortKey>("PROJ");
+  const [dir, setDir] = useState<"desc" | "asc">("desc");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sortOpen, setSortOpen] = useState(false);
+
+  const columns = SORT_GROUPS.find((g) => g.label === group)?.keys ?? SORT_GROUPS[0]!.keys;
+
+  /** Tap a heading: sort by it, tap again to flip the direction. */
+  const headingTap = (key: SortKey) => {
+    if (key === sort) setDir((d) => (d === "desc" ? "asc" : "desc"));
+    else {
+      setSort(key);
+      setDir("desc");
+    }
+  };
+
+  const pickGroup = (label: string) => {
+    setGroup(label);
+    const first = SORT_GROUPS.find((g) => g.label === label)?.keys[0];
+    if (first) {
+      setSort(first);
+      setDir("desc");
+    }
+  };
+
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
 
   // Close the sort menu as soon as the user starts scrolling the list.
   useEffect(() => {
