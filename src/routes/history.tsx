@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Trophy, Pencil, Trash2, Plus, ChevronRight } from "lucide-react";
+import { Trophy, Plus, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { AppShell, PageTitle } from "@/components/fantasy/AppShell";
