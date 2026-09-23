@@ -134,14 +134,14 @@ const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass
 
 /** Shared grid so the column headers and every player row line up. */
 const ROW_GRID =
-  "grid grid-cols-[minmax(0,1fr)_3.25rem_3.25rem_3.25rem] gap-x-1.5 sm:grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem] sm:gap-x-3";
+  "grid grid-cols-[minmax(0,1fr)_repeat(5,2.6rem)] gap-x-1 sm:grid-cols-[minmax(0,1fr)_repeat(5,4rem)] sm:gap-x-2";
 
 /** One right-aligned number column (ESPN-style). */
 function NumCol({ label, value, active }: { label: string; value: string; active?: boolean }) {
   return (
     <div
       className={cn(
-        "pt-0.5 text-right font-display text-sm font-bold tabular-nums",
+        "pt-0.5 text-right font-display text-xs font-bold tabular-nums sm:text-sm",
         active ? "text-primary underline decoration-primary/40 underline-offset-4" : "text-foreground",
       )}
     >
@@ -413,9 +413,11 @@ function PlayersPage() {
               <span className="text-muted-foreground">Player</span>
               {(
                 [
-                  ["OWNED", "%Rost"],
-                  ["STARTED", "%Start"],
-                  [sort === "PTS" ? "PTS" : "PROJ", sort === "PTS" ? "Pts" : "Proj"],
+                  ["PROJ", "Proj"],
+                  ["PTS", "Pts"],
+                  ["HOT", "L3"],
+                  ["OWNED", "%Rst"],
+                  ["STARTED", "%Str"],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -449,11 +451,9 @@ function PlayersPage() {
                         <span className="font-semibold text-accent-foreground">Free agent</span>
                       )}
                     </div>
-                    {(last3Avg > 0 || adds > 0 || drops > 0) && (
+                    {(adds > 0 || drops > 0) && (
                       <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
                         {[
-                          last3Avg > 0 ? `Last 3 ${last3Avg.toFixed(1)}` : null,
-                          seasonPts > 0 ? `Season points ${seasonPts.toFixed(1)}` : null,
                           adds > 0 ? `${adds.toLocaleString()} adds` : null,
                           drops > 0 ? `${drops.toLocaleString()} drops` : null,
                         ]
@@ -496,14 +496,12 @@ function PlayersPage() {
                     )}
                     <PlayerInsightChips player={player} week={week} showForm={false} />
                   </div>
+                  <NumCol label="Projected points" value={proj.toFixed(1)} active={sort === "PROJ"} />
+                  <NumCol label="Season points" value={seasonPts.toFixed(1)} active={sort === "PTS"} />
+                  <NumCol label="Last 3 average" value={last3Avg > 0 ? last3Avg.toFixed(1) : "—"} active={sort === "HOT"} />
                   <NumCol label="Rostered percent" value={own ? `${own.owned}` : "—"} active={sort === "OWNED"} />
                   <NumCol label="Started percent" value={own ? `${own.started}` : "—"} active={sort === "STARTED"} />
-                  <NumCol
-                    label={sort === "PTS" ? "Season points" : "Projected points"}
-                    value={(sort === "PTS" ? seasonPts : proj).toFixed(1)}
-                    active={sort === "PTS" || sort === "PROJ"}
-                  />
-                  <div className="col-span-3 flex items-center justify-end gap-2 pt-1.5">
+                  <div className="col-span-5 flex items-center justify-end gap-2 pt-1.5">
                     <Button size="icon" variant={watched.has(player.id) ? "default" : "outline"} aria-label={watched.has(player.id) ? `Remove ${player.name} from watchlist` : `Watch ${player.name}`} onClick={() => void toggleWatch(player.id)}>
                       <Bookmark className="h-4 w-4" fill={watched.has(player.id) ? "currentColor" : "none"} />
                     </Button>
