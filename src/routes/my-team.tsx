@@ -82,7 +82,6 @@ function MyTeamPage() {
               <h1 className="truncate font-display text-3xl font-bold tracking-tight sm:text-4xl">
                 {team.name}
               </h1>
-              <ChipLegend />
             </div>
             <p className="truncate text-base text-muted-foreground sm:text-lg">
               Your team · {totals.actual.toFixed(1)} pts (proj {totals.projected.toFixed(1)})
