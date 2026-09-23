@@ -7,6 +7,7 @@
 5. [x] Feed outage resilience — keep last-known scores visible with a "retrying" note
 6. [x] Chrome — Playoffs under Standings; account, commissioner tools and sign-out grouped under the person menu
 7. [x] Matchup clarity — pronounced week, team projections, exact kickoff times in each member's saved time zone
+8. [x] Mobile matchup rows — opposing players side by side with each score and projection grouped underneath
 
 - [ ] Player Research screen: discuss and improve usefulness (Tim, Sep 22)
 - [ ] Decide: should IR moves require commissioner approval? (owner-managed for now)
