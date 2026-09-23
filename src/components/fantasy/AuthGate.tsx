@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Trophy, Shield, Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { getDeviceTeam, setDeviceTeam, setKeepSignedIn, useAuth, useSession, type DeviceTeam } from "@/lib/auth";
 import { claimTeam, listClaimTeams, resumeDevice } from "@/lib/fantasy/claim.functions";
 import { teamLogo } from "@/lib/fantasy/logos";
@@ -16,7 +15,7 @@ function ClaimScreen() {
   const [slot, setSlot] = useState<number | null>(null);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [remember, setRemember] = useState(true);
+  const remember = true;
   const [busy, setBusy] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -220,6 +219,20 @@ function WelcomeBack({ device, onForget }: { device: DeviceTeam; onForget: () =>
 /** Keeps the league private: everything inside is family-only. */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { session, loading } = useSession();
+
+  // Remember this device's team for people who signed in before this existed.
+  useEffect(() => {
+    const uid = session?.user.id;
+    if (!uid || getDeviceTeam()?.userId === uid) return;
+    void supabase
+      .from("teams")
+      .select("slot, name, owner")
+      .eq("user_id", uid)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setDeviceTeam({ slot: data.slot, userId: uid, name: data.owner || data.name, teamName: data.name });
+      });
+  }, [session?.user.id]);
 
   if (loading) {
     return (
