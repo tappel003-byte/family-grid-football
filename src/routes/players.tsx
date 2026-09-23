@@ -107,6 +107,7 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
 
 const SORTS = [
   ["PROJ", "Projection"],
+  ["PTS", "Total points"],
   ["HOT", "Last 3 avg"],
   ["AVG", "Season avg"],
   ["OWNED", "Rostered %"],
@@ -124,7 +125,7 @@ const SORT_LABEL: Record<SortKey, string> = Object.fromEntries(SORTS) as Record<
 
 /** The 10 sorts, grouped the way you'd talk about them. */
 const SORT_GROUPS: { label: string; keys: SortKey[] }[] = [
-  { label: "Production", keys: ["PROJ", "AVG", "HOT", "RANK"] },
+  { label: "Production", keys: ["PROJ", "PTS", "AVG", "HOT", "RANK"] },
   { label: "Ownership", keys: ["OWNED", "STARTED", "RISING"] },
   { label: "Hype", keys: ["ADDS", "DROPS", "PICKUP"] },
 ];
@@ -203,6 +204,7 @@ function PlayersPage() {
           own,
           news: market?.news[p.id] ?? null,
           last3Avg: info?.last3Avg ?? 0,
+          seasonPts: info?.seasonPts ?? 0,
           seasonAvg: info?.seasonAvg ?? 0,
           hot: info?.last3Avg ?? 0,
           adds: addsById.get(p.id) ?? 0,
@@ -224,6 +226,8 @@ function PlayersPage() {
       switch (sort) {
         case "PROJ":
           return b.proj - a.proj;
+        case "PTS":
+          return b.seasonPts - a.seasonPts || b.proj - a.proj;
         case "HOT":
           return b.hot - a.hot;
         case "AVG":
@@ -418,7 +422,7 @@ function PlayersPage() {
             </div>
 
             <ul className="divide-y">
-              {results.map(({ player, owner, proj, own, news, last3Avg, rec, adds, drops }) => (
+              {results.map(({ player, owner, proj, own, news, last3Avg, seasonPts, rec, adds, drops }) => (
                 <li
                   key={player.id}
                   className={cn(ROW_GRID, "items-start px-3 py-2.5 sm:px-4 sm:py-3")}
@@ -436,6 +440,7 @@ function PlayersPage() {
                       <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
                         {[
                           last3Avg > 0 ? `Last 3 ${last3Avg.toFixed(1)}` : null,
+                          seasonPts > 0 ? `${seasonPts.toFixed(1)} pts on the season` : null,
                           adds > 0 ? `${adds.toLocaleString()} adds` : null,
                           drops > 0 ? `${drops.toLocaleString()} drops` : null,
                         ]
