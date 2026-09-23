@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { HelpCircle, LogOut, Settings, UserRound } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { HelpCircle, LogOut, RefreshCw, Settings, UserRound } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { reloadLeague } from "@/lib/fantasy/store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function Football({ className }: { className?: string }) {
@@ -106,6 +108,34 @@ function MoreNav({
   );
 }
 
+/** One-tap safety net: pulls the latest shared league data and live scores. */
+function RefreshNav() {
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      aria-label="Refresh league data"
+      title="Refresh league data"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          await Promise.all([
+            reloadLeague(),
+            queryClient.invalidateQueries({ queryKey: ["nfl-week-v4"] }),
+          ]);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <RefreshCw className={`h-4 w-4${busy ? " animate-spin" : ""}`} />
+    </Button>
+  );
+}
+
 function ProfileNav({
   displayName,
   teamName,
@@ -170,6 +200,7 @@ function Shell({ children }: { children: ReactNode }) {
             </span>
           </Link>
           <span className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <RefreshNav />
             <ProfileNav
               displayName={account?.displayName || displayName}
               teamName={account?.team?.name}
