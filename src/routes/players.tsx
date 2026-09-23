@@ -73,7 +73,10 @@ export const Route = createFileRoute("/players")({
 function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, SlimPlayer> }) {
   const { data, isPending } = useQuery(trendingQueryOptions(type));
   if (isPending) return <p className="p-4 text-muted-foreground">Loading trends…</p>;
-  const rows = (data ?? []).map((e) => ({ ...e, player: byId.get(e.id) })).filter((r) => r.player);
+  const rows = (data ?? [])
+    .map((e) => ({ ...e, player: byId.get(e.id) }))
+    .filter((r) => r.player)
+    .slice(0, 25);
   if (!rows.length) return <p className="p-4 text-muted-foreground">No trend data right now.</p>;
   return (
     <ul className="divide-y">
