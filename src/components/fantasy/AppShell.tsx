@@ -33,6 +33,7 @@ const NAV_MORE = [
   { to: "/teams", label: "Teams" },
   { to: "/trades", label: "Trades" },
   { to: "/history", label: "History" },
+  { to: "/activity", label: "Activity" },
 ] as const;
 
 const LEGEND = [

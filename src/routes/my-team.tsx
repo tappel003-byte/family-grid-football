@@ -7,6 +7,7 @@ import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks";
 import { useAuth } from "@/lib/auth";
+import { TradeBlockManager } from "@/components/fantasy/TradeBlockManager";
 
 export const Route = createFileRoute("/my-team")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
@@ -88,6 +89,7 @@ function MyTeamPage() {
         </div>
         <WeekSelector week={activeWeek} onChange={setWeek} />
       </div>
+      <TradeBlockManager team={team} teamSlot={league.teams.indexOf(team)} leagueId={league.id} byId={byId} />
       <InsightsProvider week={activeWeek} scoring={league.scoring}>
         <RosterTable team={team} league={league} byId={byId} week={activeWeek} editable />
       </InsightsProvider>

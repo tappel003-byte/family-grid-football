@@ -7,6 +7,7 @@ import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks
 import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { MatchupRecap } from "@/components/fantasy/MatchupRecap";
 
 export const Route = createFileRoute("/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
@@ -119,6 +120,7 @@ function MatchupsPage() {
       {home && away && (
         <InsightsProvider week={activeWeek} scoring={league.scoring}>
           <MatchupBoard league={league} byId={byId} week={activeWeek} home={home} away={away} />
+          <MatchupRecap league={league} byId={byId} week={activeWeek} home={home} away={away} />
         </InsightsProvider>
       )}
     </>
