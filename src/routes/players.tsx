@@ -287,7 +287,7 @@ function PlayersPage() {
             b.proj - a.proj
           );
         default:
-          return a.player.rank - b.player.rank;
+          return a.rank - b.rank;
       }
     });
     return list.slice(0, 100);
@@ -304,6 +304,7 @@ function PlayersPage() {
     market,
     addsById,
     dropsById,
+    rankById,
     watchedOnly,
     watched,
   ]);
@@ -431,7 +432,7 @@ function PlayersPage() {
             </div>
 
             <ul className="divide-y">
-              {results.map(({ player, owner, proj, own, news, last3Avg, seasonPts, seasonAvg, rec, adds, drops }) => (
+              {results.map(({ player, rank, owner, proj, own, news, last3Avg, seasonPts, seasonAvg, rec, adds, drops }) => (
                 <li key={player.id} className="px-3 py-2.5 sm:px-4 sm:py-3">
                   <PlayerCell player={player} week={week} photo="desktop" />
                   <div className="mt-1 text-sm">
@@ -459,7 +460,7 @@ function PlayersPage() {
                             ["PTS", "Pts", seasonPts.toFixed(1)],
                             ["AVG", "Avg", seasonAvg.toFixed(1)],
                             ["HOT", "L3", last3Avg > 0 ? last3Avg.toFixed(1) : "—"],
-                            ["RANK", "Rnk", `#${player.rank}`],
+                            ["RANK", "Rnk", `#${rank}`],
                           ]
                         : activeGroup === "Ownership"
                           ? [
