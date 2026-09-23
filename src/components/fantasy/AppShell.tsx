@@ -170,7 +170,6 @@ function ProfileNav({
               <Settings className="h-4 w-4" /> Commissioner
             </Link>
           )}
-          {isCommissioner && <FixTeamMenu />}
           <Button variant="ghost" onClick={() => void signOut()} className="h-auto justify-start px-3 py-2.5 font-semibold">
             <LogOut className="h-4 w-4" /> Sign out
           </Button>
