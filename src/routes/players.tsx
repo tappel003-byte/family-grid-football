@@ -266,10 +266,12 @@ function PlayersPage() {
             Search
           </TabsTrigger>
           <TabsTrigger value="adds" className="text-base">
-            Trending Adds
+            <span className="sm:hidden">Adds</span>
+            <span className="hidden sm:inline">Trending Adds</span>
           </TabsTrigger>
           <TabsTrigger value="drops" className="text-base">
-            Trending Drops
+            <span className="sm:hidden">Drops</span>
+            <span className="hidden sm:inline">Trending Drops</span>
           </TabsTrigger>
           <TabsTrigger value="activity" className="text-base">
             Activity
