@@ -231,15 +231,14 @@ export const getWeekData = createServerFn({ method: "GET" })
 
 /**
  * The hosted server can occasionally receive a reduced scoreboard response.
- * Browsers can read this public feed directly, so use it as a second path for
- * kickoff times, networks and live possession without discarding score data.
+ * Use a same-origin schedule endpoint as a second path for kickoff times,
+ * networks and live possession without discarding score data.
  */
 export async function enrichWeekDataInBrowser(data: WeekData): Promise<WeekData> {
   if (typeof window === "undefined") return data;
   try {
-    const response = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${data.week}&dates=${data.season}`,
-    );
+    const params = new URLSearchParams({ week: String(data.week), season: data.season });
+    const response = await fetch(`/api/public/nfl-schedule?${params}`);
     if (!response.ok) return data;
     const scoreboard = (await response.json()) as Scoreboard;
     const games = scoreboardGames(scoreboard);
