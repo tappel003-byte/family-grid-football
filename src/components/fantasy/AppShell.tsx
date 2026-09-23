@@ -108,6 +108,34 @@ function MoreNav({
   );
 }
 
+/** One-tap safety net: pulls the latest shared league data and live scores. */
+function RefreshNav() {
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      aria-label="Refresh league data"
+      title="Refresh league data"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          await Promise.all([
+            reloadLeague(),
+            queryClient.invalidateQueries({ queryKey: ["nfl-week-v4"] }),
+          ]);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <RefreshCw className={`h-4 w-4${busy ? " animate-spin" : ""}`} />
+    </Button>
+  );
+}
+
 function ProfileNav({
   displayName,
   teamName,
