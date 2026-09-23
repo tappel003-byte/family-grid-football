@@ -134,14 +134,14 @@ const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass
 
 /** Shared grid so the column headers and every player row line up. */
 const ROW_GRID =
-  "grid grid-cols-[minmax(0,1fr)_3.25rem_3.25rem_3.25rem] gap-x-1.5 sm:grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem] sm:gap-x-3";
+  "grid grid-cols-[minmax(0,1fr)_repeat(5,2.6rem)] gap-x-1 sm:grid-cols-[minmax(0,1fr)_repeat(5,4rem)] sm:gap-x-2";
 
 /** One right-aligned number column (ESPN-style). */
 function NumCol({ label, value, active }: { label: string; value: string; active?: boolean }) {
   return (
     <div
       className={cn(
-        "pt-0.5 text-right font-display text-sm font-bold tabular-nums",
+        "pt-0.5 text-right font-display text-xs font-bold tabular-nums sm:text-sm",
         active ? "text-primary underline decoration-primary/40 underline-offset-4" : "text-foreground",
       )}
     >
