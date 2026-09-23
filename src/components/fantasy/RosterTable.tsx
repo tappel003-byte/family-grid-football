@@ -30,6 +30,7 @@ import { AlertTriangle, CalendarOff } from "lucide-react";
 import { isPlayerLocked } from "@/lib/fantasy/locks";
 import { Lock } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
+import { TradeAvailableBadge, TradeFlagToggle, useTeamTradeBlock } from "./TradeFlag";
 import { PlayerInsightChips, useInsights, isOnBye } from "./PlayerInsights";
 import { cn } from "@/lib/utils";
 
