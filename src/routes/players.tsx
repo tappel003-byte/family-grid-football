@@ -1,7 +1,7 @@
 // ============= Full file contents =============
 
 import { createFileRoute } from "@tanstack/react-router";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bookmark, Check, ChevronDown, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -159,6 +159,19 @@ function PlayersPage() {
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
   const [watchedOnly, setWatchedOnly] = useState(false);
   const [sort, setSort] = useState<SortKey>("PROJ");
+  const [sortOpen, setSortOpen] = useState(false);
+
+  // Close the sort menu as soon as the user starts scrolling the list.
+  useEffect(() => {
+    if (!sortOpen) return;
+    const close = () => setSortOpen(false);
+    window.addEventListener("scroll", close, { passive: true, capture: true });
+    window.addEventListener("touchmove", close, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", close, { capture: true });
+      window.removeEventListener("touchmove", close);
+    };
+  }, [sortOpen]);
 
   const week = league?.currentWeek ?? 1;
   useWeekData(week);
@@ -360,7 +373,7 @@ function PlayersPage() {
               <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 {results.length} players
               </span>
-              <DropdownMenu>
+              <DropdownMenu modal={false} open={sortOpen} onOpenChange={setSortOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold">
                     Sort: {SORT_LABEL[sort]}
