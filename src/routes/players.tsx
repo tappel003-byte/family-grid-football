@@ -3,7 +3,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Check, ChevronDown, ChevronUp, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { Bookmark, Check, ChevronDown, ChevronUp, HelpCircle, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
@@ -20,6 +20,7 @@ import { recommendFor } from "@/lib/fantasy/recommend";
 import { STANDARD_SCORING } from "@/lib/fantasy/scoring";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -129,6 +130,50 @@ const SORT_GROUPS: { label: string; keys: SortKey[] }[] = [
   { label: "Ownership", keys: ["OWNED", "STARTED", "RISING"] },
   { label: "Hype", keys: ["ADDS", "DROPS", "PICKUP"] },
 ];
+
+const GROUP_HELP: Record<string, ReadonlyArray<{ short: string; text: string }>> = {
+  Production: [
+    { short: "Proj", text: "Projected fantasy points for this week." },
+    { short: "Pts", text: "Total fantasy points scored this season." },
+    { short: "Avg", text: "Average fantasy points per game this season." },
+    { short: "L3", text: "Average fantasy points over the player's last 3 games." },
+    { short: "Rnk", text: "Overall rank by total points in La Familia scoring." },
+  ],
+  Ownership: [
+    { short: "Rst%", text: "Percentage of Sleeper leagues where the player is rostered." },
+    { short: "Str%", text: "Percentage of Sleeper leagues where the player is starting." },
+    { short: "Ris%", text: "Recent change in the player's rostered percentage." },
+  ],
+  Hype: [
+    { short: "Adds", text: "How many Sleeper teams added the player recently." },
+    { short: "Drops", text: "How many Sleeper teams dropped the player recently." },
+    { short: "Pickup", text: "La Familia's waiver recommendation based on form, opportunity and matchup." },
+  ],
+};
+
+function StatLegend({ group }: { group: string }) {
+  const rows = GROUP_HELP[group] ?? GROUP_HELP["Production"] ?? [];
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full" aria-label={`What do the ${group} abbreviations mean?`}>
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72">
+        <p className="mb-2 font-display text-base font-bold">{group} stats</p>
+        <ul className="space-y-2.5">
+          {rows.map((row) => (
+            <li key={row.short} className="grid grid-cols-[3.25rem_1fr] gap-2">
+              <span className="font-bold text-foreground">{row.short}</span>
+              <span className="text-sm text-muted-foreground">{row.text}</span>
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass: 1 };
 
@@ -440,29 +485,32 @@ function PlayersPage() {
               <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 {results.length} players
               </span>
-              <DropdownMenu modal={false} open={sortOpen} onOpenChange={setSortOpen}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold">
-                    {group}
-                    <ChevronDown className="h-4 w-4 shrink-0" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Stats shown
-                  </DropdownMenuLabel>
-                  {SORT_GROUPS.map((g) => (
-                    <DropdownMenuItem
-                      key={g.label}
-                      onClick={() => pickGroup(g.label)}
-                      className="h-9 justify-between text-sm font-medium"
-                    >
-                      {g.label}
-                      {group === g.label && <Check className="h-4 w-4" />}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center gap-1">
+                <StatLegend group={group} />
+                <DropdownMenu modal={false} open={sortOpen} onOpenChange={setSortOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold">
+                      {group}
+                      <ChevronDown className="h-4 w-4 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      Stats shown
+                    </DropdownMenuLabel>
+                    {SORT_GROUPS.map((g) => (
+                      <DropdownMenuItem
+                        key={g.label}
+                        onClick={() => pickGroup(g.label)}
+                        className="h-9 justify-between text-sm font-medium"
+                      >
+                        {g.label}
+                        {group === g.label && <Check className="h-4 w-4" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
 
             </div>
 
