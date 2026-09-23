@@ -86,7 +86,6 @@ function AccountPage() {
 
   const [name, setName] = useState("");
   const [teamName, setTeamName] = useState("");
-  const [color, setColor] = useState(COLORS[0]);
   const [timeZone, setTimeZone] = useState("America/Denver");
   const [saving, setSaving] = useState(false);
 
@@ -94,7 +93,6 @@ function AccountPage() {
     if (!data) return;
     setName(data.displayName);
     setTeamName(data.team?.name ?? "");
-    setColor(data.team?.color ?? COLORS[0]);
     setTimeZone(data.timeZone);
   }, [data]);
 
@@ -103,7 +101,9 @@ function AccountPage() {
   async function onSave() {
     setSaving(true);
     try {
-      await save({ data: { displayName: name, teamName, color: color ?? COLORS[0]!, timeZone } });
+      await save({
+        data: { displayName: name, teamName, color: data.team?.color ?? COLORS[0]!, timeZone },
+      });
       await queryClient.invalidateQueries();
       toast.success("Saved");
     } catch (e) {
@@ -171,24 +171,6 @@ function AccountPage() {
                     value={teamName}
                     onChange={(e) => setTeamName(e.target.value)}
                   />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Team colour</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {COLORS.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        aria-label={`Use colour ${c}`}
-                        onClick={() => setColor(c)}
-                        className={cn(
-                          "h-10 w-10 rounded-xl border-2 transition-transform",
-                          color === c ? "scale-110 border-foreground" : "border-transparent",
-                        )}
-                        style={{ backgroundColor: c }}
-                      />
-                    ))}
-                  </div>
                 </div>
               </>
             ) : (
