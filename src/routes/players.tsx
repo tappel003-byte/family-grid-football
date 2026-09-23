@@ -203,6 +203,16 @@ function PlayersPage() {
   const addsById = useMemo(() => new Map((adds ?? []).map((a) => [a.id, a.count])), [adds]);
   const dropsById = useMemo(() => new Map((drops ?? []).map((a) => [a.id, a.count])), [drops]);
 
+  /** Our own overall rank: every player ordered by season points in this league's scoring. */
+  const rankById = useMemo(() => {
+    const map = new Map<string, number>();
+    players
+      .map((p) => [p.id, insights?.players[p.id]?.seasonPts ?? 0, p.name] as const)
+      .sort((a, b) => b[1] - a[1] || a[2].localeCompare(b[2]))
+      .forEach(([id], i) => map.set(id, i + 1));
+    return map;
+  }, [players, insights]);
+
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();
     for (const t of league?.teams ?? []) for (const id of ownedIds(t)) map.set(id, t.name);
