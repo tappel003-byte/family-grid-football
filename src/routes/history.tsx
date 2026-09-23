@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { deleteSeason, saveSeason, type SeasonInput } from "@/lib/fantasy/league.functions";
+import { saveSeason, type SeasonInput } from "@/lib/fantasy/league.functions";
 
 type Standing = { place: number; team: string; owner: string; record: string };
 
