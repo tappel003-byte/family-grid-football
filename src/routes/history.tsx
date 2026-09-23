@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Trophy, Pencil, Trash2, Plus, ChevronRight } from "lucide-react";
+import { Trophy, Plus, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { AppShell, PageTitle } from "@/components/fantasy/AppShell";
@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { deleteSeason, saveSeason, type SeasonInput } from "@/lib/fantasy/league.functions";
+import { saveSeason, type SeasonInput } from "@/lib/fantasy/league.functions";
 
 type Standing = { place: number; team: string; owner: string; record: string };
 
@@ -133,11 +133,6 @@ function HistoryPage() {
     toast.success(`${row.season} season saved`);
   };
 
-  const remove = async (season: number) => {
-    await deleteSeason({ data: { season } });
-    await queryClient.invalidateQueries({ queryKey: ["season-history"] });
-    toast.success(`${season} season removed`);
-  };
 
   return (
     <>
@@ -180,38 +175,29 @@ function HistoryPage() {
       <div className="grid gap-3">
         {seasons.map((s) => (
           <article key={s.season} className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <header className="flex flex-wrap items-center justify-between gap-3 bg-secondary/60 px-3 py-2">
+            <header className="bg-secondary/60 px-3 py-2">
               <button
                 type="button"
                 onClick={() => setOpenSeason(openSeason === s.season ? null : s.season)}
                 aria-expanded={openSeason === s.season}
-                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors hover:bg-secondary"
+                className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-secondary"
               >
                 <ChevronRight
                   className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${openSeason === s.season ? "rotate-90" : ""}`}
                 />
                 <span className="font-display text-2xl font-bold tabular-nums">{s.season}</span>
-                <span className="flex min-w-0 items-center gap-2 font-display text-lg font-bold">
-                  <Trophy className="h-4 w-4 shrink-0 text-accent" />
-                  <span className="truncate">{s.champion || "Champion not recorded"}</span>
-                </span>
-                {s.champion_owner && (
-                  <span className="hidden truncate text-base text-muted-foreground sm:inline">
-                    {s.champion_owner}
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="flex items-center gap-2 font-display text-lg font-bold">
+                    <Trophy className="h-4 w-4 shrink-0 text-accent" />
+                    <span>{s.champion || "Champion not recorded"}</span>
                   </span>
-                )}
+                  {s.champion_owner && (
+                    <span className="text-base text-muted-foreground">{s.champion_owner}</span>
+                  )}
+                </span>
               </button>
-              {isCommissioner && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
-                    <Pencil className="mr-1.5 h-4 w-4" /> Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => void remove(s.season)}>
-                    <Trash2 className="mr-1.5 h-4 w-4" /> Delete
-                  </Button>
-                </div>
-              )}
             </header>
+
             <div
               hidden={openSeason !== s.season}
               className="grid gap-4 border-t p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]"
