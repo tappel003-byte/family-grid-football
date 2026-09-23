@@ -236,6 +236,7 @@ function PlayersPage() {
         const free = !ownerByPlayer.has(p.id);
         return {
           player: p,
+          rank: rankById.get(p.id) ?? 9999,
           owner: ownerByPlayer.get(p.id) ?? null,
           proj,
           own,
