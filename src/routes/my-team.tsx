@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
-import { AppShell, ChipLegend, LoadingScreen } from "@/components/fantasy/AppShell";
+import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { RosterTable } from "@/components/fantasy/RosterTable";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
