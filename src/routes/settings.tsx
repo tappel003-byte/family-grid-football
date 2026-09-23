@@ -32,8 +32,7 @@ import { Label } from "@/components/ui/label";
 import { TeamCrest } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague } from "@/lib/fantasy/hooks";
-import { buildLeague } from "@/lib/fantasy/league";
-import { resetLeague, setLeague, updateLeague } from "@/lib/fantasy/store";
+import { updateLeague } from "@/lib/fantasy/store";
 import {
   HALF_PPR_SCORING,
   PPR_SCORING,
@@ -80,7 +79,7 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const { league, players } = useLeague();
+  const { league } = useLeague();
   const { user } = useAuth();
   const { data: members = [], refetch: refetchMembers } = useMembers(true);
   const assign = useServerFn(assignTeam);
@@ -174,15 +173,9 @@ function SettingsPage() {
         subtitle="Only the commissioner should change these — they affect everyone's scores."
       />
 
-      <div className="mb-5">
-        <Button asChild variant="outline" className="text-base font-semibold">
-          <Link to="/import">Import rosters</Link>
-        </Button>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section className="rounded-2xl border bg-card p-5 shadow-sm">
-          <h2 className="font-display text-2xl font-bold">League</h2>
+      <div className="grid max-w-4xl gap-4">
+        <section className="rounded-lg border bg-card p-5 shadow-sm">
+          <h2 className="font-display text-2xl font-bold">Weekly controls</h2>
           <div className="mt-4 grid gap-4">
             <div>
               <Label htmlFor="league-name" className="text-base">
@@ -204,32 +197,55 @@ function SettingsPage() {
                 />
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {[8, 10].map((count) => (
-                <Button
-                  key={count}
-                  variant="outline"
-                  onClick={() => {
-                    setLeague(buildLeague(players, count));
-                    toast.success(`New ${count}-team league drafted`);
-                  }}
-                >
-                  Redraft as {count} teams
-                </Button>
-              ))}
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  resetLeague();
-                  toast.success("League reset");
-                }}
-              >
-                Reset league
-              </Button>
+            <div className="flex items-start gap-3 rounded-lg border bg-secondary/30 p-4">
+              <input
+                id="weekly-lock-kickoff"
+                type="checkbox"
+                className="mt-1 h-5 w-5"
+                checked={league.rules.lockAtKickoff}
+                onChange={(e) =>
+                  updateLeague((l) => ({
+                    ...l,
+                    rules: { ...l.rules, lockAtKickoff: e.target.checked },
+                  }))
+                }
+              />
+              <Label htmlFor="weekly-lock-kickoff" className="text-base font-normal">
+                <span className="font-semibold">Lock each player at game time</span>
+                <span className="block text-sm text-muted-foreground">
+                  Players lock individually when their games begin.
+                </span>
+              </Label>
             </div>
+            {league.rules.waiverMode === "waivers" && (
+              <div className="rounded-lg border bg-secondary/30 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="font-display text-lg font-bold">Waiver order</h3>
+                  <Button variant="outline" onClick={() => void setOrderFromStandings()}>
+                    Update from standings
+                  </Button>
+                </div>
+                <ol className="mt-3 grid gap-1 sm:grid-cols-2">
+                  {(league.rules.waiverOrder.length
+                    ? league.rules.waiverOrder
+                    : league.teams.map((_, i) => i)
+                  ).map((slot, i) => {
+                    const team = league.teams[slot];
+                    if (!team) return null;
+                    return <li key={slot} className="text-sm"><strong>{i + 1}.</strong> {team.name}</li>;
+                  })}
+                </ol>
+              </div>
+            )}
           </div>
+        </section>
 
-          <h2 className="mt-8 font-display text-2xl font-bold">Teams</h2>
+        <details className="group rounded-lg border bg-card shadow-sm">
+          <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
+            Teams &amp; family members <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="border-t px-5 pb-5">
+          <h2 className="mt-5 font-display text-xl font-bold">Teams</h2>
           <ul className="mt-3 divide-y rounded-xl border">
             {league.teams.map((team) => (
               <li key={team.id} className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 p-3">
@@ -290,7 +306,7 @@ function SettingsPage() {
             ))}
           </ul>
 
-          <h2 className="mt-8 font-display text-2xl font-bold">Family members</h2>
+          <h2 className="mt-8 font-display text-xl font-bold">Family members</h2>
           <p className="mt-1 text-base text-muted-foreground">
             Everyone who has signed in. Commissioners can change scoring, weeks and rosters.
           </p>
@@ -391,11 +407,16 @@ function SettingsPage() {
               );
             })}
           </ul>
-        </section>
+          </div>
+        </details>
 
 
-        <section className="rounded-2xl border bg-card p-5 shadow-sm">
-          <h2 className="font-display text-2xl font-bold">Scoring rules</h2>
+        <details className="group rounded-lg border bg-card shadow-sm">
+          <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
+            Scoring &amp; roster rules <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="border-t px-5 pb-5">
+          <h2 className="mt-5 font-display text-xl font-bold">Scoring rules</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button onClick={() => applyPreset(STANDARD_SCORING, "Standard")}>Standard</Button>
             <Button onClick={() => applyPreset(HALF_PPR_SCORING, "Half PPR")} variant="outline">
@@ -536,26 +557,6 @@ function SettingsPage() {
                 <option value="waivers">Claim order — pickups wait and process in order</option>
               </select>
             </div>
-            <div className="sm:col-span-2 flex items-start gap-3 rounded-xl border bg-secondary/30 p-4">
-              <input
-                id="lock-kickoff"
-                type="checkbox"
-                className="mt-1 h-5 w-5"
-                checked={league.rules.lockAtKickoff}
-                onChange={(e) =>
-                  updateLeague((l) => ({
-                    ...l,
-                    rules: { ...l.rules, lockAtKickoff: e.target.checked },
-                  }))
-                }
-              />
-              <Label htmlFor="lock-kickoff" className="text-base font-normal">
-                <span className="font-semibold">Lock each player at his game time</span>
-                <span className="block text-sm text-muted-foreground">
-                  Once a player's game starts, he can't be moved in or out of the lineup that week.
-                </span>
-              </Label>
-            </div>
             {league.rules.waiverMode === "waivers" && (
               <div className="sm:col-span-2">
                 <Label htmlFor="waiver-day" className="text-base">
@@ -586,47 +587,15 @@ function SettingsPage() {
             )}
           </div>
 
-          {league.rules.waiverMode === "waivers" && (
-            <div className="mt-4 rounded-xl border bg-secondary/30 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-display text-lg font-bold">Claim order</h3>
-                  <p className="text-sm text-muted-foreground">
-                    When several families want the same player, the team with the worse record
-                    picks first.
-                  </p>
-                </div>
-                <Button variant="outline" onClick={() => void setOrderFromStandings()}>
-                  Set from current standings
-                </Button>
-              </div>
-              <ol className="mt-3 space-y-1 text-base">
-                {(league.rules.waiverOrder.length
-                  ? league.rules.waiverOrder
-                  : league.teams.map((_, i) => i)
-                ).map((slot, i) => {
-                  const team = league.teams[slot];
-                  if (!team) return null;
-                  return (
-                    <li key={slot} className="flex items-center gap-2">
-                      <span className="w-6 text-right font-display font-bold tabular-nums text-muted-foreground">
-                        {i + 1}.
-                      </span>
-                      <span className="font-semibold">{team.name}</span>
-                      <span className="truncate text-muted-foreground">{team.owner}</span>
-                    </li>
-                  );
-                })}
-              </ol>
-              {league.rules.waiverOrder.length === 0 && (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  No order set yet — teams pick in slot order until you set one.
-                </p>
-              )}
-            </div>
-          )}
+          </div>
+        </details>
 
-          <h2 className="mt-8 font-display text-2xl font-bold">Fix a final score</h2>
+        <details className="group rounded-lg border bg-card shadow-sm">
+          <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
+            Score corrections <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="border-t px-5 pb-5">
+          <h2 className="mt-5 font-display text-xl font-bold">Fix a final score</h2>
           <p className="mt-1 text-base text-muted-foreground">
             Type a score to overrule the live total for one team in one week. Leave it blank to go
             back to the real score.
@@ -702,9 +671,10 @@ function SettingsPage() {
               );
             })}
           </ul>
-        </section>
+          </div>
+        </details>
 
-        <section>
+        <section className="rounded-lg border bg-card p-5 shadow-sm">
           <h2 className="font-display text-2xl font-bold">Waiver claims</h2>
           <p className="mt-1 text-muted-foreground">
             When the league uses claim order, pickups wait here until waivers run.
@@ -765,8 +735,15 @@ function SettingsPage() {
           </Button>
         </section>
 
-        <section>
-          <h2 className="font-display text-2xl font-bold">Close out the season</h2>
+        <details className="group rounded-lg border bg-card shadow-sm">
+          <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
+            Season tools <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="border-t px-5 pb-5">
+          <Button asChild variant="outline" className="mt-5 text-base font-semibold">
+            <Link to="/import">Import rosters</Link>
+          </Button>
+          <h2 className="mt-7 font-display text-xl font-bold">Close out the season</h2>
           <p className="mt-1 max-w-prose text-muted-foreground">
             At the end of the year, save this season's final record into the History page. The
             weekly scores save themselves automatically as weeks finish — this button turns them
@@ -784,7 +761,8 @@ function SettingsPage() {
           >
             Save {new Date().getFullYear()} to History
           </Button>
-        </section>
+          </div>
+        </details>
       </div>
     </>
   );
