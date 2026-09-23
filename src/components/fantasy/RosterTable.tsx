@@ -43,6 +43,7 @@ export function optimizeTeam(
   league: League,
   week: number,
   insights?: import("@/lib/insights.functions").InsightsData | null,
+  isLocked?: (player: SlimPlayer | undefined) => boolean,
 ): FantasyTeam {
   const ids = rosterIds(team);
   const ranked = ids
@@ -54,12 +55,21 @@ export function optimizeTeam(
     isPlayable(p) && !isOnBye(insights ?? null, p, week);
 
   const used = new Set<string>();
+  const locked = (id: string | null | undefined) =>
+    !!id && !!isLocked && isLocked(byId.get(id));
+
+  // Players whose game already started stay exactly where they are.
+  const pinned = SLOTS.map((_, i) => (locked(team.starters[i]) ? team.starters[i]! : null));
+  for (const id of pinned) if (id) used.add(id);
+  for (const id of ids) if (locked(id) && !used.has(id)) used.add(id);
+
   const pick = (slot: string, healthyOnly: boolean) =>
     ranked.find(
       (p) => !used.has(p.id) && slotAccepts(slot, p.pos) && (!healthyOnly || available(p)),
     );
 
-  const starters = SLOTS.map((slot) => {
+  const starters = SLOTS.map((slot, i) => {
+    if (pinned[i]) return pinned[i];
     const player = pick(slot, true) ?? pick(slot, false);
     if (player) used.add(player.id);
     return player?.id ?? null;
@@ -117,6 +127,8 @@ export function RosterTable({
       setPending(false);
     }
   };
+
+  const locked = (p: SlimPlayer | undefined) => isPlayerLocked(p, week, league);
 
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
@@ -180,12 +192,14 @@ export function RosterTable({
   const optimize = () => {
     const before = projectedTotal(team, byId, league, week);
     const after = projectedTotal(
-      optimizeTeam(team, byId, league, week, insights),
+      optimizeTeam(team, byId, league, week, insights, locked),
       byId,
       league,
       week,
     );
-    updateLeague((l) => setTeam(l, team.id, (t) => optimizeTeam(t, byId, l, week, insights)));
+    updateLeague((l) =>
+      setTeam(l, team.id, (t) => optimizeTeam(t, byId, l, week, insights, locked)),
+    );
     const gain = after - before;
     toast.success(
       gain > 0.05
@@ -416,9 +430,15 @@ export function RosterTable({
                 </div>
                 {editable && (
                   <>
-                    <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
-                      Start
-                    </Button>
+                    {locked(p) ? (
+                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                        <Lock className="h-4 w-4" /> Locked
+                      </span>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => startBenchPlayer(p.id)}>
+                        Start
+                      </Button>
+                    )}
                     {irOpen && isInactive(p.injury) && (
                       <Button
                         variant="outline"

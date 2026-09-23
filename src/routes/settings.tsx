@@ -13,7 +13,7 @@ import {
 } from "@/lib/fantasy/league.functions";
 import { setScoreOverride } from "@/lib/fantasy/overrides.functions";
 import { allOverrides, reloadLeague, reloadOverrides, scoreOverride } from "@/lib/fantasy/store";
-import { RULE_POSITIONS } from "@/lib/fantasy/rules";
+import { RULE_POSITIONS, WEEKDAYS } from "@/lib/fantasy/rules";
 import { WEEKS, rosterIds, type League } from "@/lib/fantasy/league";
 import {
   cancelClaim,
@@ -536,6 +536,54 @@ function SettingsPage() {
                 <option value="waivers">Claim order — pickups wait and process in order</option>
               </select>
             </div>
+            <div className="sm:col-span-2 flex items-start gap-3 rounded-xl border bg-secondary/30 p-4">
+              <input
+                id="lock-kickoff"
+                type="checkbox"
+                className="mt-1 h-5 w-5"
+                checked={league.rules.lockAtKickoff}
+                onChange={(e) =>
+                  updateLeague((l) => ({
+                    ...l,
+                    rules: { ...l.rules, lockAtKickoff: e.target.checked },
+                  }))
+                }
+              />
+              <Label htmlFor="lock-kickoff" className="text-base font-normal">
+                <span className="font-semibold">Lock each player at his game time</span>
+                <span className="block text-sm text-muted-foreground">
+                  Once a player's game starts, he can't be moved in or out of the lineup that week.
+                </span>
+              </Label>
+            </div>
+            {league.rules.waiverMode === "waivers" && (
+              <div className="sm:col-span-2">
+                <Label htmlFor="waiver-day" className="text-base">
+                  Claims process on
+                </Label>
+                <select
+                  id="waiver-day"
+                  className="mt-1 h-11 w-full rounded-md border bg-background px-3 text-base"
+                  value={league.rules.waiverDay}
+                  onChange={(e) =>
+                    updateLeague((l) => ({
+                      ...l,
+                      rules: { ...l.rules, waiverDay: Number(e.target.value) },
+                    }))
+                  }
+                >
+                  {WEEKDAYS.map((day, i) => (
+                    <option key={day} value={i}>
+                      {day} morning
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  A player dropped or added stays on claims until this day, then goes to whoever
+                  claimed him first in the order.
+                </p>
+              </div>
+            )}
           </div>
 
           {league.rules.waiverMode === "waivers" && (
