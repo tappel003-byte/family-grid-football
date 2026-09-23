@@ -94,7 +94,7 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
     <ul className="divide-y">
       {rows.map((r) => (
         <li key={r.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
-          <PlayerCell player={r.player!} compact />
+          <PlayerCell player={r.player!} compact showGame={false} />
           <span className="shrink-0 font-display text-lg font-bold tabular-nums">
             {type === "add" ? "+" : "−"}
             {r.count.toLocaleString()}
@@ -505,7 +505,7 @@ function PlayersPage() {
                   return (
                     <div key={player.id} className="flex items-stretch border-b last:border-b-0">
                       <div className="sticky left-0 z-10 w-44 shrink-0 border-r bg-card px-2 py-2 sm:w-72 sm:px-3">
-                        <PlayerCell player={player} week={week} photo="desktop" />
+                        <PlayerCell player={player} week={week} photo="desktop" showGame={false} />
                         {!owner && (
                           <div className="mt-1 text-xs font-semibold text-accent-foreground">
                             Free agent
