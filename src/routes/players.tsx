@@ -279,17 +279,25 @@ function PlayersPage() {
                   {label}
                 </Button>
               ))}
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  const i = SORTS.findIndex(([v]) => v === sort);
-                  setSort(SORTS[(i + 1) % SORTS.length]![0]);
-                }}
-                className="font-semibold"
-              >
-                <ArrowUpDown className="mr-1.5 h-4 w-4" />
-                {SORTS.find(([v]) => v === sort)?.[1]}
-              </Button>
+            </div>
+            <div className="rounded-xl border bg-card p-3">
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                <ArrowUpDown className="h-4 w-4" /> Sort by
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {SORTS.map(([value, label]) => (
+                  <Button
+                    key={value}
+                    size="sm"
+                    variant={sort === value ? "default" : "outline"}
+                    onClick={() => setSort(value)}
+                    aria-pressed={sort === value}
+                    className="h-9 justify-center px-2 text-sm font-semibold"
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
