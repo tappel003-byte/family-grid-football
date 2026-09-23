@@ -303,6 +303,9 @@ export function RosterTable({
                   {player ? (
                     <div className="min-w-0">
                       <PlayerCell player={player} week={week} />
+                      {!editable && onBlock.has(player.id) && (
+                        <TradeAvailableBadge className="mt-1" />
+                      )}
                       <PlayerInsightChips player={player} week={week} />
                     </div>
                   ) : (
