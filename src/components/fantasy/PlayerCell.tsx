@@ -73,11 +73,13 @@ export function PlayerCell({
   player,
   align = "left",
   compact = false,
+  mobileMatchup = false,
   week,
 }: {
   player: SlimPlayer;
   align?: "left" | "right";
   compact?: boolean;
+  mobileMatchup?: boolean;
   week?: number;
 }) {
   const info = injuryInfo(player.injury);
@@ -88,6 +90,7 @@ export function PlayerCell({
     <div
       className={cn(
         "flex min-w-0 items-center gap-3",
+        mobileMatchup && "gap-2",
         align === "right" && "flex-row-reverse text-right",
       )}
     >
@@ -118,28 +121,33 @@ export function PlayerCell({
         <div
           className={cn(
             "flex min-w-0 items-center gap-2",
+            mobileMatchup && "block",
             align === "right" && "flex-row-reverse",
           )}
         >
-          <span className="truncate text-base font-semibold leading-tight sm:text-lg">
+          <span className={cn("truncate text-base font-semibold leading-tight sm:text-lg", mobileMatchup && "block text-sm sm:text-base")}>
             {player.name}
           </span>
-          <InjuryBadge injury={player.injury} size={compact ? "sm" : "md"} />
-          {week !== undefined && <ByeBadge player={player} week={week} size={compact ? "sm" : "md"} />}
+          {!mobileMatchup && <InjuryBadge injury={player.injury} size={compact ? "sm" : "md"} />}
+          {!mobileMatchup && week !== undefined && <ByeBadge player={player} week={week} size={compact ? "sm" : "md"} />}
         </div>
         <div
           className={cn(
             "mt-0.5 flex items-center gap-2 text-sm",
+            mobileMatchup && "gap-1 text-xs",
             align === "right" && "justify-end",
           )}
         >
           <span className="font-semibold uppercase tracking-wide text-muted-foreground">
             {player.team} · {player.pos}
           </span>
+          {mobileMatchup && <InjuryBadge injury={player.injury} size="sm" />}
+          {mobileMatchup && week !== undefined && <ByeBadge player={player} week={week} size="sm" />}
           {info && (
             <span
               className={cn(
                 "font-semibold",
+                mobileMatchup && "hidden",
                 info.severity === "out" ? "text-injury-out" : "text-muted-foreground",
               )}
             >
