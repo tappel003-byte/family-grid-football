@@ -192,12 +192,14 @@ export function RosterTable({
   const optimize = () => {
     const before = projectedTotal(team, byId, league, week);
     const after = projectedTotal(
-      optimizeTeam(team, byId, league, week, insights),
+      optimizeTeam(team, byId, league, week, insights, locked),
       byId,
       league,
       week,
     );
-    updateLeague((l) => setTeam(l, team.id, (t) => optimizeTeam(t, byId, l, week, insights)));
+    updateLeague((l) =>
+      setTeam(l, team.id, (t) => optimizeTeam(t, byId, l, week, insights, locked)),
+    );
     const gain = after - before;
     toast.success(
       gain > 0.05
