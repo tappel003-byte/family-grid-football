@@ -186,7 +186,9 @@ export const getWeekData = createServerFn({ method: "GET" })
     );
     const season = state.season ?? String(new Date().getUTCFullYear());
     const currentWeek = state.display_week ?? state.week ?? 1;
-    const key = `${season}-${data.week}`;
+    // Keep rich schedule payloads separate from cached data created before
+    // kickoff times and TV networks were added to GameInfo.
+    const key = `schedule-v2-${season}-${data.week}`;
 
     const hit = cache.get(key);
     const ttl = data.week < currentWeek ? 1000 * 60 * 60 * 6 : 1000 * 60 * 2;

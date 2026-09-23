@@ -14,7 +14,9 @@ const weekCache = new Map<number, WeekData>();
 
 export const weekDataQueryOptions = (week: number) =>
   queryOptions({
-    queryKey: ["nfl-week", week],
+    // Version this key whenever WeekData gains display fields. Otherwise the
+    // long-lived preview can keep an older object that lacks those fields.
+    queryKey: ["nfl-week-v2", week],
     queryFn: () => getWeekData({ data: { week } }),
     staleTime: 1000 * 60 * 2,
     refetchInterval: 1000 * 60 * 2,
