@@ -6,7 +6,7 @@ type Standing = { place: number; team: string; owner: string; record?: string };
 
 const ordinal = (place: number) => (place === 1 ? "Champion" : place === 2 ? "Runner-up" : place === 3 ? "3rd place" : `${place}th place`);
 
-export function TrophyCase({ owner, teamName }: { owner: string; teamName?: string }) {
+export function TrophyCase({ owner, teamName }: { owner: string; teamName?: string | undefined }) {
   const { data = [] } = useQuery({
     queryKey: ["trophy-case", owner, teamName],
     enabled: Boolean(owner || teamName),
