@@ -70,9 +70,6 @@ function StatusBox({
   ];
   return (
     <div className={cn("min-w-0", align === "right" && "text-right")}>
-      <div className="mb-1 truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {team.name}
-      </div>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
         {rows.map(([label, value]) => (
           <div key={label} className={cn("flex items-baseline gap-1.5", align === "right" && "justify-end")}>
