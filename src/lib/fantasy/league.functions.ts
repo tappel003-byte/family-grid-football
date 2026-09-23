@@ -98,6 +98,28 @@ export const saveLeague = createServerFn({ method: "POST" })
       if (!samePlayers(((myTeam.ir as string[]) ?? []), mine.ir ?? [])) {
         throw new Error("Use the injured-reserve control to change IR.");
       }
+      const lockAtKickoff = (data.rules as { lockAtKickoff?: boolean })?.lockAtKickoff !== false;
+      if (lockAtKickoff) {
+        const before = ((myTeam.starters as Array<string | null>) ?? []) as Array<string | null>;
+        const after = mine.starters;
+        const changed = new Set<string>();
+        const span = Math.max(before.length, after.length);
+        for (let i = 0; i < span; i++) {
+          const wasThere = before[i] ?? null;
+          const nowThere = after[i] ?? null;
+          if (wasThere === nowThere) continue;
+          if (wasThere) changed.add(wasThere);
+          if (nowThere) changed.add(nowThere);
+        }
+        if (changed.size > 0) {
+          const { lockedChecker } = await import("./kickoff.server");
+          const isLocked = await lockedChecker(data.currentWeek);
+          const blocked = [...changed].filter((id) => isLocked(id));
+          if (blocked.length > 0) {
+            throw new Error("That game has already kicked off, so those players are locked.");
+          }
+        }
+      }
       const { error } = await supabaseAdmin
         .from("teams")
         .update({
