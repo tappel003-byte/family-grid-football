@@ -13,7 +13,26 @@ function canUseStorage() {
 }
 
 function keepSignedIn() {
-  return !canUseStorage() || window.localStorage.getItem(KEEP_SIGNED_IN_KEY) !== "false";
+  return true;
+}
+
+const DEVICE_TEAM_KEY = "la-familia-device-team";
+export type DeviceTeam = { slot: number; userId: string; name: string; teamName: string };
+
+export function getDeviceTeam(): DeviceTeam | null {
+  if (!canUseStorage()) return null;
+  try {
+    const v = JSON.parse(window.localStorage.getItem(DEVICE_TEAM_KEY) ?? "null");
+    return v && typeof v.slot === "number" && typeof v.userId === "string" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setDeviceTeam(t: DeviceTeam | null) {
+  if (!canUseStorage()) return;
+  if (t) window.localStorage.setItem(DEVICE_TEAM_KEY, JSON.stringify(t));
+  else window.localStorage.removeItem(DEVICE_TEAM_KEY);
 }
 
 function saveSessionBackup(session: Session | null) {
@@ -47,6 +66,7 @@ async function restoreRememberedSession() {
 
 export function setKeepSignedIn(value: boolean, session: Session | null) {
   if (!canUseStorage()) return;
+  value = true;
   window.localStorage.setItem(KEEP_SIGNED_IN_KEY, String(value));
   if (value) {
     window.sessionStorage.removeItem(ACTIVE_TAB_KEY);
@@ -73,10 +93,7 @@ export function useSession() {
     });
     void supabase.auth.getSession().then(async ({ data }) => {
       let next = data.session;
-      if (next && !keepSignedIn() && !window.sessionStorage.getItem(ACTIVE_TAB_KEY)) {
-        await supabase.auth.signOut();
-        next = null;
-      } else if (!next) {
+      if (!next) {
         next = await restoreRememberedSession();
       }
       cachedSession = next;
@@ -153,6 +170,7 @@ export async function signOut() {
   if (canUseStorage()) {
     window.localStorage.removeItem(SESSION_BACKUP_KEY);
     window.sessionStorage.removeItem(ACTIVE_TAB_KEY);
+    setDeviceTeam(null);
   }
   await supabase.auth.signOut();
   window.location.href = "/";

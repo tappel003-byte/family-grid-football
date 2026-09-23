@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { setKeepSignedIn, useAuth, useSession } from "@/lib/auth";
-import { claimTeam, listClaimTeams } from "@/lib/fantasy/claim.functions";
+import { getDeviceTeam, setDeviceTeam, setKeepSignedIn, useAuth, useSession, type DeviceTeam } from "@/lib/auth";
+import { claimTeam, listClaimTeams, resumeDevice } from "@/lib/fantasy/claim.functions";
 import { teamLogo } from "@/lib/fantasy/logos";
 
 
@@ -43,6 +43,14 @@ function ClaimScreen() {
       });
       if (error) throw error;
       setKeepSignedIn(remember, signedIn.session);
+      if (signedIn.user && picked) {
+        setDeviceTeam({
+          slot: picked.slot,
+          userId: signedIn.user.id,
+          name: name.trim() || picked.owner || picked.name,
+          teamName: picked.name,
+        });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not get you in");
     } finally {
@@ -146,21 +154,64 @@ function ClaimScreen() {
                 required
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="keep-signed-in"
-                checked={remember}
-                onCheckedChange={(checked) => setRemember(checked === true)}
-              />
-              <Label htmlFor="keep-signed-in" className="cursor-pointer text-base font-semibold">
-                Keep me signed in on this device
-              </Label>
-            </div>
             <Button type="submit" disabled={busy} className="h-12 text-base font-semibold">
               {busy ? "Getting you in…" : "This is my team"}
             </Button>
           </form>
         )}
+      </div>
+    </div>
+  );
+}
+
+function SignInScreen() {
+  const [device, setDevice] = useState<DeviceTeam | null>(() => getDeviceTeam());
+  if (device) return <WelcomeBack device={device} onForget={() => setDevice(null)} />;
+  return <ClaimScreen />;
+}
+
+function WelcomeBack({ device, onForget }: { device: DeviceTeam; onForget: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const logo = teamLogo(device.teamName);
+  const go = async () => {
+    setBusy(true);
+    try {
+      const res = await resumeDevice({ data: { slot: device.slot, userId: device.userId } });
+      if (!res.ok) {
+        toast.error("Please pick your team again.");
+        setDeviceTeam(null);
+        onForget();
+        return;
+      }
+      const { data, error } = await supabase.auth.verifyOtp({ token_hash: res.tokenHash, type: "magiclink" });
+      if (error) throw error;
+      setKeepSignedIn(true, data.session);
+    } catch {
+      toast.error("Could not get you in. Please pick your team again.");
+      onForget();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="grid min-h-screen place-items-center bg-background px-4">
+      <div className="w-full max-w-md text-center">
+        {logo && <img src={logo} alt="" className="mx-auto h-28 w-28 object-contain" />}
+        <h1 className="mt-4 font-display text-3xl font-bold">Welcome back, {device.name}</h1>
+        <p className="mt-1 text-lg text-muted-foreground">{device.teamName}</p>
+        <Button onClick={go} disabled={busy} className="mt-8 h-16 w-full text-xl font-semibold">
+          {busy ? "Getting you in…" : "Tap to continue"}
+        </Button>
+        <button
+          type="button"
+          onClick={() => {
+            setDeviceTeam(null);
+            onForget();
+          }}
+          className="mt-6 text-base text-muted-foreground underline"
+        >
+          Not you? Pick a different team
+        </button>
       </div>
     </div>
   );
@@ -177,7 +228,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if (!session) return <ClaimScreen />;
+  if (!session) return <SignInScreen />;
   return <>{children}</>;
 }
 

@@ -142,3 +142,29 @@ export const claimTeam = createServerFn({ method: "POST" })
 
     return { ok: true as const, email };
   });
+
+/**
+ * One-tap "Continue as…" for a device that signed in before. The device keeps
+ * its team slot and account id (no password). We only mint a sign-in when the
+ * pair still matches the team's current owner.
+ */
+export const resumeDevice = createServerFn({ method: "POST" })
+  .inputValidator((data: { slot: number; userId: string }) => data)
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: league } = await supabaseAdmin.from("league").select("id").eq("slug", "main").maybeSingle();
+    if (!league) return { ok: false as const };
+    const { data: team } = await supabaseAdmin
+      .from("teams")
+      .select("user_id")
+      .eq("league_id", league.id)
+      .eq("slot", data.slot)
+      .maybeSingle();
+    if (!team?.user_id || team.user_id !== data.userId) return { ok: false as const };
+    const { data: u } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    const email = u?.user?.email;
+    if (!email) return { ok: false as const };
+    const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
+    if (error || !link?.properties?.hashed_token) return { ok: false as const };
+    return { ok: true as const, tokenHash: link.properties.hashed_token };
+  });
