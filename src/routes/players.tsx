@@ -353,7 +353,6 @@ function PlayersPage() {
     await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
   };
 
-  const activeGroup = SORT_GROUPS.find((group) => group.keys.includes(sort))?.label ?? "Production";
 
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
@@ -470,93 +469,128 @@ function PlayersPage() {
               </DropdownMenu>
             </div>
 
-            <ul className="divide-y">
-              {results.map(({ player, rank, owner, proj, own, news, last3Avg, seasonPts, seasonAvg, rec, adds, drops }) => (
-                <li key={player.id} className="px-3 py-2.5 sm:px-4 sm:py-3">
-                  <PlayerCell player={player} week={week} photo="desktop" />
-                  <div className="mt-1 text-sm">
-                    {owner ? (
-                      <span className="text-muted-foreground">On {owner}</span>
-                    ) : (
-                      <span className="font-semibold text-accent-foreground">Free agent</span>
-                    )}
+            {/* Locked player column on the left, stat columns scroll sideways. */}
+            <div className="overflow-x-auto">
+              <div className="min-w-max">
+                <div className="flex items-stretch border-b bg-secondary/40">
+                  <div className="sticky left-0 z-10 w-56 shrink-0 border-r bg-secondary/40 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:w-72">
+                    Players
                   </div>
+                  {columns.map((key) => {
+                    const active = sort === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => headingTap(key)}
+                        aria-label={`Sort by ${SORT_LABEL[key]}`}
+                        className={cn(
+                          "flex shrink-0 items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors",
+                          COLUMNS[key].w,
+                          active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {COLUMNS[key].short}
+                        {active &&
+                          (dir === "desc" ? (
+                            <ChevronDown className="h-3 w-3" />
+                          ) : (
+                            <ChevronUp className="h-3 w-3" />
+                          ))}
+                      </button>
+                    );
+                  })}
+                </div>
 
-                  {/* Show only the selected sort category as one compact line. */}
-                  <div className="mt-2">
-                    <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-                      {activeGroup}
-                    </div>
-                    <div
-                      className={cn(
-                        "mt-0.5 grid gap-1",
-                        activeGroup === "Production" ? "grid-cols-5" : "grid-cols-3",
-                      )}
-                    >
-                      {((activeGroup === "Production"
-                        ? [
-                            ["PROJ", "Proj", proj.toFixed(1)],
-                            ["PTS", "Pts", seasonPts.toFixed(1)],
-                            ["AVG", "Avg", seasonAvg.toFixed(1)],
-                            ["HOT", "L3", last3Avg > 0 ? last3Avg.toFixed(1) : "—"],
-                            ["RANK", "Rnk", `#${rank}`],
-                          ]
-                        : activeGroup === "Ownership"
-                          ? [
-                              ["OWNED", "Rst%", own ? `${own.owned}` : "—"],
-                              ["STARTED", "Str%", own ? `${own.started}` : "—"],
-                              ["RISING", "Ris%", own ? `${own.change > 0 ? "+" : ""}${own.change}` : "—"],
-                            ]
-                          : [
-                              ["ADDS", "Adds", adds > 0 ? COMPACT.format(adds) : "—"],
-                              ["DROPS", "Drops", drops > 0 ? COMPACT.format(drops) : "—"],
-                              ["PICKUP", "Pickup", rec?.label ?? "—"],
-                            ]
-                      ) as [SortKey, string, string][]).map(([key, label, value]) => (
-                        <StatCell
+                {results.map((row) => {
+                  const { player, owner, news, rec } = row;
+                  const open = expanded.has(player.id);
+                  return (
+                    <div key={player.id} className="flex items-stretch border-b last:border-b-0">
+                      <div className="sticky left-0 z-10 w-56 shrink-0 border-r bg-card px-3 py-2.5 sm:w-72">
+                        <PlayerCell player={player} week={week} photo="desktop" />
+                        <div className="mt-1 text-sm">
+                          {owner ? (
+                            <span className="text-muted-foreground">On {owner}</span>
+                          ) : (
+                            <span className="font-semibold text-accent-foreground">Free agent</span>
+                          )}
+                        </div>
+                        {open && (
+                          <div className="mt-1.5">
+                            {rec && <p className="text-sm text-muted-foreground">{rec.reason}</p>}
+                            {news && (
+                              <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
+                                <Newspaper className="mt-0.5 h-4 w-4 shrink-0" />
+                                {news.link ? (
+                                  <a
+                                    href={news.link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="underline underline-offset-2 hover:text-foreground"
+                                  >
+                                    {news.headline}
+                                  </a>
+                                ) : (
+                                  news.headline
+                                )}
+                              </p>
+                            )}
+                            <PlayerInsightChips player={player} week={week} showForm={false} />
+                          </div>
+                        )}
+                        <div className="mt-2 flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-2 text-xs font-semibold"
+                            aria-expanded={open}
+                            onClick={() => toggleExpanded(player.id)}
+                          >
+                            {open ? "Less" : "Details"}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant={watched.has(player.id) ? "default" : "outline"}
+                            aria-label={
+                              watched.has(player.id)
+                                ? `Remove ${player.name} from watchlist`
+                                : `Watch ${player.name}`
+                            }
+                            onClick={() => void toggleWatch(player.id)}
+                          >
+                            <Bookmark
+                              className="h-4 w-4"
+                              fill={watched.has(player.id) ? "currentColor" : "none"}
+                            />
+                          </Button>
+                          {league && <AddDropButton player={player} league={league} byId={byId} />}
+                        </div>
+                      </div>
+                      {columns.map((key) => (
+                        <div
                           key={key}
-                          label={label}
-                          value={value}
-                          active={sort === key}
-                          onSort={() => setSort(key)}
-                        />
+                          className={cn(
+                            "flex shrink-0 items-center justify-center px-1 text-sm font-bold tabular-nums",
+                            COLUMNS[key].w,
+                            sort === key ? "bg-primary/5 text-primary" : "text-foreground",
+                          )}
+                        >
+                          {COLUMNS[key].value(row)}
+                        </div>
                       ))}
                     </div>
-                  </div>
+                  );
+                })}
 
-                  {rec && <p className="mt-1.5 text-sm text-muted-foreground">{rec.reason}</p>}
-                  {news && (
-                    <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
-                      <Newspaper className="mt-0.5 h-4 w-4 shrink-0" />
-                      {news.link ? (
-                        <a
-                          href={news.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline underline-offset-2 hover:text-foreground"
-                        >
-                          {news.headline}
-                        </a>
-                      ) : (
-                        news.headline
-                      )}
-                    </p>
-                  )}
-                  <PlayerInsightChips player={player} week={week} showForm={false} />
-                  <div className="mt-2 flex items-center justify-end gap-2">
-                    <Button size="icon" variant={watched.has(player.id) ? "default" : "outline"} aria-label={watched.has(player.id) ? `Remove ${player.name} from watchlist` : `Watch ${player.name}`} onClick={() => void toggleWatch(player.id)}>
-                      <Bookmark className="h-4 w-4" fill={watched.has(player.id) ? "currentColor" : "none"} />
-                    </Button>
-                    {league && <AddDropButton player={player} league={league} byId={byId} />}
+                {!results.length && (
+                  <div className="px-4 py-8 text-center text-muted-foreground">
+                    No players match that search.
                   </div>
-                </li>
-              ))}
-              {!results.length && (
-                <li className="px-4 py-8 text-center text-muted-foreground">
-                  No players match that search.
-                </li>
-              )}
-            </ul>
+                )}
+              </div>
+            </div>
+
           </div>
         </TabsContent>
 
