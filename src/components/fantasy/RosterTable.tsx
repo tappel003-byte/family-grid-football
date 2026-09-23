@@ -27,6 +27,8 @@ import { setInjuredReserve } from "@/lib/fantasy/ir.functions";
 import { updateLeague, reloadLeague } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle, CalendarOff } from "lucide-react";
+import { isPlayerLocked } from "@/lib/fantasy/locks";
+import { Lock } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
 import { PlayerInsightChips, useInsights, isOnBye } from "./PlayerInsights";
 import { cn } from "@/lib/utils";

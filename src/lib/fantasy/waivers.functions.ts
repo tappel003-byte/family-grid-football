@@ -3,8 +3,28 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { SLOTS, slotAccepts } from "./league";
 import { normalizeRules } from "./rules";
 
-/** How long a claim waits before it processes on its own (commissioner can run early). */
-const AUTO_PROCESS_MS = 1000 * 60 * 60 * 24;
+/** Claims sit until the league's waiver day comes around (about 4am Mountain). */
+const PROCESS_HOUR_UTC = 10;
+
+/** The moment a claim placed at `placedAt` is allowed to process. */
+export function nextWaiverRun(placedAt: number, waiverDay: number): number {
+  const d = new Date(placedAt);
+  const run = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+    PROCESS_HOUR_UTC,
+    0,
+    0,
+    0,
+  );
+  let ms = run;
+  // Walk forward to the next waiver day that is strictly after the claim.
+  while (ms <= placedAt || new Date(ms).getUTCDay() !== waiverDay) {
+    ms += 24 * 60 * 60 * 1000;
+  }
+  return ms;
+}
 
 export type ClaimRow = {
   id: string;
