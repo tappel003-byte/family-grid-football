@@ -86,6 +86,13 @@ export function PlayerCell({
   const timeZone = useTimeZone();
   const game = week === undefined ? undefined : gameInfoFor(player.team, week);
   const kickoff = formatGameTime(game?.startsAt, timeZone);
+  const onField = game?.status === "live";
+  const gameLine =
+    game?.status === "live"
+      ? `On the field · ${game.label}${game.network ? ` · ${game.network}` : ""}`
+      : game?.status === "scheduled" && kickoff
+        ? `${kickoff}${game.network ? ` · ${game.network}` : ""}`
+        : null;
   return (
     <div
       className={cn(
