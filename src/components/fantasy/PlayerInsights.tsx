@@ -89,10 +89,13 @@ export function PlayerInsightChips({
   player,
   week,
   showMatchup = true,
+  showForm = true,
 }: {
   player: SlimPlayer;
   week: number;
   showMatchup?: boolean;
+  /** Hide the averages chip when the page already shows those numbers. */
+  showForm?: boolean;
 }) {
   const data = useInsights();
   if (!data) return null;
@@ -100,7 +103,7 @@ export function PlayerInsightChips({
   const bye = isOnBye(data, player, week);
   const m = showMatchup ? matchupFor(data, player) : null;
   const trend = info ? info.last3Avg - info.seasonAvg : 0;
-  const hasForm = !!info && (info.games > 0 || info.last3.length > 0);
+  const hasForm = showForm && !!info && (info.games > 0 || info.last3.length > 0);
 
   if (!bye && !hasForm && !m) return null;
 

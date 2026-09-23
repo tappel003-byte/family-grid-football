@@ -60,7 +60,11 @@ export const getMarket = createServerFn({ method: "GET" }).handler(async (): Pro
       {
         accept: "application/json",
         "x-fantasy-filter": JSON.stringify({
-          players: { filterActive: { value: true }, limit: 2000 },
+          players: {
+            filterActive: { value: true },
+            limit: 4000,
+            sortPercOwned: { sortAsc: false, sortPriority: 1 },
+          },
         }),
       },
     ),

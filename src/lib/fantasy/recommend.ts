@@ -42,7 +42,10 @@ export function recommendFor(i: Input): Recommendation | null {
     return {
       level: "must",
       label: "Grab him",
-      reason: `Scoring ${i.last3Avg.toFixed(1)} a game lately and started in ${Math.round(started)}% of leagues.`,
+      reason:
+        started >= 40
+          ? `Scoring ${i.last3Avg.toFixed(1)} a game and started in ${Math.round(started)}% of leagues.`
+          : `Scoring ${i.last3Avg.toFixed(1)} a game over his last three — better than most benches.`,
     };
   }
   if (rising || hot || i.last3Avg >= 8) {
