@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { HelpCircle, LogOut, RefreshCw, Settings, UserRound, Wrench } from "lucide-react";
+import { HelpCircle, LogOut, RefreshCw, Settings, UserRound } from "lucide-react";
 import { useLeague } from "@/lib/fantasy/hooks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
