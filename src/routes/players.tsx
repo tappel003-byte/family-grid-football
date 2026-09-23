@@ -239,32 +239,91 @@ function PlayersPage() {
               ))}
               <Button
                 variant="secondary"
-                onClick={() =>
-                  setSort(sort === "PROJ" ? "HOT" : sort === "HOT" ? "RANK" : "PROJ")
-                }
+                onClick={() => {
+                  const i = SORTS.findIndex(([v]) => v === sort);
+                  setSort(SORTS[(i + 1) % SORTS.length]![0]);
+                }}
                 className="font-semibold"
               >
                 <ArrowUpDown className="mr-1.5 h-4 w-4" />
-                {sort === "PROJ" ? "Top projected" : sort === "HOT" ? "Hot last 3 weeks" : "Overall rank"}
+                {SORTS.find(([v]) => v === sort)?.[1]}
               </Button>
             </div>
           </div>
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <ul className="divide-y">
-              {results.map(({ player, owner, proj }) => (
+              {results.map(({ player, owner, proj, own, news, last3Avg, seasonAvg, rec }) => (
                 <li
                   key={player.id}
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
                 >
                   <div className="min-w-0">
                     <PlayerCell player={player} week={week} />
-                    <div className="mt-1 text-sm">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                       {owner ? (
                         <span className="text-muted-foreground">On {owner}</span>
                       ) : (
                         <span className="font-semibold text-accent-foreground">Free agent</span>
                       )}
+                      {own && (
+                        <>
+                          <span
+                            className="text-muted-foreground"
+                            title="Share of fantasy leagues across the country where this player is on a roster"
+                          >
+                            Rostered <b className="text-foreground tabular-nums">{own.owned}%</b>
+                          </span>
+                          <span
+                            className="text-muted-foreground"
+                            title="Share of leagues that have him in their starting lineup this week"
+                          >
+                            Started <b className="text-foreground tabular-nums">{own.started}%</b>
+                          </span>
+                          {own.change >= 1 && (
+                            <span className="font-semibold text-emerald-600">
+                              +{own.change}% this week
+                            </span>
+                          )}
+                        </>
+                      )}
+                      <span className="text-muted-foreground" title="Average points per game">
+                        Avg <b className="text-foreground tabular-nums">{seasonAvg.toFixed(1)}</b> ·
+                        last 3 <b className="text-foreground tabular-nums">{last3Avg.toFixed(1)}</b>
+                      </span>
                     </div>
+                    {rec && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
+                        <span
+                          className={cn(
+                            "rounded-md px-2 py-0.5 font-display text-xs font-bold uppercase tracking-wide",
+                            rec.level === "must" && "bg-emerald-600 text-white",
+                            rec.level === "good" && "bg-emerald-600/15 text-emerald-700",
+                            rec.level === "stream" && "bg-secondary text-secondary-foreground",
+                            rec.level === "pass" && "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {rec.label}
+                        </span>
+                        <span className="text-muted-foreground">{rec.reason}</span>
+                      </div>
+                    )}
+                    {news && (
+                      <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
+                        <Newspaper className="mt-0.5 h-4 w-4 shrink-0" />
+                        {news.link ? (
+                          <a
+                            href={news.link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline underline-offset-2 hover:text-foreground"
+                          >
+                            {news.headline}
+                          </a>
+                        ) : (
+                          news.headline
+                        )}
+                      </p>
+                    )}
                     <PlayerInsightChips player={player} week={week} />
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
