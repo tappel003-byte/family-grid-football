@@ -12,7 +12,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { WeekSelector } from "./WeekSelector";
 import { injuryInfo, isInactive } from "./PlayerCell";
-import { isOnBye, matchupFor } from "./PlayerInsights";
 import { useAuth } from "@/lib/auth";
 import { scoreFor, useLeague, useWeekData } from "@/lib/fantasy/hooks";
 import { insightsQueryOptions } from "@/lib/insights.functions";
