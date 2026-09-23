@@ -94,14 +94,21 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
 }
 
 const SORTS = [
-  ["PROJ", "Top projected"],
-  ["HOT", "Hot last 3 weeks"],
-  ["OWNED", "Most rostered"],
-  ["STARTED", "Most started"],
+  ["PROJ", "Projection"],
+  ["HOT", "Last 3 avg"],
+  ["AVG", "Season avg"],
+  ["OWNED", "Rostered %"],
+  ["STARTED", "Started %"],
+  ["RISING", "Rising %"],
+  ["ADDS", "Trending adds"],
+  ["DROPS", "Trending drops"],
+  ["PICKUP", "Best pickup"],
   ["RANK", "Overall rank"],
 ] as const;
 
 type SortKey = (typeof SORTS)[number][0];
+
+const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass: 1 };
 
 function PlayersPage() {
   const { league, players, byId } = useLeague();
