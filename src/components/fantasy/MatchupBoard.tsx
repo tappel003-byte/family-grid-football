@@ -63,7 +63,7 @@ function StatusBox({
 }) {
   const live = teamLiveStatus(team, week, byId);
   const rows: Array<[string, string]> = [
-    ["Currently playing", String(live.playing)],
+    ["Playing now", String(live.playing)],
     ["Yet to play", String(live.yetToPlay)],
     ["Proj total", projected.toFixed(1)],
     ["Mins left", String(live.minutesLeft)],
