@@ -192,11 +192,11 @@ export function MatchupBoard({
   const h = teamTotals(home, week, league, byId);
   const a = teamTotals(away, week, league, byId);
 
-  const inactiveNames = [home, away].flatMap((team) =>
+  const inactivePlayers = [home, away].flatMap((team) =>
     team.starters
       .map((id) => (id ? byId.get(id) : undefined))
       .filter((p): p is SlimPlayer => !!p && isInactive(p.injury))
-      .map((p) => `${p.name} (${team.name})`),
+      .map((p) => ({ team, player: p })),
   );
 
   return (
@@ -243,7 +243,7 @@ export function MatchupBoard({
         </Link>
       </header>
 
-      {inactiveNames.length > 0 && (
+      {inactivePlayers.length > 0 && (
         <div
           role="alert"
           className="flex items-start gap-3 border-b-2 border-injury-out bg-injury-out/15 px-4 py-3"
@@ -251,7 +251,19 @@ export function MatchupBoard({
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-injury-out" />
           <p className="text-base font-semibold leading-snug">
             <span className="text-injury-out">Inactive players in starting slots:</span>{" "}
-            {inactiveNames.join(", ")}
+            {inactivePlayers.map(({ team, player }, i) => (
+              <span key={player.id}>
+                {i > 0 && ", "}
+                <Link
+                  to="/team/$teamId"
+                  params={{ teamId: team.id }}
+                  className="underline decoration-2 underline-offset-2 hover:text-injury-out"
+                  aria-label={`Open ${team.name} roster to replace ${player.name}`}
+                >
+                  {player.name} ({team.name})
+                </Link>
+              </span>
+            ))}
           </p>
         </div>
       )}
