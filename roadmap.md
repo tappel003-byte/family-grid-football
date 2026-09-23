@@ -11,12 +11,12 @@
 9. [x] Lineup ownership — only each team's signed-in owner can change that lineup
 
 - [x] Player Research screen: mobile-first compact rows (no headshots on phones), scrollable sort chips; desktop unchanged
-- [ ] Decide: should IR moves require commissioner approval? (owner-managed for now)
+- [x] IR moves remain owner-managed; commissioners retain override controls
 
 10. [x] League settings match ESPN — lineups lock at each game's kickoff, waivers with a claim day, order resets to inverse standings, trade deadline
 11. [x] Players screen: rostered %, started %, weekly rostered change, season + last-3 averages, projections, plain-language pickup advice, latest player headline, new sorts
-12. [ ] Weekly matchup recap
-13. [ ] Personal player watchlist
-14. [ ] Trade block
-15. [ ] Trophy case on profiles
-16. [ ] Complete league activity feed, including lineup changes
+12. [x] Weekly matchup recap
+13. [x] Personal player watchlist
+14. [x] Trade block
+15. [x] Trophy case on profiles
+16. [x] Complete league activity feed, including lineup changes

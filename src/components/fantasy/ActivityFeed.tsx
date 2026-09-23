@@ -28,11 +28,18 @@ function when(iso: string) {
     d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
-/** Every add and drop in the league, newest first. */
-export function ActivityFeed() {
+function activityText(m: Move) {
+  if (m.kind === "lineup") return `${m.team_name} changed its starting lineup`;
+  if (m.kind === "trade_block_add") return `${m.team_name} made ${m.added_player_name} available for trade`;
+  if (m.kind === "trade_block_remove") return `${m.team_name} removed ${m.dropped_player_name} from the trade block`;
+  return null;
+}
+
+/** Every roster and lineup move in the league, newest first. */
+export function ActivityFeed({ limit = 50 }: { limit?: number }) {
   const { data, isLoading } = useQuery({
     queryKey: ["transactions"],
-    queryFn: fetchMoves,
+    queryFn: async () => (await fetchMoves()).slice(0, limit),
     refetchInterval: 1000 * 60,
   });
 
@@ -45,18 +52,16 @@ export function ActivityFeed() {
       {data.map((m) => (
         <li key={m.id} className="px-4 py-3">
           <p className="text-base font-semibold">
-            {m.team_name}
-            {m.added_player_name && (
+            {activityText(m) ?? (
               <>
-                {" added "}
-                <span className="text-green-700 dark:text-green-400">{m.added_player_name}</span>
-              </>
-            )}
-            {m.added_player_name && m.dropped_player_name && " and"}
-            {m.dropped_player_name && (
-              <>
-                {" dropped "}
-                <span className="text-red-700 dark:text-red-400">{m.dropped_player_name}</span>
+                {m.team_name}
+                {m.added_player_name && (
+                  <>{" added "}<span className="text-green-700 dark:text-green-400">{m.added_player_name}</span></>
+                )}
+                {m.added_player_name && m.dropped_player_name && " and"}
+                {m.dropped_player_name && (
+                  <>{" dropped "}<span className="text-red-700 dark:text-red-400">{m.dropped_player_name}</span></>
+                )}
               </>
             )}
           </p>

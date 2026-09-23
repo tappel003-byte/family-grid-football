@@ -130,6 +130,21 @@ export const saveLeague = createServerFn({ method: "POST" })
         })
         .eq("id", myTeam.id);
       if (error) throw new Error(error.message);
+      const changedLineup = JSON.stringify(myTeam.starters ?? []) !== JSON.stringify(mine.starters);
+      if (changedLineup) {
+        const { data: profile } = await supabaseAdmin.from("profiles").select("display_name").eq("id", context.userId).maybeSingle();
+        await supabaseAdmin.from("transactions").insert({
+          league_id: leagueId,
+          team_slot: myTeam.slot,
+          team_name: mine.name,
+          kind: "lineup",
+          added_player_name: "",
+          dropped_player_name: "",
+          actor_id: context.userId,
+          actor_name: profile?.display_name ?? mine.owner,
+          week: data.currentWeek,
+        });
+      }
       return { ok: true, scope: "team" as const };
     }
 
