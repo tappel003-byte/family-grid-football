@@ -20,8 +20,6 @@ function saveSessionBackup(session: Session | null) {
   if (!canUseStorage()) return;
   if (session && keepSignedIn()) {
     window.localStorage.setItem(SESSION_BACKUP_KEY, JSON.stringify(session));
-  } else if (!session) {
-    window.localStorage.removeItem(SESSION_BACKUP_KEY);
   }
 }
 
@@ -66,9 +64,13 @@ export function useSession() {
 
   useEffect(() => {
     let active = true;
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       cachedSession = next;
-      saveSessionBackup(next);
+      if (event === "SIGNED_OUT") {
+        if (canUseStorage()) window.localStorage.removeItem(SESSION_BACKUP_KEY);
+      } else {
+        saveSessionBackup(next);
+      }
       if (!active) return;
       setSession(next);
       setLoading(false);
