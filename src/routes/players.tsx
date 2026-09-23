@@ -535,11 +535,11 @@ function PlayersPage() {
                             <PlayerInsightChips player={player} week={week} showForm={false} />
                           </div>
                         )}
-                        <div className="mt-2 flex items-center gap-2">
+                        <div className="mt-1.5 flex items-center gap-1.5 [&_button]:h-7 [&_button]:px-2 [&_button]:text-xs">
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-8 px-2 text-xs font-semibold"
+                            className="h-7 px-1.5 text-xs font-semibold"
                             aria-expanded={open}
                             onClick={() => toggleExpanded(player.id)}
                           >
