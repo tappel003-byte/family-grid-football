@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as ChatRouteImport } from './routes/chat'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as MyTeamRouteImport } from './routes/my-team'
@@ -37,6 +38,11 @@ const AccountRoute = AccountRouteImport.update({
 const ActivityRoute = ActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/activity': typeof ActivityRoute
+  '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
   '/import': typeof ImportRoute
   '/my-team': typeof MyTeamRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/activity': typeof ActivityRoute
+  '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
   '/import': typeof ImportRoute
   '/my-team': typeof MyTeamRoute
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/activity': typeof ActivityRoute
+  '/chat': typeof ChatRoute
   '/history': typeof HistoryRoute
   '/import': typeof ImportRoute
   '/my-team': typeof MyTeamRoute
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/activity'
+    | '/chat'
     | '/history'
     | '/import'
     | '/my-team'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/activity'
+    | '/chat'
     | '/history'
     | '/import'
     | '/my-team'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/activity'
+    | '/chat'
     | '/history'
     | '/import'
     | '/my-team'
@@ -199,6 +211,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   ActivityRoute: typeof ActivityRoute
+  ChatRoute: typeof ChatRoute
   HistoryRoute: typeof HistoryRoute
   ImportRoute: typeof ImportRoute
   MyTeamRoute: typeof MyTeamRoute
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       path: '/activity'
       fullPath: '/activity'
       preLoaderRoute: typeof ActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -319,6 +339,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   ActivityRoute: ActivityRoute,
+  ChatRoute: ChatRoute,
   HistoryRoute: HistoryRoute,
   ImportRoute: ImportRoute,
   MyTeamRoute: MyTeamRoute,
