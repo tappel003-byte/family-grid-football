@@ -737,6 +737,36 @@ function SettingsPage() {
 
         <details className="group rounded-lg border bg-card shadow-sm">
           <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
+            Fix a team <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="border-t px-5 pb-5">
+            <p className="mt-5 text-base text-muted-foreground">
+              Open a family member's team to rearrange their lineup, bench or IR players for them.
+              Changes you make show up in the League Activity feed.
+            </p>
+            <ul className="mt-3 divide-y rounded-xl border">
+              {league.teams.map((team) => (
+                <li key={team.id} className="flex items-center gap-3 p-3">
+                  <TeamCrest team={team} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-base font-semibold">{team.name}</span>
+                    <span className="block truncate text-sm text-muted-foreground">
+                      {team.owner || "Nobody yet"}
+                    </span>
+                  </span>
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/team/$teamId" params={{ teamId: team.id }}>
+                      Open team
+                    </Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </details>
+
+        <details className="group rounded-lg border bg-card shadow-sm">
+          <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
             Season tools <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
           </summary>
           <div className="border-t px-5 pb-5">
