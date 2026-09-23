@@ -251,49 +251,55 @@ export function MatchupBoard({
 
   return (
     <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b bg-secondary/60 p-4 sm:p-5">
-        <Link
-          to="/team/$teamId"
-          params={{ teamId: home.id }}
-          className="flex min-w-0 items-center gap-3 hover:opacity-80"
-        >
-          <TeamCrest team={home} size="lg" />
-          <div className="min-w-0">
-            <div className="truncate font-display text-lg font-bold sm:text-xl">{home.name}</div>
-            <div className="truncate text-sm text-muted-foreground">{home.owner}</div>
-            <div className="mt-1 font-display text-sm font-bold text-primary">Projected {h.projected.toFixed(1)}</div>
-          </div>
-        </Link>
-        <div className="flex flex-col items-center text-center">
-          <div className="mb-1 rounded-md border bg-card px-2.5 py-1 font-display text-sm font-bold uppercase tracking-wider text-foreground shadow-sm">
-            Week {week}
-          </div>
-          <div className="font-display text-3xl font-bold tabular-nums sm:text-5xl">
-            {h.actual.toFixed(1)}
-            <span className="mx-2 text-muted-foreground">–</span>
-            {a.actual.toFixed(1)}
-          </div>
-          {(h.corrected || a.corrected) && (
-            <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">
-              Final score set by the commissioner
+      <header className="border-b bg-secondary/60 p-4 sm:p-5">
+        <div className="grid grid-cols-2 items-start gap-x-3 gap-y-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3">
+          <Link
+            to="/team/$teamId"
+            params={{ teamId: home.id }}
+            className="order-1 flex min-w-0 flex-col items-center gap-2 text-center md:flex-row md:gap-3 md:text-left"
+          >
+            <TeamCrest team={home} size="lg" />
+            <div className="min-w-0">
+              <div className="text-balance font-display text-base font-bold leading-tight sm:text-lg md:truncate md:text-xl">
+                {home.name}
+              </div>
+              <div className="truncate text-sm text-muted-foreground">{home.owner}</div>
+              <div className="mt-1 font-display text-sm font-bold text-primary">Projected {h.projected.toFixed(1)}</div>
             </div>
-          )}
-        </div>
-        <Link
-          to="/team/$teamId"
-          params={{ teamId: away.id }}
-          className="flex min-w-0 flex-row-reverse items-center gap-3 text-right hover:opacity-80"
-        >
-          <TeamCrest team={away} size="lg" />
-          <div className="min-w-0">
-            <div className="truncate font-display text-lg font-bold sm:text-xl">{away.name}</div>
-            <div className="truncate text-sm text-muted-foreground">{away.owner}</div>
-            <div className="mt-1 font-display text-sm font-bold text-primary">Projected {a.projected.toFixed(1)}</div>
+          </Link>
+          <div className="order-3 col-span-2 flex flex-col items-center text-center md:order-2 md:col-span-1">
+            <div className="mb-1 rounded-md border bg-card px-2.5 py-1 font-display text-sm font-bold uppercase tracking-wider text-foreground shadow-sm">
+              Week {week}
+            </div>
+            <div className="font-display text-3xl font-bold tabular-nums sm:text-5xl">
+              {h.actual.toFixed(1)}
+              <span className="mx-2 text-muted-foreground">–</span>
+              {a.actual.toFixed(1)}
+            </div>
+            {(h.corrected || a.corrected) && (
+              <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                Final score set by the commissioner
+              </div>
+            )}
           </div>
-        </Link>
-        <div className="col-span-3 grid grid-cols-2 gap-3 border-t pt-3 sm:gap-6">
-          <StatusBox team={home} week={week} byId={byId} projected={h.projected} />
-          <StatusBox team={away} week={week} byId={byId} projected={a.projected} align="right" />
+          <Link
+            to="/team/$teamId"
+            params={{ teamId: away.id }}
+            className="order-2 flex min-w-0 flex-col items-center gap-2 text-center md:order-3 md:flex-row-reverse md:gap-3 md:text-right"
+          >
+            <TeamCrest team={away} size="lg" />
+            <div className="min-w-0">
+              <div className="text-balance font-display text-base font-bold leading-tight sm:text-lg md:truncate md:text-xl">
+                {away.name}
+              </div>
+              <div className="truncate text-sm text-muted-foreground">{away.owner}</div>
+              <div className="mt-1 font-display text-sm font-bold text-primary">Projected {a.projected.toFixed(1)}</div>
+            </div>
+          </Link>
+          <div className="order-4 col-span-2 grid grid-cols-2 gap-3 border-t pt-3 sm:gap-6 md:col-span-3">
+            <StatusBox team={home} week={week} byId={byId} projected={h.projected} />
+            <StatusBox team={away} week={week} byId={byId} projected={a.projected} align="right" />
+          </div>
         </div>
       </header>
 
