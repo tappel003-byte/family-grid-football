@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import { getPlayers, getTrending, type SlimPlayer } from "../sleeper.functions";
 import { buildLeague, type League } from "./league";
 import { hydrateLeague, leagueStatus, setLeague, useLeagueStore } from "./store";
-import { getWeekData, type WeekData } from "../nfl.functions";
+import { enrichWeekDataInBrowser, getWeekData, type WeekData } from "../nfl.functions";
 import { getMarket } from "../market.functions";
 import { scoreStats, ZERO_STATS, type StatLine } from "./scoring";
 
@@ -16,10 +16,13 @@ export const weekDataQueryOptions = (week: number) =>
   queryOptions({
     // Version this key whenever WeekData gains display fields. Otherwise the
     // long-lived preview can keep an older object that lacks those fields.
-    queryKey: ["nfl-week-v2", week],
-    queryFn: () => getWeekData({ data: { week } }),
+    queryKey: ["nfl-week-v3", week],
+    queryFn: async () => enrichWeekDataInBrowser(await getWeekData({ data: { week } })),
     staleTime: 1000 * 60 * 2,
     refetchInterval: 1000 * 60 * 2,
+    // Re-run in the browser so the public scoreboard can fill any fields the
+    // hosted server's response omitted during rendering.
+    refetchOnMount: "always",
   });
 
 /** Loads the real stats, projections and game status for a week. */
