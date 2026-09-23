@@ -1,4 +1,5 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { X } from "lucide-react";
 import { Suspense, useState } from "react";
 import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { RosterTable } from "@/components/fantasy/RosterTable";
@@ -74,9 +75,17 @@ function TeamPage() {
         <WeekSelector week={activeWeek} onChange={setWeek} />
       </div>
       {commishMode && (
-        <p className="mb-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-base font-semibold">
-          Commissioner mode: you are editing {team.owner ? `${team.owner}'s` : "this"} team. Changes show up in League Activity.
-        </p>
+        <div className="mb-3 flex items-center gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3">
+          <p className="min-w-0 flex-1 text-base font-semibold">
+            Commissioner mode: you are editing {team.owner ? `${team.owner}'s` : "this"} team. Changes show up in League Activity.
+          </p>
+          <Link
+            to="/settings"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          >
+            <X className="h-4 w-4" /> Close commissioner mode
+          </Link>
+        </div>
       )}
       {!canEdit && (
         <p className="mb-3 rounded-xl border bg-secondary/50 px-4 py-3 text-base text-muted-foreground">
