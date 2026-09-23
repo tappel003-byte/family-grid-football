@@ -52,6 +52,11 @@ async function isCommissioner(context: { supabase: any; userId: string }) {
   return data === true;
 }
 
+function samePlayers(a: Array<string | null>, b: Array<string | null>) {
+  const normalized = (ids: Array<string | null>) => ids.filter((id): id is string => !!id).sort();
+  return JSON.stringify(normalized(a)) === JSON.stringify(normalized(b));
+}
+
 /**
  * Saves the league. Commissioners may change everything; everyone else may only
  * change the lineup of the team they own.
@@ -75,13 +80,24 @@ export const saveLeague = createServerFn({ method: "POST" })
       if (!leagueId) throw new Error("Only the commissioner can create the league.");
       const { data: myTeam } = await supabaseAdmin
         .from("teams")
-        .select("id, slot")
+        .select("id, slot, starters, bench, ir")
         .eq("league_id", leagueId)
         .eq("user_id", context.userId)
         .maybeSingle();
       if (!myTeam) throw new Error("You do not have a team in this league yet.");
       const mine = data.teams.find((t) => t.slot === myTeam.slot);
       if (!mine) throw new Error("Your team was not part of this change.");
+      const beforeActive = [
+        ...(((myTeam.starters as Array<string | null>) ?? [])),
+        ...(((myTeam.bench as string[]) ?? [])),
+      ];
+      const afterActive = [...mine.starters, ...mine.bench];
+      if (!samePlayers(beforeActive, afterActive)) {
+        throw new Error("A lineup change may only rearrange players already on your active roster.");
+      }
+      if (!samePlayers(((myTeam.ir as string[]) ?? []), mine.ir ?? [])) {
+        throw new Error("Use the injured-reserve control to change IR.");
+      }
       const { error } = await supabaseAdmin
         .from("teams")
         .update({
@@ -125,19 +141,32 @@ export const saveLeague = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    const rows = data.teams.map((t) => ({
-      league_id: leagueId!,
+    if (!leagueId) throw new Error("The league could not be saved.");
+
+    const { data: currentTeams, error: currentTeamsError } = await supabaseAdmin
+      .from("teams")
+      .select("slot, user_id, starters, bench, ir")
+      .eq("league_id", leagueId);
+    if (currentTeamsError) throw new Error(currentTeamsError.message);
+    const currentBySlot = new Map((currentTeams ?? []).map((team) => [team.slot, team]));
+
+    const rows = data.teams.map((t) => {
+      const current = currentBySlot.get(t.slot);
+      const maySetRoster = !current || current.user_id === context.userId;
+      return {
+      league_id: leagueId,
       slot: t.slot,
       name: t.name,
       owner: t.owner,
       color: t.color,
-      starters: t.starters,
-      bench: t.bench,
-      ir: t.ir ?? [],
+      starters: maySetRoster ? t.starters : current.starters,
+      bench: maySetRoster ? t.bench : current.bench,
+      ir: maySetRoster ? (t.ir ?? []) : current.ir,
       user_id: t.userId ?? null,
       division: t.division ?? "",
       updated_at: new Date().toISOString(),
-    }));
+    };
+    });
 
     const { error: upsertError } = await supabaseAdmin
       .from("teams")

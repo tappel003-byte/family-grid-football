@@ -7,7 +7,7 @@ export type IrInput = {
   playerName: string;
   /** true = park them on injured reserve, false = bring them back to the bench. */
   toIR: boolean;
-  /** Commissioners may act for another team. */
+  /** Legacy input; ownership is always derived from the signed-in account. */
   slot?: number | null;
 };
 
@@ -17,12 +17,6 @@ export const setInjuredReserve = createServerFn({ method: "POST" })
   .inputValidator((data: IrInput) => data)
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: commishFlag } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "commissioner",
-    });
-    const isCommissioner = commishFlag === true;
 
     const { data: leagueRow } = await supabaseAdmin
       .from("league")
@@ -41,10 +35,7 @@ export const setInjuredReserve = createServerFn({ method: "POST" })
     if (teamsError) throw new Error(teamsError.message);
     const teams = teamRows ?? [];
 
-    const target =
-      isCommissioner && data.slot != null
-        ? teams.find((t) => t.slot === data.slot)
-        : teams.find((t) => t.user_id === context.userId);
+    const target = teams.find((t) => t.user_id === context.userId);
     if (!target) throw new Error("You do not have a team in this league yet.");
 
     const starters = ((target.starters as Array<string | null>) ?? []).slice();
