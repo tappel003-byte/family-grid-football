@@ -30,6 +30,7 @@ import { AlertTriangle, CalendarOff } from "lucide-react";
 import { isPlayerLocked } from "@/lib/fantasy/locks";
 import { Lock } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
+import { ChipLegend } from "./AppShell";
 import { TradeAvailableBadge, TradeFlagToggle, useTeamTradeBlock } from "./TradeFlag";
 import { PlayerInsightChips, useInsights, isOnBye } from "./PlayerInsights";
 import { cn } from "@/lib/utils";
@@ -237,9 +238,12 @@ export function RosterTable({
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b bg-secondary/60 px-4 py-3 sm:flex sm:justify-between">
         <h2 className="truncate font-display text-xl font-bold">Starting Lineup</h2>
         {editable && (
-          <Button onClick={optimize} className="shrink-0 text-base font-semibold">
-            <Wand2 className="mr-2 h-4 w-4" /> Optimize Lineup
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <ChipLegend />
+            <Button onClick={optimize} className="shrink-0 text-base font-semibold">
+              <Wand2 className="mr-2 h-4 w-4" /> Optimize Lineup
+            </Button>
+          </div>
         )}
       </div>
 
