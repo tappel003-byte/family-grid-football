@@ -85,13 +85,23 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
   );
 }
 
+const SORTS = [
+  ["PROJ", "Top projected"],
+  ["HOT", "Hot last 3 weeks"],
+  ["OWNED", "Most rostered"],
+  ["STARTED", "Most started"],
+  ["RANK", "Overall rank"],
+] as const;
+
+type SortKey = (typeof SORTS)[number][0];
+
 function PlayersPage() {
   const { league, players, byId } = useLeague();
   const { f } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [pos, setPos] = useState("ALL");
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
-  const [sort, setSort] = useState<"PROJ" | "RANK" | "HOT">("PROJ");
+  const [sort, setSort] = useState<SortKey>("PROJ");
 
   const week = league?.currentWeek ?? 1;
   useWeekData(week);
@@ -99,6 +109,10 @@ function PlayersPage() {
     ...insightsQueryOptions(week, league?.scoring ?? STANDARD_SCORING),
     enabled: !!league,
   });
+  const { data: market } = useQuery(marketQueryOptions);
+  const { data: adds } = useQuery(trendingQueryOptions("add"));
+
+  const addsById = useMemo(() => new Map((adds ?? []).map((a) => [a.id, a.count])), [adds]);
 
   const ownerByPlayer = useMemo(() => {
     const map = new Map<string, string>();
@@ -115,17 +129,49 @@ function PlayersPage() {
         const owned = ownerByPlayer.has(p.id);
         return avail === "FA" ? !owned : owned;
       })
-      .map((p) => ({
-        player: p,
-        owner: ownerByPlayer.get(p.id) ?? null,
-        proj: league ? scoreFor(p, week, league).projected : 0,
-        hot: insights?.players[p.id]?.last3Avg ?? 0,
-      }));
-    list.sort((a, b) =>
-      sort === "PROJ" ? b.proj - a.proj : sort === "HOT" ? b.hot - a.hot : a.player.rank - b.player.rank,
-    );
+      .map((p) => {
+        const info = insights?.players[p.id];
+        const own = market?.ownership[p.id] ?? null;
+        const proj = league ? scoreFor(p, week, league).projected : 0;
+        const free = !ownerByPlayer.has(p.id);
+        return {
+          player: p,
+          owner: ownerByPlayer.get(p.id) ?? null,
+          proj,
+          own,
+          news: market?.news[p.id] ?? null,
+          last3Avg: info?.last3Avg ?? 0,
+          seasonAvg: info?.seasonAvg ?? 0,
+          hot: info?.last3Avg ?? 0,
+          rec: recommendFor({
+            free,
+            own,
+            last3Avg: info?.last3Avg ?? 0,
+            seasonAvg: info?.seasonAvg ?? 0,
+            projected: proj,
+            onBye: isOnBye(insights ?? null, p, week),
+            injury: p.injury,
+            matchup: matchupFor(insights ?? null, p)?.grade?.grade ?? null,
+            trendingAdds: addsById.get(p.id) ?? 0,
+          }),
+        };
+      });
+    list.sort((a, b) => {
+      switch (sort) {
+        case "PROJ":
+          return b.proj - a.proj;
+        case "HOT":
+          return b.hot - a.hot;
+        case "OWNED":
+          return (b.own?.owned ?? -1) - (a.own?.owned ?? -1);
+        case "STARTED":
+          return (b.own?.started ?? -1) - (a.own?.started ?? -1);
+        default:
+          return a.player.rank - b.player.rank;
+      }
+    });
     return list.slice(0, 100);
-  }, [players, query, pos, avail, sort, ownerByPlayer, league, week, insights]);
+  }, [players, query, pos, avail, sort, ownerByPlayer, league, week, insights, market, addsById]);
 
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
