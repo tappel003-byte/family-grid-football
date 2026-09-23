@@ -336,6 +336,7 @@ function PlayersPage() {
     pos,
     avail,
     sort,
+    dir,
     ownerByPlayer,
     league,
     week,
