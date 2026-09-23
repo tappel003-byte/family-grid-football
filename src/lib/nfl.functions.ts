@@ -143,10 +143,15 @@ function scoreboardGames(scoreboard: Scoreboard): Record<string, GameInfo> {
           : "Scheduled";
     const network = event.competitions?.[0]?.broadcasts?.[0]?.names?.[0];
     const secondsLeft = secondsLeftFor(status, period, Number(event.status?.clock ?? 0));
+    const possession = event.competitions?.[0]?.situation?.possession;
     for (const competitor of event.competitions?.[0]?.competitors ?? []) {
       const abbreviation = competitor.team?.abbreviation;
       if (abbreviation) {
-        const info: GameInfo = { status, label, secondsLeft };
+        const hasBall =
+          status === "live" &&
+          !!possession &&
+          (possession === competitor.id || possession === competitor.team?.id);
+        const info: GameInfo = { status, label, secondsLeft, hasBall };
         if (startsAt) info.startsAt = startsAt;
         if (network) info.network = network;
         games[abbreviation === "WSH" ? "WAS" : abbreviation] = info;
