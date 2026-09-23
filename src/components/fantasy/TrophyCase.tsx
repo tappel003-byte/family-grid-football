@@ -6,10 +6,10 @@ type Standing = { place: number; team: string; owner: string; record?: string };
 
 const ordinal = (place: number) => (place === 1 ? "Champion" : place === 2 ? "Runner-up" : place === 3 ? "3rd place" : `${place}th place`);
 
-export function TrophyCase({ owner }: { owner: string }) {
+export function TrophyCase({ owner, teamName }: { owner: string; teamName?: string }) {
   const { data = [] } = useQuery({
-    queryKey: ["trophy-case", owner],
-    enabled: Boolean(owner),
+    queryKey: ["trophy-case", owner, teamName],
+    enabled: Boolean(owner || teamName),
     queryFn: async () => {
       const [{ data: teams }, { data: rows, error }] = await Promise.all([
         supabase.from("teams").select("name, owner"),
@@ -19,6 +19,7 @@ export function TrophyCase({ owner }: { owner: string }) {
       const norm = (value?: string | null) => (value ?? "").trim().toLowerCase();
       const me = norm(owner);
       const myTeams = new Set((teams ?? []).filter((t) => norm(t.owner) === me).map((t) => norm(t.name)));
+      if (teamName) myTeams.add(norm(teamName));
       const mine = (team?: string | null, teamOwner?: string | null) => (teamOwner ? norm(teamOwner) === me : false) || myTeams.has(norm(team));
       return (rows ?? []).flatMap((row) => {
         const standing = ((row.standings as Standing[]) ?? []).find((s) => mine(s.team, s.owner) && s.place <= 3);

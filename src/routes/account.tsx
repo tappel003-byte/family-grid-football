@@ -194,7 +194,7 @@ function AccountPage() {
             </div>
           </div>
         </section>
-        <TrophyCase owner={data.displayName} />
+        <TrophyCase owner={data.displayName} teamName={data.team?.name} />
       </div>
     </>
   );
