@@ -329,10 +329,21 @@ export const removeMember = createServerFn({ method: "POST" })
     if (data.userId === context.userId) throw new Error("You cannot remove your own account.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    await supabaseAdmin.from("teams").update({ user_id: null }).eq("user_id", data.userId);
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
-    await supabaseAdmin.from("profiles").delete().eq("id", data.userId);
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
-    if (error) throw new Error(error.message);
+    const cleanups = await Promise.all([
+      supabaseAdmin.from("teams").update({ user_id: null }).eq("user_id", data.userId),
+      supabaseAdmin.from("player_watchlist").delete().eq("user_id", data.userId),
+      supabaseAdmin.from("trade_block").delete().eq("user_id", data.userId),
+      supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId),
+    ]);
+    const cleanupError = cleanups.find((result) => result.error)?.error;
+    if (cleanupError) throw new Error(cleanupError.message);
+
+    const { error: profileError } = await supabaseAdmin.from("profiles").delete().eq("id", data.userId);
+    if (profileError) throw new Error(profileError.message);
+
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (authError && !authError.message.toLowerCase().includes("user not found")) {
+      throw new Error(authError.message);
+    }
     return { ok: true };
   });
