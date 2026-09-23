@@ -159,6 +159,19 @@ function PlayersPage() {
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
   const [watchedOnly, setWatchedOnly] = useState(false);
   const [sort, setSort] = useState<SortKey>("PROJ");
+  const [sortOpen, setSortOpen] = useState(false);
+
+  // Close the sort menu as soon as the user starts scrolling the list.
+  useEffect(() => {
+    if (!sortOpen) return;
+    const close = () => setSortOpen(false);
+    window.addEventListener("scroll", close, { passive: true, capture: true });
+    window.addEventListener("touchmove", close, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", close, { capture: true });
+      window.removeEventListener("touchmove", close);
+    };
+  }, [sortOpen]);
 
   const week = league?.currentWeek ?? 1;
   useWeekData(week);
