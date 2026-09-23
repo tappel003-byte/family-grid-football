@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { Scoring } from "./fantasy/scoring";
+import { scoreStats, type Scoring } from "./fantasy/scoring";
+import { rawToStatLine } from "./fantasy/stat-line";
 import {
   loadPlayerMeta,
   loadSchedule,
@@ -42,24 +43,9 @@ export type InsightsData = {
   players: Record<string, PlayerInsight>;
 };
 
-function scoreRaw(raw: Record<string, number> | undefined, s: Scoring): number {
-  if (!raw) return 0;
-  const total =
-    (raw["pass_yd"] ?? 0) * s.passYd +
-    (raw["pass_td"] ?? 0) * s.passTd +
-    (raw["pass_int"] ?? 0) * s.interception +
-    (raw["rush_yd"] ?? 0) * s.rushYd +
-    (raw["rush_td"] ?? 0) * s.rushTd +
-    (raw["rec"] ?? 0) * s.reception +
-    (raw["rec_yd"] ?? 0) * s.recYd +
-    (raw["rec_td"] ?? 0) * s.recTd +
-    (raw["fum_lost"] ?? 0) * s.fumble +
-    (raw["fgm"] ?? 0) * s.fgMade +
-    (raw["xpm"] ?? 0) * s.xpMade +
-    (raw["sack"] ?? 0) * s.defSack +
-    (raw["int"] ?? 0) * s.defInt +
-    ((raw["def_td"] ?? 0) + (raw["def_st_td"] ?? 0)) * s.defTd;
-  return Math.round(total * 100) / 100;
+function scoreRaw(raw: Record<string, number> | undefined, scoring: Scoring): number {
+  const line = rawToStatLine(raw);
+  return line ? scoreStats(line, scoring) : 0;
 }
 
 export const getInsights = createServerFn({ method: "GET" })
@@ -125,9 +111,10 @@ export const getInsights = createServerFn({ method: "GET" })
       let snapDen = 0;
       recentRaw.forEach((raw, i) => {
         const line = raw[id];
-        const pts = scoreRaw(line, data.scoring);
-        last3.push(pts);
         if (line) {
+          const gamesPlayed = Number(line["gp"] ?? 1);
+          const points = scoreRaw(line, data.scoring);
+          if (gamesPlayed > 0) last3.push(points);
           targets += line["rec_tgt"] ?? 0;
           snapNum += line["off_snp"] ?? 0;
           snapDen += line["tm_off_snp"] ?? 0;
@@ -136,7 +123,7 @@ export const getInsights = createServerFn({ method: "GET" })
           const opp = opponentByWeek.get(`${week}-${m.team}`);
           if (opp && m.pos !== "DEF" && m.pos !== "K") {
             allowed[m.pos] ??= {};
-            allowed[m.pos]![opp] = (allowed[m.pos]![opp] ?? 0) + pts;
+            allowed[m.pos]![opp] = (allowed[m.pos]![opp] ?? 0) + points;
           }
         }
       });

@@ -189,7 +189,7 @@ function Side({
       <div className={cn("shrink-0", align === "right" ? "text-left" : "text-right")}>
         <div className="font-display text-2xl font-bold tabular-nums">{s.actual.toFixed(1)}</div>
         <div className="text-xs text-muted-foreground">
-          proj {s.projected.toFixed(1)}{s.status === "Scheduled" ? "" : ` · ${s.status}`}
+          proj {s.projected.toFixed(1)}
         </div>
       </div>
     </div>
@@ -219,7 +219,7 @@ function MobileSide({
       <div className="mt-2 border-t border-border/70 pt-2">
         <div className="font-display text-2xl font-bold tabular-nums">{score.actual.toFixed(1)}</div>
         <div className="text-xs font-medium text-muted-foreground">
-          Projected {score.projected.toFixed(1)}{score.status === "Scheduled" ? "" : ` · ${score.status}`}
+          Projected {score.projected.toFixed(1)}
         </div>
       </div>
     </div>

@@ -16,7 +16,7 @@ export const weekDataQueryOptions = (week: number) =>
   queryOptions({
     // Version this key whenever WeekData gains display fields. Otherwise the
     // long-lived preview can keep an older object that lacks those fields.
-    queryKey: ["nfl-week-v3", week],
+    queryKey: ["nfl-week-v4", week],
     queryFn: async () => enrichWeekDataInBrowser(await getWeekData({ data: { week } })),
     staleTime: 1000 * 60 * 2,
     refetchInterval: 1000 * 60 * 2,

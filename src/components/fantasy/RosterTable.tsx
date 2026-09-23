@@ -317,7 +317,7 @@ export function RosterTable({
                   )}
                 </td>
                 <td className="block px-4 text-sm text-muted-foreground md:table-cell md:py-3">
-                  {s?.status ?? "—"}
+                  {player ? "" : "—"}
                 </td>
                 <td className="hidden px-4 py-3 text-right text-lg tabular-nums md:table-cell">
                   {s ? s.projected.toFixed(1) : "—"}

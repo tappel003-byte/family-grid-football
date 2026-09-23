@@ -402,7 +402,7 @@ function PlayersPage() {
                 [
                   ["OWNED", "%Rost"],
                   ["STARTED", "%Start"],
-                  ["PROJ", "Proj"],
+                  [sort === "PTS" ? "PTS" : "PROJ", sort === "PTS" ? "Pts" : "Proj"],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -440,7 +440,7 @@ function PlayersPage() {
                       <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
                         {[
                           last3Avg > 0 ? `Last 3 ${last3Avg.toFixed(1)}` : null,
-                          seasonPts > 0 ? `${seasonPts.toFixed(1)} pts on the season` : null,
+                          seasonPts > 0 ? `Season points ${seasonPts.toFixed(1)}` : null,
                           adds > 0 ? `${adds.toLocaleString()} adds` : null,
                           drops > 0 ? `${drops.toLocaleString()} drops` : null,
                         ]
@@ -485,7 +485,11 @@ function PlayersPage() {
                   </div>
                   <NumCol label="Rostered percent" value={own ? `${own.owned}` : "—"} active={sort === "OWNED"} />
                   <NumCol label="Started percent" value={own ? `${own.started}` : "—"} active={sort === "STARTED"} />
-                  <NumCol label="Projected points" value={proj.toFixed(1)} active={sort === "PROJ"} />
+                  <NumCol
+                    label={sort === "PTS" ? "Season points" : "Projected points"}
+                    value={(sort === "PTS" ? seasonPts : proj).toFixed(1)}
+                    active={sort === "PTS" || sort === "PROJ"}
+                  />
                   <div className="col-span-3 flex items-center justify-end gap-2 pt-1.5">
                     <Button size="icon" variant={watched.has(player.id) ? "default" : "outline"} aria-label={watched.has(player.id) ? `Remove ${player.name} from watchlist` : `Watch ${player.name}`} onClick={() => void toggleWatch(player.id)}>
                       <Bookmark className="h-4 w-4" fill={watched.has(player.id) ? "currentColor" : "none"} />

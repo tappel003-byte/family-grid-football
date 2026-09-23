@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { ZERO_STATS, type StatLine } from "./fantasy/scoring";
+import { rawToStatLine } from "./fantasy/stat-line";
 
 export type GameInfo = {
   status: "final" | "live" | "scheduled" | "none";
@@ -32,48 +33,7 @@ const lastGoodCache = new Map<string, WeekData>();
 type Raw = Record<string, Record<string, number>>;
 
 function toStatLine(raw: Record<string, number> | undefined): StatLine | null {
-  if (!raw) return null;
-  const n = (key: string): number => {
-    const num = Number(raw[key] ?? 0);
-    return Number.isFinite(num) ? num : 0;
-  };
-  const line: StatLine = {
-    ...EMPTY,
-    passYd: n("pass_yd"),
-    passTd: n("pass_td"),
-    interception: n("pass_int"),
-    rushYd: n("rush_yd"),
-    rushTd: n("rush_td"),
-    reception: n("rec"),
-    recYd: n("rec_yd"),
-    recTd: n("rec_td"),
-    fumble: n("fum_lost"),
-    twoPt: n("pass_2pt") + n("rush_2pt") + n("rec_2pt"),
-    fgMade: n("fgm"),
-    fg0_39: n("fgm_0_19") + n("fgm_20_29") + n("fgm_30_39"),
-    fg40_49: n("fgm_40_49"),
-    fg50: n("fgm_50p"),
-    fgMiss: n("fgmiss"),
-    xpMade: n("xpm"),
-    xpMiss: n("xpmiss"),
-    defSack: n("sack"),
-    defInt: n("int"),
-    defFumRec: n("fum_rec"),
-    defSafety: n("safe"),
-    defTd: n("def_td") + n("def_st_td") + n("st_td"),
-    defBlockKick: n("blk_kick"),
-    ptsAllow0: n("pts_allow_0"),
-    ptsAllow1_6: n("pts_allow_1_6"),
-    ptsAllow7_13: n("pts_allow_7_13"),
-    ptsAllow14_17: n("pts_allow_14_20"),
-    ptsAllow18_21: 0,
-    ptsAllow22_27: n("pts_allow_21_27"),
-    ptsAllow28_34: n("pts_allow_28_34"),
-    ptsAllow35_45: n("pts_allow_35p"),
-    ptsAllow46: 0,
-  };
-  const any = Object.values(line).some((v) => v !== 0);
-  return any ? line : null;
+  return rawToStatLine(raw);
 }
 
 function mapStats(raw: Raw): Record<string, StatLine> {
@@ -103,6 +63,8 @@ type Scoreboard = {
     }>;
   }>;
 };
+
+type CdnScoreboard = { content?: { sbData?: Scoreboard } };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -161,6 +123,25 @@ export function scoreboardGames(scoreboard: Scoreboard): Record<string, GameInfo
   return games;
 }
 
+function mergeGame(base: GameInfo | undefined, rich: GameInfo): GameInfo {
+  if (!base) return rich;
+  const merged: GameInfo = {
+    ...base,
+    ...rich,
+  };
+  const startsAt = rich.startsAt ?? base.startsAt;
+  const network = rich.network ?? base.network;
+  if (startsAt) merged.startsAt = startsAt;
+  if (network) merged.network = network;
+  return merged;
+}
+
+function mergeGames(base: Record<string, GameInfo>, rich: Record<string, GameInfo>) {
+  const merged = { ...base };
+  for (const [team, game] of Object.entries(rich)) merged[team] = mergeGame(merged[team], game);
+  return merged;
+}
+
 type Cached = { at: number; data: WeekData };
 const cache = new Map<string, Cached>();
 
@@ -194,11 +175,12 @@ export const getWeekData = createServerFn({ method: "GET" })
     const ttl = data.week < currentWeek ? 1000 * 60 * 60 * 6 : 1000 * 60 * 2;
     if (hit && Date.now() - hit.at < ttl) return hit.data;
 
-    const [stats, projections, schedule, scoreboard] = await Promise.all([
+    const [stats, projections, schedule, scoreboard, cdnScoreboard] = await Promise.all([
       json<Raw>(`https://api.sleeper.app/v1/stats/nfl/regular/${season}/${data.week}`, {}),
       json<Raw>(`https://api.sleeper.app/v1/projections/nfl/regular/${season}/${data.week}`, {}),
       json<ScheduleGame[]>(`https://api.sleeper.app/schedule/nfl/regular/${season}`, []),
       json<Scoreboard>(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${data.week}&dates=${season}`, {}),
+      json<CdnScoreboard>(`https://cdn.espn.com/core/nfl/scoreboard?xhr=1&year=${season}&week=${data.week}&seasontype=2`, {}),
     ]);
 
     const games: Record<string, GameInfo> = {};
@@ -208,7 +190,7 @@ export const getWeekData = createServerFn({ method: "GET" })
       games[game.home] = info;
       games[game.away] = info;
     }
-    Object.assign(games, scoreboardGames(scoreboard));
+    const richGames = mergeGames(scoreboardGames(cdnScoreboard.content?.sbData ?? {}), scoreboardGames(scoreboard));
 
     const result: WeekData = {
       season,
@@ -216,7 +198,7 @@ export const getWeekData = createServerFn({ method: "GET" })
       currentWeek,
       stats: mapStats(stats),
       projections: mapStats(projections),
-      games,
+      games: mergeGames(games, richGames),
     };
     const feedDown =
       Object.keys(result.stats).length === 0 && Object.keys(result.projections).length === 0;
@@ -243,7 +225,7 @@ export async function enrichWeekDataInBrowser(data: WeekData): Promise<WeekData>
     const scoreboard = (await response.json()) as Scoreboard;
     const games = scoreboardGames(scoreboard);
     if (Object.keys(games).length === 0) return data;
-    return { ...data, games: { ...data.games, ...games } };
+    return { ...data, games: mergeGames(data.games, games) };
   } catch {
     return data;
   }
