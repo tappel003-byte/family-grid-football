@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpDown, History, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowUpDown, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { AddDropButton } from "@/components/fantasy/AddDropButton";
