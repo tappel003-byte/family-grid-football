@@ -37,16 +37,16 @@ export type League = {
 export const LEAGUE_VERSION = 3;
 
 const TEAM_NAMES = [
-  ["Grandpa's Gridiron", "Papa Ray"],
-  ["Aunt Deb's Dynasty", "Deb"],
-  ["Cousin Carter's Crew", "Carter"],
-  ["Mom's Monsters", "Linda"],
-  ["Uncle Joe's Jets", "Joe"],
-  ["Sister Sam Slingers", "Sam"],
-  ["Dad Bod Dominators", "Tim"],
-  ["Nana's Nightmares", "Nana Jo"],
-  ["Little Leo's Legends", "Leo"],
-  ["The Thanksgiving Titans", "Uncle Rick"],
+  ["The Bizzer Beez", "Tim Appel"],
+  ["Scottsdale Banthas", "Scott Appel"],
+  ["Milkman", "Sarah Appel"],
+  ["Placitas Pooper Bellies", "John Appel"],
+  ["Scottsdale Maraders", "Martha Appel"],
+  ["THE Cowboy Dudes", "Carolyn Appel"],
+  ["Whats Happening Again", "Biz Appel"],
+  ["Homerun-Touchdown", "Nick Appel"],
+  ["MaxPack", "Mike Oetken"],
+  ["Madappel", "Matt Appel"],
 ];
 
 const COLORS = [
