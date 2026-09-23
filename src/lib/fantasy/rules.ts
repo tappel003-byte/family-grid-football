@@ -18,16 +18,35 @@ export type LeagueRules = {
   waiverOrder: number[];
   /** How many injured-reserve spots each team gets. 0 turns the feature off. */
   irSlots: number;
+  /** Once a player's game kicks off, his lineup spot is frozen for that week. */
+  lockAtKickoff: boolean;
+  /** Day of the week claims process on. 0 = Sunday, 3 = Wednesday. */
+  waiverDay: number;
+  /** Rebuild the claim order every week from the standings (worst record first). */
+  autoWaiverOrder: boolean;
 };
 
 export const DEFAULT_RULES: LeagueRules = {
   rosterLimit: DEFAULT_ROSTER_LIMIT,
   positionLimits: { QB: 4, RB: 8, WR: 8, TE: 4, K: 3, DEF: 3 },
-  waiverMode: "free",
+  waiverMode: "waivers",
   tradeDeadlineWeek: 12,
   waiverOrder: [],
   irSlots: 1,
+  lockAtKickoff: true,
+  waiverDay: 3,
+  autoWaiverOrder: true,
 };
+
+export const WEEKDAYS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+] as const;
 
 export const RULE_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"] as const;
 
