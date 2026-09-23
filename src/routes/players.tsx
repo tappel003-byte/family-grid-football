@@ -514,7 +514,7 @@ function PlayersPage() {
                         onClick={() => pickGroup(g.label)}
                         className="h-9 justify-between text-sm font-medium"
                       >
-                        {g.label}
+                        {g.label === "All" ? "All stats" : g.label}
                         {group === g.label && <Check className="h-4 w-4" />}
                       </DropdownMenuItem>
                     ))}
