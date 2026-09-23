@@ -436,13 +436,7 @@ function PlayersPage() {
                     )}
                     <PlayerInsightChips player={player} week={week} showForm={false} />
                   </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <div className="text-right">
-                      <div className="font-display text-xl font-bold tabular-nums">
-                        {proj.toFixed(1)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">proj wk {week}</div>
-                    </div>
+                  <div className="flex shrink-0 items-center">
                     {league && <AddDropButton player={player} league={league} byId={byId} />}
                   </div>
                 </li>
