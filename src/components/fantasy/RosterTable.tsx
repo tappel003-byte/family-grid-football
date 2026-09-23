@@ -43,6 +43,7 @@ export function optimizeTeam(
   league: League,
   week: number,
   insights?: import("@/lib/insights.functions").InsightsData | null,
+  isLocked?: (player: SlimPlayer | undefined) => boolean,
 ): FantasyTeam {
   const ids = rosterIds(team);
   const ranked = ids
@@ -54,12 +55,21 @@ export function optimizeTeam(
     isPlayable(p) && !isOnBye(insights ?? null, p, week);
 
   const used = new Set<string>();
+  const locked = (id: string | null | undefined) =>
+    !!id && !!isLocked && isLocked(byId.get(id));
+
+  // Players whose game already started stay exactly where they are.
+  const pinned = SLOTS.map((_, i) => (locked(team.starters[i]) ? team.starters[i]! : null));
+  for (const id of pinned) if (id) used.add(id);
+  for (const id of ids) if (locked(id) && !used.has(id)) used.add(id);
+
   const pick = (slot: string, healthyOnly: boolean) =>
     ranked.find(
       (p) => !used.has(p.id) && slotAccepts(slot, p.pos) && (!healthyOnly || available(p)),
     );
 
-  const starters = SLOTS.map((slot) => {
+  const starters = SLOTS.map((slot, i) => {
+    if (pinned[i]) return pinned[i];
     const player = pick(slot, true) ?? pick(slot, false);
     if (player) used.add(player.id);
     return player?.id ?? null;
