@@ -135,35 +135,38 @@ const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass
 /** Compact number formatting for hype counts (511,590 -> 512K). */
 const COMPACT = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 
-/** One tappable stat cell — tapping sorts the whole list by that stat. */
-function StatCell({
-  label,
-  value,
-  active,
-  onSort,
-}: {
-  label: string;
-  value: string;
-  active: boolean;
-  onSort: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSort}
-      aria-pressed={active}
-      className={cn(
-        "flex min-w-12 flex-col items-center rounded-lg border px-1.5 py-1 transition-colors",
-        active
-          ? "border-primary bg-primary/10 text-primary"
-          : "border-border bg-card text-foreground hover:border-primary/40",
-      )}
-    >
-      <span className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
-      <span className="font-display text-sm font-bold tabular-nums leading-tight">{value}</span>
-    </button>
-  );
-}
+/** Shape of the row data each stat column reads from. */
+type PlayerRow = {
+  rank: number;
+  proj: number;
+  own: { owned: number; started: number; change: number } | null;
+  last3Avg: number;
+  seasonPts: number;
+  seasonAvg: number;
+  adds: number;
+  drops: number;
+  rec: { label: string } | null;
+};
+
+/** One scrolling stat column: short heading, width, and how to print the value. */
+const COLUMNS: Record<SortKey, { short: string; w: string; value: (r: PlayerRow) => string }> = {
+  PROJ: { short: "Proj", w: "w-16", value: (r) => r.proj.toFixed(1) },
+  PTS: { short: "Pts", w: "w-16", value: (r) => r.seasonPts.toFixed(1) },
+  AVG: { short: "Avg", w: "w-16", value: (r) => r.seasonAvg.toFixed(1) },
+  HOT: { short: "L3", w: "w-16", value: (r) => (r.last3Avg > 0 ? r.last3Avg.toFixed(1) : "—") },
+  RANK: { short: "Rnk", w: "w-16", value: (r) => `#${r.rank}` },
+  OWNED: { short: "Rst%", w: "w-16", value: (r) => (r.own ? `${r.own.owned}%` : "—") },
+  STARTED: { short: "Str%", w: "w-16", value: (r) => (r.own ? `${r.own.started}%` : "—") },
+  RISING: {
+    short: "Ris%",
+    w: "w-16",
+    value: (r) => (r.own ? `${r.own.change > 0 ? "+" : ""}${r.own.change}` : "—"),
+  },
+  ADDS: { short: "Adds", w: "w-16", value: (r) => (r.adds > 0 ? COMPACT.format(r.adds) : "—") },
+  DROPS: { short: "Drops", w: "w-16", value: (r) => (r.drops > 0 ? COMPACT.format(r.drops) : "—") },
+  PICKUP: { short: "Pickup", w: "w-24", value: (r) => r.rec?.label ?? "—" },
+};
+
 
 function PlayersPage() {
   const { league, players, byId } = useLeague();
