@@ -10,3 +10,4 @@
 - [ ] Slim the locked player column on Players (stack info, fewer lines) so more stat columns fit on phone
 - [ ] Give matchup player rows enough height to show the complete game time and channel
 - [ ] Keep family members signed in when the app refreshes
+- [ ] Add a first-sign-in “Keep me signed in” choice, on by default
