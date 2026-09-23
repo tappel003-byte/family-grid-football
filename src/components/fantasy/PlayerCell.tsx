@@ -91,12 +91,17 @@ export function PlayerCell({
   const game = week === undefined ? undefined : gameInfoFor(player.team, week);
   const kickoff = formatGameTime(game?.startsAt, timeZone);
   const onField = game?.status === "live" && game.hasBall === true;
+  const scheduleLine = kickoff
+    ? `${kickoff} · ${game?.network ?? "TV TBD"}`
+    : game?.label && game.label !== "Bye"
+      ? `${game.label} · ${game.network ?? "TV TBD"}`
+      : "Bye";
   const gameLine =
     game?.status === "live"
-      ? `${game.hasBall ? "Has the ball" : "On the field"} · ${game.label}${game.network ? ` · ${game.network}` : ""}`
-      : game?.status === "scheduled" && kickoff
-        ? `${kickoff}${game.network ? ` · ${game.network}` : ""}`
-        : null;
+      ? `${game.hasBall ? "Has the ball" : "On the field"} · ${game.label} · ${scheduleLine}`
+      : game?.status === "final"
+        ? `Final · ${scheduleLine}`
+        : scheduleLine;
   return (
     <div
       className={cn(

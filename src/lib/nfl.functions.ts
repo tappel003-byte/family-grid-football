@@ -125,12 +125,15 @@ export function scoreboardGames(scoreboard: Scoreboard): Record<string, GameInfo
 
 function mergeGame(base: GameInfo | undefined, rich: GameInfo): GameInfo {
   if (!base) return rich;
-  return {
+  const merged: GameInfo = {
     ...base,
     ...rich,
-    startsAt: rich.startsAt ?? base.startsAt,
-    network: rich.network ?? base.network,
   };
+  const startsAt = rich.startsAt ?? base.startsAt;
+  const network = rich.network ?? base.network;
+  if (startsAt) merged.startsAt = startsAt;
+  if (network) merged.network = network;
+  return merged;
 }
 
 function mergeGames(base: Record<string, GameInfo>, rich: Record<string, GameInfo>) {

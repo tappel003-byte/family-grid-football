@@ -113,7 +113,8 @@ export const getInsights = createServerFn({ method: "GET" })
         const line = raw[id];
         if (line) {
           const gamesPlayed = Number(line["gp"] ?? 1);
-          if (gamesPlayed > 0) last3.push(scoreRaw(line, data.scoring));
+          const points = scoreRaw(line, data.scoring);
+          if (gamesPlayed > 0) last3.push(points);
           targets += line["rec_tgt"] ?? 0;
           snapNum += line["off_snp"] ?? 0;
           snapDen += line["tm_off_snp"] ?? 0;
@@ -122,7 +123,7 @@ export const getInsights = createServerFn({ method: "GET" })
           const opp = opponentByWeek.get(`${week}-${m.team}`);
           if (opp && m.pos !== "DEF" && m.pos !== "K") {
             allowed[m.pos] ??= {};
-            allowed[m.pos]![opp] = (allowed[m.pos]![opp] ?? 0) + pts;
+            allowed[m.pos]![opp] = (allowed[m.pos]![opp] ?? 0) + points;
           }
         }
       });
