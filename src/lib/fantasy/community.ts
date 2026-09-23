@@ -37,7 +37,6 @@ export async function listTradeBlock(): Promise<TradeBlockRow[]> {
 }
 
 export async function setTradeBlockPlayer(input: {
-  leagueId: string;
   teamSlot: number;
   playerId: string;
   listed: boolean;
@@ -45,14 +44,16 @@ export async function setTradeBlockPlayer(input: {
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
   if (!user) throw new Error("Sign in to update your trade block.");
+  const { data: league } = await supabase.from("league").select("id").eq("slug", "main").single();
+  if (!league) throw new Error("The league is not ready yet.");
   const action = input.listed
     ? supabase.from("trade_block").upsert({
-        league_id: input.leagueId,
+        league_id: league.id,
         team_slot: input.teamSlot,
         user_id: user.id,
         player_id: input.playerId,
       })
-    : supabase.from("trade_block").delete().eq("league_id", input.leagueId).eq("player_id", input.playerId).eq("user_id", user.id);
+    : supabase.from("trade_block").delete().eq("league_id", league.id).eq("player_id", input.playerId).eq("user_id", user.id);
   const { error } = await action;
   if (error) throw new Error(error.message);
 }

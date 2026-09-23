@@ -6,10 +6,9 @@ import { listTradeBlock, setTradeBlockPlayer } from "@/lib/fantasy/community";
 import { rosterIds, type FantasyTeam } from "@/lib/fantasy/league";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 
-export function TradeBlockManager({ team, teamSlot, leagueId, byId }: {
+export function TradeBlockManager({ team, teamSlot, byId }: {
   team: FantasyTeam;
   teamSlot: number;
-  leagueId: string;
   byId: Map<string, SlimPlayer>;
 }) {
   const queryClient = useQueryClient();
@@ -17,7 +16,7 @@ export function TradeBlockManager({ team, teamSlot, leagueId, byId }: {
   const listed = new Set(data.filter((row) => row.team_slot === teamSlot).map((row) => row.player_id));
   const toggle = async (playerId: string) => {
     try {
-      await setTradeBlockPlayer({ leagueId, teamSlot, playerId, listed: !listed.has(playerId) });
+      await setTradeBlockPlayer({ teamSlot, playerId, listed: !listed.has(playerId) });
       await queryClient.invalidateQueries({ queryKey: ["trade-block"] });
       toast.success(listed.has(playerId) ? "Removed from trade block" : "Added to trade block");
     } catch (error) {

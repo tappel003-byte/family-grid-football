@@ -14,6 +14,8 @@ import { rosterIds, type FantasyTeam } from "@/lib/fantasy/league";
 import { listTrades, proposeTrade, respondToTrade } from "@/lib/fantasy/trades.functions";
 import { reloadLeague } from "@/lib/fantasy/store";
 import { cn } from "@/lib/utils";
+import { listTradeBlock } from "@/lib/fantasy/community";
+import { Handshake } from "lucide-react";
 
 export const Route = createFileRoute("/trades")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
@@ -108,6 +110,7 @@ function TradesPage() {
   const propose = useServerFn(proposeTrade);
   const respond = useServerFn(respondToTrade);
   const trades = useQuery({ queryKey: ["trades"], queryFn: () => listTrades() });
+  const tradeBlock = useQuery({ queryKey: ["trade-block"], queryFn: listTradeBlock });
 
   const [partnerSlot, setPartnerSlot] = useState<number | null>(null);
   const [mine, setMine] = useState<Set<string>>(new Set());
@@ -186,6 +189,20 @@ function TradesPage() {
               : "Offer players to another family team."
         }
       />
+
+      {(tradeBlock.data ?? []).length > 0 && (
+        <section className="mb-5 rounded-lg border bg-card p-4">
+          <h2 className="flex items-center gap-2 font-display text-xl font-bold"><Handshake className="h-5 w-5 text-primary" /> On the trade block</h2>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {(tradeBlock.data ?? []).map((row) => {
+              const player = byId.get(row.player_id);
+              const team = league.teams[row.team_slot];
+              if (!player || !team) return null;
+              return <Button key={row.id} variant="outline" className="h-auto justify-between py-3" onClick={() => { setPartnerSlot(row.team_slot); setTheirs(new Set([row.player_id])); }} disabled={row.team_slot === myIndex}><span className="truncate">{player.name}</span><span className="ml-2 text-xs text-muted-foreground">{team.name}</span></Button>;
+            })}
+          </div>
+        </section>
+      )}
 
       {!myTeam ? (
         <div className="rounded-2xl border bg-card p-6 text-lg">

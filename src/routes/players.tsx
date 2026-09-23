@@ -3,7 +3,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronDown, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { Bookmark, Check, ChevronDown, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
@@ -39,6 +39,8 @@ import {
 } from "@/lib/fantasy/hooks";
 import { ownedIds } from "@/lib/fantasy/league";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
+import { listMyWatchlist, setWatched } from "@/lib/fantasy/community";
+import { useQueryClient } from "@tanstack/react-query";
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"];
 
@@ -154,6 +156,7 @@ function PlayersPage() {
   const [query, setQuery] = useState("");
   const [pos, setPos] = useState("ALL");
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
+  const [watchedOnly, setWatchedOnly] = useState(false);
   const [sort, setSort] = useState<SortKey>("PROJ");
 
   const week = league?.currentWeek ?? 1;
@@ -165,6 +168,9 @@ function PlayersPage() {
   const { data: market } = useQuery(marketQueryOptions);
   const { data: adds } = useQuery(trendingQueryOptions("add"));
   const { data: drops } = useQuery(trendingQueryOptions("drop"));
+  const queryClient = useQueryClient();
+  const { data: watchedIds = [] } = useQuery({ queryKey: ["my-watchlist"], queryFn: listMyWatchlist });
+  const watched = useMemo(() => new Set(watchedIds), [watchedIds]);
 
   const addsById = useMemo(() => new Map((adds ?? []).map((a) => [a.id, a.count])), [adds]);
   const dropsById = useMemo(() => new Map((drops ?? []).map((a) => [a.id, a.count])), [drops]);
@@ -179,6 +185,7 @@ function PlayersPage() {
     const q = query.trim().toLowerCase();
     const list = players
       .filter((p) => (pos === "ALL" || p.pos === pos) && (!q || p.name.toLowerCase().includes(q)))
+      .filter((p) => !watchedOnly || watched.has(p.id))
       .filter((p) => {
         if (avail === "ALL") return true;
         const owned = ownerByPlayer.has(p.id);
@@ -255,7 +262,14 @@ function PlayersPage() {
     market,
     addsById,
     dropsById,
+    watchedOnly,
+    watched,
   ]);
+
+  const toggleWatch = async (playerId: string) => {
+    await setWatched(playerId, !watched.has(playerId));
+    await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
+  };
 
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
@@ -331,6 +345,9 @@ function PlayersPage() {
                 </button>
               ))}
             </div>
+            <Button variant={watchedOnly ? "default" : "outline"} className="h-10 justify-start sm:w-fit" onClick={() => setWatchedOnly((value) => !value)}>
+              <Bookmark className="mr-2 h-4 w-4" /> Watchlist ({watched.size})
+            </Button>
           </div>
 
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
@@ -464,7 +481,10 @@ function PlayersPage() {
                   <NumCol label="Rostered percent" value={own ? `${own.owned}` : "—"} active={sort === "OWNED"} />
                   <NumCol label="Started percent" value={own ? `${own.started}` : "—"} active={sort === "STARTED"} />
                   <NumCol label="Projected points" value={proj.toFixed(1)} active={sort === "PROJ"} />
-                  <div className="col-span-3 flex items-center justify-end pt-1.5">
+                  <div className="col-span-3 flex items-center justify-end gap-2 pt-1.5">
+                    <Button size="icon" variant={watched.has(player.id) ? "default" : "outline"} aria-label={watched.has(player.id) ? `Remove ${player.name} from watchlist` : `Watch ${player.name}`} onClick={() => void toggleWatch(player.id)}>
+                      <Bookmark className="h-4 w-4" fill={watched.has(player.id) ? "currentColor" : "none"} />
+                    </Button>
                     {league && <AddDropButton player={player} league={league} byId={byId} />}
                   </div>
                 </li>
@@ -499,9 +519,9 @@ function PlayersPage() {
         <TabsContent value="activity" className="mt-4">
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <div className="flex items-center gap-2 border-b bg-secondary/60 px-4 py-3 font-display text-lg font-bold">
-              <History className="h-5 w-5" /> Recent adds and drops
+              <History className="h-5 w-5" /> Recent league activity
             </div>
-            <ActivityFeed />
+            <ActivityFeed limit={10} />
           </div>
         </TabsContent>
       </Tabs>
