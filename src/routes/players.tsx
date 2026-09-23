@@ -302,6 +302,8 @@ function PlayersPage() {
     await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
   };
 
+  const activeGroup = SORT_GROUPS.find((group) => group.keys.includes(sort))?.label ?? "Production";
+
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
       <PageTitle title="Player Research" subtitle="Recent form, matchups, byes and waiver trends" />
@@ -417,11 +419,6 @@ function PlayersPage() {
               </DropdownMenu>
             </div>
 
-            {/* Hint row: every stat on a player is tappable and sorts the list */}
-            <div className="border-b px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:px-4">
-              Tap any stat on a player to sort by it
-            </div>
-
             <ul className="divide-y">
               {results.map(({ player, owner, proj, own, news, last3Avg, seasonPts, seasonAvg, rec, adds, drops }) => (
                 <li key={player.id} className="px-3 py-2.5 sm:px-4 sm:py-3">
@@ -434,55 +431,46 @@ function PlayersPage() {
                     )}
                   </div>
 
-                  {/* Every stat, grouped — tap any cell to sort the list by it */}
-                  <div className="mt-2 space-y-1.5">
-                    {(
-                      [
-                        {
-                          label: "Production",
-                          cells: [
+                  {/* Show only the selected sort category as one compact line. */}
+                  <div className="mt-2">
+                    <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                      {activeGroup}
+                    </div>
+                    <div
+                      className={cn(
+                        "mt-0.5 grid gap-1",
+                        activeGroup === "Production" ? "grid-cols-5" : "grid-cols-3",
+                      )}
+                    >
+                      {(activeGroup === "Production"
+                        ? [
                             ["PROJ", "Proj", proj.toFixed(1)],
                             ["PTS", "Pts", seasonPts.toFixed(1)],
                             ["AVG", "Avg", seasonAvg.toFixed(1)],
                             ["HOT", "L3", last3Avg > 0 ? last3Avg.toFixed(1) : "—"],
                             ["RANK", "Rnk", `#${player.rank}`],
-                          ],
-                        },
-                        {
-                          label: "Ownership",
-                          cells: [
-                            ["OWNED", "Rst%", own ? `${own.owned}` : "—"],
-                            ["STARTED", "Str%", own ? `${own.started}` : "—"],
-                            ["RISING", "Ris%", own ? `${own.change > 0 ? "+" : ""}${own.change}` : "—"],
-                          ],
-                        },
-                        {
-                          label: "Hype",
-                          cells: [
-                            ["ADDS", "Adds", adds > 0 ? COMPACT.format(adds) : "—"],
-                            ["DROPS", "Drops", drops > 0 ? COMPACT.format(drops) : "—"],
-                            ["PICKUP", "Pickup", rec?.label ?? "—"],
-                          ],
-                        },
-                      ] as { label: string; cells: [SortKey, string, string][] }[]
-                    ).map((group) => (
-                      <div key={group.label}>
-                        <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-                          {group.label}
-                        </div>
-                        <div className="mt-0.5 flex flex-wrap gap-1">
-                          {group.cells.map(([key, label, value]) => (
-                            <StatCell
-                              key={key}
-                              label={label}
-                              value={value}
-                              active={sort === key}
-                              onSort={() => setSort(key)}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                          ]
+                        : activeGroup === "Ownership"
+                          ? [
+                              ["OWNED", "Rst%", own ? `${own.owned}` : "—"],
+                              ["STARTED", "Str%", own ? `${own.started}` : "—"],
+                              ["RISING", "Ris%", own ? `${own.change > 0 ? "+" : ""}${own.change}` : "—"],
+                            ]
+                          : [
+                              ["ADDS", "Adds", adds > 0 ? COMPACT.format(adds) : "—"],
+                              ["DROPS", "Drops", drops > 0 ? COMPACT.format(drops) : "—"],
+                              ["PICKUP", "Pickup", rec?.label ?? "—"],
+                            ]
+                      ).map(([key, label, value]) => (
+                        <StatCell
+                          key={key}
+                          label={label}
+                          value={value}
+                          active={sort === key}
+                          onSort={() => setSort(key)}
+                        />
+                      ))}
+                    </div>
                   </div>
 
                   {rec && <p className="mt-1.5 text-sm text-muted-foreground">{rec.reason}</p>}
