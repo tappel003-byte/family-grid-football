@@ -755,7 +755,7 @@ function SettingsPage() {
                     </span>
                   </span>
                   <Button asChild variant="outline" size="sm">
-                    <Link to="/team/$teamId" params={{ teamId: team.id }}>
+                    <Link to="/team/$teamId" params={{ teamId: team.id }} search={{ commish: true }}>
                       Open team
                     </Link>
                   </Button>

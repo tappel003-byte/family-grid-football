@@ -10,6 +10,10 @@ import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/team/$teamId")({
+  validateSearch: (search: Record<string, unknown>): { commish?: boolean } => {
+    const v = search["commish"];
+    return v === true || v === "true" || v === 1 || v === "1" ? { commish: true } : {};
+  },
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
@@ -43,6 +47,7 @@ export const Route = createFileRoute("/team/$teamId")({
 
 function TeamPage() {
   const { teamId } = Route.useParams();
+  const search = Route.useSearch();
   const { league, byId } = useLeague();
   const { user, isCommissioner } = useAuth();
   const [week, setWeek] = useState<number | null>(null);
@@ -55,7 +60,7 @@ function TeamPage() {
 
   const totals = teamTotals(team, activeWeek, league, byId);
   const isOwner = !!user && team.userId === user.id;
-  const commishMode = !!user && isCommissioner && !isOwner;
+  const commishMode = !!user && isCommissioner && !isOwner && search.commish === true;
   const canEdit = isOwner || commishMode;
 
   return (
