@@ -419,9 +419,10 @@ export function RosterTable({
             >
               <div className="min-w-0">
                 <PlayerCell player={p} compact week={week} />
+                {!editable && onBlock.has(p.id) && <TradeAvailableBadge className="mt-1" />}
                 <PlayerInsightChips player={p} week={week} />
               </div>
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                 <div className="text-right">
                   <div className="font-display text-lg font-bold tabular-nums">
                     {s.actual.toFixed(1)}
@@ -430,6 +431,12 @@ export function RosterTable({
                 </div>
                 {editable && (
                   <>
+                    <TradeFlagToggle
+                      teamSlot={teamSlot}
+                      playerId={p.id}
+                      playerName={p.name}
+                      listed={onBlock.has(p.id)}
+                    />
                     {locked(p) ? (
                       <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
                         <Lock className="h-4 w-4" /> Locked
