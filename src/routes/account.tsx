@@ -137,7 +137,7 @@ function AccountPage() {
 
             <div className="min-w-0">
               <p className="truncate font-display text-xl font-bold">{teamName || name}</p>
-              <p className="truncate text-muted-foreground">{data.email}</p>
+              <p className="truncate text-muted-foreground">{data.displayName}</p>
             </div>
           </div>
 

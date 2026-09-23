@@ -1,8 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Handshake } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { listTradeBlock, setTradeBlockPlayer } from "@/lib/fantasy/community";
+import { listTradeBlock } from "@/lib/fantasy/community";
+import { updateTradeBlock } from "@/lib/fantasy/community.functions";
 import { rosterIds, type FantasyTeam } from "@/lib/fantasy/league";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 
@@ -12,12 +14,14 @@ export function TradeBlockManager({ team, teamSlot, byId }: {
   byId: Map<string, SlimPlayer>;
 }) {
   const queryClient = useQueryClient();
+  const update = useServerFn(updateTradeBlock);
   const { data = [] } = useQuery({ queryKey: ["trade-block"], queryFn: listTradeBlock });
   const listed = new Set(data.filter((row) => row.team_slot === teamSlot).map((row) => row.player_id));
-  const toggle = async (playerId: string) => {
+  const toggle = async (playerId: string, playerName: string) => {
     try {
-      await setTradeBlockPlayer({ teamSlot, playerId, listed: !listed.has(playerId) });
+      await update({ data: { teamSlot, playerId, playerName, listed: !listed.has(playerId) } });
       await queryClient.invalidateQueries({ queryKey: ["trade-block"] });
+      await queryClient.invalidateQueries({ queryKey: ["transactions"] });
       toast.success(listed.has(playerId) ? "Removed from trade block" : "Added to trade block");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not update the trade block.");
@@ -34,7 +38,7 @@ export function TradeBlockManager({ team, teamSlot, byId }: {
           const player = byId.get(id);
           if (!player) return null;
           const on = listed.has(id);
-          return <Button key={id} size="sm" variant={on ? "default" : "outline"} onClick={() => void toggle(id)}>{player.name}{on ? " · Available" : ""}</Button>;
+          return <Button key={id} size="sm" variant={on ? "default" : "outline"} onClick={() => void toggle(id, player.name)}>{player.name}{on ? " · Available" : ""}</Button>;
         })}
       </div>
     </section>
