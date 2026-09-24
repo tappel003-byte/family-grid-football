@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +16,45 @@ import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
 import { placeClaim } from "@/lib/fantasy/waivers.functions";
 import { reloadLeague } from "@/lib/fantasy/store";
 import { gameStatusFor } from "@/lib/fantasy/hooks";
+import { insightsQueryOptions } from "@/components/fantasy/PlayerInsights";
+import { cn } from "@/lib/utils";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
+import type { PlayerInsight } from "@/lib/insights.functions";
+
+const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+
+/** One line of comparable numbers: season total and recent form. */
+function CompareLine({ info, className }: { info: PlayerInsight | undefined; className?: string }) {
+  if (!info) return <p className={cn("text-xs text-muted-foreground", className)}>No stats yet</p>;
+  return (
+    <p className={cn("text-xs text-muted-foreground tabular-nums", className)}>
+      Season {fmt(info.seasonPts)} · Avg {fmt(info.seasonAvg)} · Last 3 {fmt(info.last3Avg)}
+    </p>
+  );
+}
+
+/** Green/red gap versus the player being added, based on season average. */
+function CompareDelta({ mine, theirs }: { mine: number; theirs: number }) {
+  const diff = Math.round((theirs - mine) * 10) / 10;
+  if (Math.abs(diff) < 0.05) return <span className="text-xs text-muted-foreground">even</span>;
+  const better = diff > 0;
+  return (
+    <span
+      className={cn(
+        "text-xs font-bold tabular-nums",
+        better ? "text-green-600 dark:text-green-400" : "text-destructive",
+      )}
+      title={
+        better
+          ? "Averaging more per game than the player you would add"
+          : "Averaging less per game than the player you would add"
+      }
+    >
+      {better ? "+" : "−"}
+      {fmt(Math.abs(diff))}/gm
+    </span>
+  );
+}
 
 /** Add a free agent to your own team, or drop someone you already have. */
 export function AddDropButton({
@@ -35,6 +74,12 @@ export function AddDropButton({
   const [pending, setPending] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
+  // Comparison numbers for the drop picker — shares the page's cached insights.
+  const { data: compareData } = useQuery({
+    ...insightsQueryOptions(league.currentWeek, league.scoring),
+    enabled: dropOpen,
+  });
+  const newGuy = compareData?.players[player.id];
 
   const myTeam = user ? league.teams.find((t) => t.userId === user.id) : undefined;
   if (!myTeam) return null;
@@ -191,18 +236,34 @@ export function AddDropButton({
               {claimMode ? "let go if your claim wins" : "drop for"} {player.name}.
             </DialogDescription>
           </DialogHeader>
+          <div className="rounded-lg border bg-muted/40 px-3 py-2">
+            <p className="text-sm font-semibold">
+              Adding: {player.name} · {player.team} {player.pos}
+            </p>
+            <CompareLine info={newGuy} />
+          </div>
           <ul className="divide-y">
             {myIds.map((id) => {
               const p = byId.get(id);
+              const info = compareData?.players[id];
               return (
                 <li key={id} className="flex items-center justify-between gap-3 py-2">
-                  <span className="min-w-0 truncate text-base font-semibold">
-                    {p ? `${p.name} · ${p.team} ${p.pos}` : id}
+                  <span className="min-w-0">
+                    <span className="block truncate text-base font-semibold">
+                      {p ? `${p.name} · ${p.team} ${p.pos}` : id}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <CompareLine info={info} />
+                      {info && newGuy ? (
+                        <CompareDelta mine={newGuy.seasonAvg} theirs={info.seasonAvg} />
+                      ) : null}
+                    </span>
                   </span>
                   <Button
                     variant="outline"
                     disabled={pending}
                     onClick={() => void submit(id, p?.name ?? "")}
+                    className="shrink-0"
                   >
                     {claimMode ? "Claim" : "Drop"}
                   </Button>
@@ -210,6 +271,10 @@ export function AddDropButton({
               );
             })}
           </ul>
+          <p className="text-xs text-muted-foreground">
+            Green means that player is outscoring {player.name} per game — think twice before
+            dropping them.
+          </p>
         </DialogContent>
       </Dialog>
     </>
