@@ -47,6 +47,7 @@ type CompareStats = {
   adds: number;
   drops: number;
   matchup: string;
+  age: number | null;
 };
 
 function PlayerCardHeader({ player, label }: { player: SlimPlayer; label: string }) {
@@ -79,12 +80,14 @@ function StatValue({ value, winner }: { value: string; winner?: boolean }) {
 }
 
 function ComparisonRows({ left, right }: { left: CompareStats; right: CompareStats }) {
-  const rows: Array<{ label: string; left: string; right: string; leftN?: number; rightN?: number; lower?: boolean }> = [
+  const rows: Array<{ label: string; left: string; right: string; leftN: number | undefined; rightN: number | undefined; lower?: boolean }> = [
     { label: "Projected", left: fmt(left.projection), right: fmt(right.projection), leftN: left.projection, rightN: right.projection },
     { label: "Position rank", left: left.positionRank ? `#${left.positionRank}` : "—", right: right.positionRank ? `#${right.positionRank}` : "—", leftN: left.positionRank ?? undefined, rightN: right.positionRank ?? undefined, lower: true },
     { label: "Season points", left: left.info ? fmt(left.info.seasonPts) : "—", right: right.info ? fmt(right.info.seasonPts) : "—", leftN: left.info?.seasonPts, rightN: right.info?.seasonPts },
     { label: "Points / game", left: left.info ? fmt(left.info.seasonAvg) : "—", right: right.info ? fmt(right.info.seasonAvg) : "—", leftN: left.info?.seasonAvg, rightN: right.info?.seasonAvg },
     { label: "Last 3 avg", left: left.info ? fmt(left.info.last3Avg) : "—", right: right.info ? fmt(right.info.last3Avg) : "—", leftN: left.info?.last3Avg, rightN: right.info?.last3Avg },
+    { label: "Last 3 games", left: left.info?.last3.length ? left.info.last3.map(fmt).join(" · ") : "—", right: right.info?.last3.length ? right.info.last3.map(fmt).join(" · ") : "—", leftN: undefined, rightN: undefined },
+    { label: "Games played", left: left.info ? String(left.info.games) : "—", right: right.info ? String(right.info.games) : "—", leftN: left.info?.games, rightN: right.info?.games },
     { label: "Rostered", left: left.ownership ? `${fmt(left.ownership.owned)}%` : "—", right: right.ownership ? `${fmt(right.ownership.owned)}%` : "—", leftN: left.ownership?.owned, rightN: right.ownership?.owned },
     { label: "Started", left: left.ownership ? `${fmt(left.ownership.started)}%` : "—", right: right.ownership ? `${fmt(right.ownership.started)}%` : "—", leftN: left.ownership?.started, rightN: right.ownership?.started },
     { label: "Roster trend", left: left.ownership ? `${left.ownership.change > 0 ? "+" : ""}${fmt(left.ownership.change)}%` : "—", right: right.ownership ? `${right.ownership.change > 0 ? "+" : ""}${fmt(right.ownership.change)}%` : "—", leftN: left.ownership?.change, rightN: right.ownership?.change },
@@ -92,13 +95,16 @@ function ComparisonRows({ left, right }: { left: CompareStats; right: CompareSta
     { label: "Snap share", left: left.info?.snapPct !== null && left.info?.snapPct !== undefined ? `${left.info.snapPct}%` : "—", right: right.info?.snapPct !== null && right.info?.snapPct !== undefined ? `${right.info.snapPct}%` : "—", leftN: left.info?.snapPct ?? undefined, rightN: right.info?.snapPct ?? undefined },
     { label: "Recent adds", left: left.adds ? compact.format(left.adds) : "—", right: right.adds ? compact.format(right.adds) : "—", leftN: left.adds, rightN: right.adds },
     { label: "Recent drops", left: left.drops ? compact.format(left.drops) : "—", right: right.drops ? compact.format(right.drops) : "—", leftN: left.drops, rightN: right.drops, lower: true },
+    { label: "Age", left: left.age ? String(left.age) : "—", right: right.age ? String(right.age) : "—", leftN: left.age ?? undefined, rightN: right.age ?? undefined, lower: true },
   ];
   return (
     <div className="mt-3 overflow-hidden rounded-md border">
       {rows.map((row) => {
-        const comparable = row.leftN !== undefined && row.rightN !== undefined && row.leftN !== row.rightN;
-        const leftWins = comparable && (row.lower ? row.leftN < row.rightN : row.leftN > row.rightN);
-        const rightWins = comparable && (row.lower ? row.rightN < row.leftN : row.rightN > row.leftN);
+        const leftNumber = row.leftN;
+        const rightNumber = row.rightN;
+        const comparable = leftNumber !== undefined && rightNumber !== undefined && leftNumber !== rightNumber;
+        const leftWins = comparable && (row.lower ? leftNumber < rightNumber : leftNumber > rightNumber);
+        const rightWins = comparable && (row.lower ? rightNumber < leftNumber : rightNumber > leftNumber);
         return (
           <div key={row.label} className="grid grid-cols-[1fr_6.25rem_1fr] items-center border-b px-2 py-2 text-xs last:border-b-0 sm:text-sm">
             <StatValue value={row.left} winner={leftWins} />
