@@ -153,16 +153,19 @@ export function AddDropButton({
 
   const positionRanks = useMemo(() => {
     const ranks = new Map<string, number>();
-    [...byId.values()]
-      .filter((candidate) => candidate.pos === player.pos)
-      .sort((a, b) => {
-        const pointsA = compareData?.players[a.id]?.seasonPts ?? 0;
-        const pointsB = compareData?.players[b.id]?.seasonPts ?? 0;
-        return pointsB - pointsA || a.name.localeCompare(b.name);
-      })
-      .forEach((candidate, index) => ranks.set(candidate.id, index + 1));
+    const allPlayers = [...byId.values()];
+    for (const position of new Set(allPlayers.map((candidate) => candidate.pos))) {
+      allPlayers
+        .filter((candidate) => candidate.pos === position)
+        .sort((a, b) => {
+          const pointsA = compareData?.players[a.id]?.seasonPts ?? 0;
+          const pointsB = compareData?.players[b.id]?.seasonPts ?? 0;
+          return pointsB - pointsA || a.name.localeCompare(b.name);
+        })
+        .forEach((candidate, index) => ranks.set(candidate.id, index + 1));
+    }
     return ranks;
-  }, [byId, compareData, player.pos]);
+  }, [byId, compareData]);
 
   const addsById = useMemo(() => new Map((adds ?? []).map((entry) => [entry.id, entry.count])), [adds]);
   const dropsById = useMemo(() => new Map((drops ?? []).map((entry) => [entry.id, entry.count])), [drops]);
