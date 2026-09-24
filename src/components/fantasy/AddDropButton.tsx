@@ -236,18 +236,34 @@ export function AddDropButton({
               {claimMode ? "let go if your claim wins" : "drop for"} {player.name}.
             </DialogDescription>
           </DialogHeader>
+          <div className="rounded-lg border bg-muted/40 px-3 py-2">
+            <p className="text-sm font-semibold">
+              Adding: {player.name} · {player.team} {player.pos}
+            </p>
+            <CompareLine info={newGuy} />
+          </div>
           <ul className="divide-y">
             {myIds.map((id) => {
               const p = byId.get(id);
+              const info = compareData?.players[id];
               return (
                 <li key={id} className="flex items-center justify-between gap-3 py-2">
-                  <span className="min-w-0 truncate text-base font-semibold">
-                    {p ? `${p.name} · ${p.team} ${p.pos}` : id}
+                  <span className="min-w-0">
+                    <span className="block truncate text-base font-semibold">
+                      {p ? `${p.name} · ${p.team} ${p.pos}` : id}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <CompareLine info={info} />
+                      {info && newGuy ? (
+                        <CompareDelta mine={newGuy.seasonAvg} theirs={info.seasonAvg} />
+                      ) : null}
+                    </span>
                   </span>
                   <Button
                     variant="outline"
                     disabled={pending}
                     onClick={() => void submit(id, p?.name ?? "")}
+                    className="shrink-0"
                   >
                     {claimMode ? "Claim" : "Drop"}
                   </Button>
@@ -255,6 +271,10 @@ export function AddDropButton({
               );
             })}
           </ul>
+          <p className="text-xs text-muted-foreground">
+            Green means that player is outscoring {player.name} per game — think twice before
+            dropping them.
+          </p>
         </DialogContent>
       </Dialog>
     </>
