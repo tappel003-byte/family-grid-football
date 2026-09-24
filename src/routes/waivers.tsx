@@ -62,7 +62,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function WaiversPage() {
-  const { league } = useLeague();
+  const { league: maybeLeague } = useLeague();
   const { user } = useAuth();
   const tz = useTimeZone();
   const queryClient = useQueryClient();
@@ -71,9 +71,10 @@ function WaiversPage() {
   const cancel = useServerFn(cancelClaim);
   const { data: claims = [] } = useQuery<ClaimRow[]>({ queryKey: ["waiver-claims"], queryFn: fetchClaims });
 
+  const waiverMode = maybeLeague?.rules.waiverMode;
   // Backup to the automatic Wednesday run: process anything overdue on open.
   useEffect(() => {
-    if (league.rules.waiverMode !== "waivers") return;
+    if (waiverMode !== "waivers") return;
     void run({ data: {} })
       .then((res) => {
         if (res.won + res.lost > 0) {
@@ -82,9 +83,12 @@ function WaiversPage() {
         }
       })
       .catch(() => undefined);
-  }, [league.rules.waiverMode, run, queryClient]);
+  }, [waiverMode, run, queryClient]);
 
-  const mySlot = league.teams.find((t) => t.userId === user?.id)?.slot;
+  if (!maybeLeague) return <LoadingScreen />;
+  const league = maybeLeague;
+
+  const mySlot = league.teams.findIndex((t) => t.userId === user?.id);
   const order = league.rules.waiverOrder;
   const rank = (slot: number) => {
     const i = order.indexOf(slot);
