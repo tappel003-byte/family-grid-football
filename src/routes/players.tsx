@@ -141,7 +141,7 @@ const GROUP_HELP: Record<string, ReadonlyArray<{ short: string; text: string }>>
     { short: "Pts", text: "Total fantasy points scored this season." },
     { short: "Avg", text: "Average fantasy points per game this season." },
     { short: "L3", text: "Average fantasy points over the player's last 3 games." },
-    { short: "Rnk", text: "Overall rank by total points in La Familia scoring." },
+    { short: "Rnk", text: "Rank by total points: overall for All players, or within the selected position." },
   ],
   Ownership: [
     { short: "Rst%", text: "Percentage of Sleeper leagues where the player is rostered." },
@@ -293,14 +293,30 @@ function PlayersPage() {
   const addsById = useMemo(() => new Map((adds ?? []).map((a) => [a.id, a.count])), [adds]);
   const dropsById = useMemo(() => new Map((drops ?? []).map((a) => [a.id, a.count])), [drops]);
 
-  /** Our own overall rank: every player ordered by season points in this league's scoring. */
-  const rankById = useMemo(() => {
-    const map = new Map<string, number>();
-    players
-      .map((p) => [p.id, insights?.players[p.id]?.seasonPts ?? 0, p.name] as const)
-      .sort((a, b) => b[1] - a[1] || a[2].localeCompare(b[2]))
-      .forEach(([id], i) => map.set(id, i + 1));
-    return map;
+  /** Overall and position ranks use season points in this league's scoring. */
+  const ranks = useMemo(() => {
+    const overall = new Map<string, number>();
+    const byPosition = new Map<string, Map<string, number>>();
+    const rankedPlayers = players.map(
+      (p) => ({ id: p.id, pos: p.pos, points: insights?.players[p.id]?.seasonPts ?? 0, name: p.name }),
+    );
+    const compare = (a: (typeof rankedPlayers)[number], b: (typeof rankedPlayers)[number]) =>
+      b.points - a.points || a.name.localeCompare(b.name);
+
+    rankedPlayers
+      .toSorted(compare)
+      .forEach((player, index) => overall.set(player.id, index + 1));
+
+    for (const position of new Set(rankedPlayers.map((player) => player.pos))) {
+      const positionRanks = new Map<string, number>();
+      rankedPlayers
+        .filter((player) => player.pos === position)
+        .toSorted(compare)
+        .forEach((player, index) => positionRanks.set(player.id, index + 1));
+      byPosition.set(position, positionRanks);
+    }
+
+    return { overall, byPosition };
   }, [players, insights]);
 
   const ownerByPlayer = useMemo(() => {
@@ -326,7 +342,7 @@ function PlayersPage() {
         const free = !ownerByPlayer.has(p.id);
         return {
           player: p,
-          rank: rankById.get(p.id) ?? 9999,
+          rank: (pos === "ALL" ? ranks.overall : ranks.byPosition.get(pos))?.get(p.id) ?? 9999,
           owner: ownerByPlayer.get(p.id) ?? null,
           proj,
           own,
@@ -399,7 +415,7 @@ function PlayersPage() {
     market,
     addsById,
     dropsById,
-    rankById,
+    ranks,
     watchedOnly,
     watched,
   ]);
