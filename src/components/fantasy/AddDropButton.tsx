@@ -359,10 +359,7 @@ export function AddDropButton({
               <DialogHeader>
                 <DialogTitle>{verb} {player.name}</DialogTitle>
                 <DialogDescription>
-                  {claimMode
-                    ? "His game has started, so this claim waits until Wednesday at 12:01 AM Eastern."
-                    : "Add now — free agency is first come, first served until his game starts."}{" "}
-                  {rosterFull ? "Pick who comes off your roster. Tap Compare to see them side by side." : "You have an open spot, or you can drop someone."}
+                  Pick who comes off your roster to add {player.name}.
                 </DialogDescription>
               </DialogHeader>
               {!rosterFull && (
