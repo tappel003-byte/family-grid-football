@@ -359,10 +359,7 @@ export function AddDropButton({
               <DialogHeader>
                 <DialogTitle>{verb} {player.name}</DialogTitle>
                 <DialogDescription>
-                  {claimMode
-                    ? "His game has started, so this claim waits until Wednesday at 12:01 AM Eastern."
-                    : "Add now — free agency is first come, first served until his game starts."}{" "}
-                  {rosterFull ? "Pick who comes off your roster. Tap Compare to see them side by side." : "You have an open spot, or you can drop someone."}
+                  Pick who comes off your roster to add {player.name}.
                 </DialogDescription>
               </DialogHeader>
               {!rosterFull && (
@@ -374,6 +371,13 @@ export function AddDropButton({
                 {candidates.map((p) => {
                   const info = compareData?.players[p.id];
                   const lockedNow = dropLocked(p);
+                  const matchup = matchupFor(compareData ?? null, p);
+                  const bye = isOnBye(compareData ?? null, p, league.currentWeek);
+                  const matchupText = bye
+                    ? "BYE"
+                    : matchup?.opponent
+                      ? `${matchup.home ? "vs" : "@"} ${matchup.opponent}`
+                      : null;
                   return (
                     <li key={p.id} className="flex items-center gap-3 p-2">
                       <img
@@ -383,11 +387,21 @@ export function AddDropButton({
                         onError={(e) => { e.currentTarget.src = teamLogoUrl(p.team); }}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">{p.name}</p>
+                        <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
+                          <span className="truncate">{p.name}</span>
+                          <InjuryBadge injury={p.injury} size="sm" />
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {p.pos} · {p.team}
-                          {info ? ` · ${fmt(info.seasonPts)} pts · L3 ${fmt(info.last3Avg)}` : ""}
+                          {` · Proj ${fmt(scoreFor(p, league.currentWeek, league).projected)}`}
+                          {matchupText ? ` · ${matchupText}` : ""}
                           {lockedNow ? " · locked" : ""}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {info ? `${fmt(info.seasonPts)} pts · L3 ${fmt(info.last3Avg)}` : "—"}
+                          {info && typeof positionRanks.get(p.id) === "number"
+                            ? ` · ${p.pos} #${positionRanks.get(p.id)}`
+                            : ""}
                         </p>
                       </div>
                       <Button size="sm" variant="secondary" className="rounded-full" onClick={() => setCompareId(p.id)}>
