@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,44 +16,109 @@ import { rosterIds, ownedIds, type League } from "@/lib/fantasy/league";
 import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
 import { placeClaim } from "@/lib/fantasy/waivers.functions";
 import { reloadLeague } from "@/lib/fantasy/store";
-import { gameStatusFor } from "@/lib/fantasy/hooks";
-import { insightsQueryOptions } from "@/components/fantasy/PlayerInsights";
+import {
+  gameStatusFor,
+  headshotUrl,
+  marketQueryOptions,
+  scoreFor,
+  teamLogoUrl,
+  trendingQueryOptions,
+} from "@/lib/fantasy/hooks";
+import {
+  insightsQueryOptions,
+  isOnBye,
+  matchupFor,
+} from "@/components/fantasy/PlayerInsights";
+import { InjuryBadge } from "@/components/fantasy/PlayerCell";
 import { cn } from "@/lib/utils";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import type { PlayerInsight } from "@/lib/insights.functions";
+import type { Ownership } from "@/lib/market.functions";
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
-/** One line of comparable numbers: season total and recent form. */
-function CompareLine({ info, className }: { info: PlayerInsight | undefined; className?: string }) {
-  if (!info) return <p className={cn("text-xs text-muted-foreground", className)}>No stats yet</p>;
+const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+
+type CompareStats = {
+  projection: number;
+  positionRank: number | null;
+  info: PlayerInsight | undefined;
+  ownership: Ownership | undefined;
+  adds: number;
+  drops: number;
+  matchup: string;
+  age: number | null;
+};
+
+function PlayerCardHeader({ player, label }: { player: SlimPlayer; label: string }) {
   return (
-    <p className={cn("text-xs text-muted-foreground tabular-nums", className)}>
-      Season {fmt(info.seasonPts)} · Avg {fmt(info.seasonAvg)} · Last 3 {fmt(info.last3Avg)}
-    </p>
+    <div className="min-w-0 text-center">
+      <p className="mb-2 text-xs font-bold uppercase text-muted-foreground">{label}</p>
+      <img
+        src={headshotUrl(player.id, player.pos, player.team)}
+        alt=""
+        className="mx-auto h-16 w-16 rounded-full bg-muted object-cover ring-1 ring-border sm:h-20 sm:w-20"
+        onError={(event) => {
+          event.currentTarget.src = teamLogoUrl(player.team);
+        }}
+      />
+      <p className="mt-2 min-h-10 text-sm font-bold leading-tight sm:text-base">{player.name}</p>
+      <div className="mt-1 flex min-h-6 flex-wrap items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
+        <span>{player.team} · {player.pos}</span>
+        <InjuryBadge injury={player.injury} size="sm" />
+      </div>
+    </div>
   );
 }
 
-/** Green/red gap versus the player being added, based on season average. */
-function CompareDelta({ mine, theirs }: { mine: number; theirs: number }) {
-  const diff = Math.round((theirs - mine) * 10) / 10;
-  if (Math.abs(diff) < 0.05) return <span className="text-xs text-muted-foreground">even</span>;
-  const better = diff > 0;
+function StatValue({ value, winner }: { value: string; winner?: boolean }) {
   return (
-    <span
-      className={cn(
-        "text-xs font-bold tabular-nums",
-        better ? "text-green-600 dark:text-green-400" : "text-destructive",
-      )}
-      title={
-        better
-          ? "Averaging more per game than the player you would add"
-          : "Averaging less per game than the player you would add"
-      }
-    >
-      {better ? "+" : "−"}
-      {fmt(Math.abs(diff))}/gm
+    <span className={cn("min-w-0 text-center font-bold tabular-nums", winner && "text-primary")}>
+      {value}
     </span>
+  );
+}
+
+function ComparisonRows({ left, right }: { left: CompareStats; right: CompareStats }) {
+  const rows: Array<{ label: string; left: string; right: string; leftN: number | undefined; rightN: number | undefined; lower?: boolean }> = [
+    { label: "Projected", left: fmt(left.projection), right: fmt(right.projection), leftN: left.projection, rightN: right.projection },
+    { label: "Position rank", left: left.positionRank ? `#${left.positionRank}` : "—", right: right.positionRank ? `#${right.positionRank}` : "—", leftN: left.positionRank ?? undefined, rightN: right.positionRank ?? undefined, lower: true },
+    { label: "Season points", left: left.info ? fmt(left.info.seasonPts) : "—", right: right.info ? fmt(right.info.seasonPts) : "—", leftN: left.info?.seasonPts, rightN: right.info?.seasonPts },
+    { label: "Points / game", left: left.info ? fmt(left.info.seasonAvg) : "—", right: right.info ? fmt(right.info.seasonAvg) : "—", leftN: left.info?.seasonAvg, rightN: right.info?.seasonAvg },
+    { label: "Last 3 avg", left: left.info ? fmt(left.info.last3Avg) : "—", right: right.info ? fmt(right.info.last3Avg) : "—", leftN: left.info?.last3Avg, rightN: right.info?.last3Avg },
+    { label: "Last 3 games", left: left.info?.last3.length ? left.info.last3.map(fmt).join(" · ") : "—", right: right.info?.last3.length ? right.info.last3.map(fmt).join(" · ") : "—", leftN: undefined, rightN: undefined },
+    { label: "Games played", left: left.info ? String(left.info.games) : "—", right: right.info ? String(right.info.games) : "—", leftN: left.info?.games, rightN: right.info?.games },
+    { label: "Rostered", left: left.ownership ? `${fmt(left.ownership.owned)}%` : "—", right: right.ownership ? `${fmt(right.ownership.owned)}%` : "—", leftN: left.ownership?.owned, rightN: right.ownership?.owned },
+    { label: "Started", left: left.ownership ? `${fmt(left.ownership.started)}%` : "—", right: right.ownership ? `${fmt(right.ownership.started)}%` : "—", leftN: left.ownership?.started, rightN: right.ownership?.started },
+    { label: "Roster trend", left: left.ownership ? `${left.ownership.change > 0 ? "+" : ""}${fmt(left.ownership.change)}%` : "—", right: right.ownership ? `${right.ownership.change > 0 ? "+" : ""}${fmt(right.ownership.change)}%` : "—", leftN: left.ownership?.change, rightN: right.ownership?.change },
+    { label: "Targets / game", left: left.info && left.info.targets > 0 ? fmt(left.info.targets) : "—", right: right.info && right.info.targets > 0 ? fmt(right.info.targets) : "—", leftN: left.info?.targets, rightN: right.info?.targets },
+    { label: "Snap share", left: left.info?.snapPct !== null && left.info?.snapPct !== undefined ? `${left.info.snapPct}%` : "—", right: right.info?.snapPct !== null && right.info?.snapPct !== undefined ? `${right.info.snapPct}%` : "—", leftN: left.info?.snapPct ?? undefined, rightN: right.info?.snapPct ?? undefined },
+    { label: "Recent adds", left: left.adds ? compact.format(left.adds) : "—", right: right.adds ? compact.format(right.adds) : "—", leftN: left.adds, rightN: right.adds },
+    { label: "Recent drops", left: left.drops ? compact.format(left.drops) : "—", right: right.drops ? compact.format(right.drops) : "—", leftN: left.drops, rightN: right.drops, lower: true },
+    { label: "Age", left: left.age ? String(left.age) : "—", right: right.age ? String(right.age) : "—", leftN: left.age ?? undefined, rightN: right.age ?? undefined, lower: true },
+  ];
+  return (
+    <div className="mt-3 overflow-hidden rounded-md border">
+      {rows.map((row) => {
+        const leftNumber = row.leftN;
+        const rightNumber = row.rightN;
+        const comparable = leftNumber !== undefined && rightNumber !== undefined && leftNumber !== rightNumber;
+        const leftWins = comparable && (row.lower ? leftNumber < rightNumber : leftNumber > rightNumber);
+        const rightWins = comparable && (row.lower ? rightNumber < leftNumber : rightNumber > leftNumber);
+        return (
+          <div key={row.label} className="grid grid-cols-[1fr_6.25rem_1fr] items-center border-b px-2 py-2 text-xs last:border-b-0 sm:text-sm">
+            <StatValue value={row.left} winner={leftWins} />
+            <span className="text-center text-muted-foreground">{row.label}</span>
+            <StatValue value={row.right} winner={rightWins} />
+          </div>
+        );
+      })}
+      <div className="grid grid-cols-[1fr_6.25rem_1fr] items-center px-2 py-2 text-xs sm:text-sm">
+        <StatValue value={left.matchup} />
+        <span className="text-center text-muted-foreground">Matchup</span>
+        <StatValue value={right.matchup} />
+      </div>
+    </div>
   );
 }
 
@@ -74,12 +140,35 @@ export function AddDropButton({
   const [pending, setPending] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [showOtherPositions, setShowOtherPositions] = useState(false);
   // Comparison numbers for the drop picker — shares the page's cached insights.
   const { data: compareData } = useQuery({
     ...insightsQueryOptions(league.currentWeek, league.scoring),
     enabled: dropOpen,
   });
-  const newGuy = compareData?.players[player.id];
+  const { data: market } = useQuery({ ...marketQueryOptions, enabled: dropOpen });
+  const { data: adds } = useQuery({ ...trendingQueryOptions("add"), enabled: dropOpen });
+  const { data: drops } = useQuery({ ...trendingQueryOptions("drop"), enabled: dropOpen });
+
+  const positionRanks = useMemo(() => {
+    const ranks = new Map<string, number>();
+    const allPlayers = [...byId.values()];
+    for (const position of new Set(allPlayers.map((candidate) => candidate.pos))) {
+      allPlayers
+        .filter((candidate) => candidate.pos === position)
+        .sort((a, b) => {
+          const pointsA = compareData?.players[a.id]?.seasonPts ?? 0;
+          const pointsB = compareData?.players[b.id]?.seasonPts ?? 0;
+          return pointsB - pointsA || a.name.localeCompare(b.name);
+        })
+        .forEach((candidate, index) => ranks.set(candidate.id, index + 1));
+    }
+    return ranks;
+  }, [byId, compareData]);
+
+  const addsById = useMemo(() => new Map((adds ?? []).map((entry) => [entry.id, entry.count])), [adds]);
+  const dropsById = useMemo(() => new Map((drops ?? []).map((entry) => [entry.id, entry.count])), [drops]);
 
   const myTeam = user ? league.teams.find((t) => t.userId === user.id) : undefined;
   if (!myTeam) return null;
@@ -159,6 +248,35 @@ export function AddDropButton({
 
   const submit = claimMode ? runClaim : run;
 
+  const rosterPlayers = myIds.flatMap((id) => {
+    const rosterPlayer = byId.get(id);
+    return rosterPlayer ? [rosterPlayer] : [];
+  });
+  const samePosition = rosterPlayers.filter((rosterPlayer) => rosterPlayer.pos === player.pos);
+  const otherPositions = rosterPlayers.filter((rosterPlayer) => rosterPlayer.pos !== player.pos);
+  const candidates = showOtherPositions ? [...samePosition, ...otherPositions] : samePosition;
+  const safeIndex = candidates.length ? candidateIndex % candidates.length : 0;
+  const candidate = candidates[safeIndex];
+
+  const compareStats = (subject: SlimPlayer): CompareStats => {
+    const matchup = matchupFor(compareData ?? null, subject);
+    const matchupText = isOnBye(compareData ?? null, subject, league.currentWeek)
+      ? "BYE"
+      : matchup?.opponent
+        ? `${matchup.home ? "vs" : "@"} ${matchup.opponent}${matchup.grade ? ` · ${matchup.grade.label}` : ""}`
+        : "—";
+    return {
+      projection: scoreFor(subject, league.currentWeek, league).projected,
+      positionRank: positionRanks.get(subject.id) ?? null,
+      info: compareData?.players[subject.id],
+      ownership: market?.ownership[subject.id],
+      adds: addsById.get(subject.id) ?? 0,
+      drops: dropsById.get(subject.id) ?? 0,
+      matchup: matchupText,
+      age: subject.age,
+    };
+  };
+
   if (onMyTeam) {
     return (
       <>
@@ -220,7 +338,11 @@ export function AddDropButton({
             toast.error(blocked);
             return;
           }
-          if (rosterFull) setDropOpen(true);
+          if (rosterFull) {
+            setCandidateIndex(0);
+            setShowOtherPositions(false);
+            setDropOpen(true);
+          }
           else void submit(null, "");
         }}
         className="font-semibold"
@@ -228,53 +350,93 @@ export function AddDropButton({
         {claimMode ? "Claim" : "Add"}
       </Button>
       <Dialog open={dropOpen} onOpenChange={setDropOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-h-[92vh] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
           <DialogHeader>
-            <DialogTitle>Who comes off the roster?</DialogTitle>
+            <DialogTitle>Compare before you claim</DialogTitle>
             <DialogDescription>
-              Your roster is full, so pick one player to{" "}
-              {claimMode ? "let go if your claim wins" : "drop for"} {player.name}.
+              Your roster is full. Compare {player.name} with one player you could drop.
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg border bg-muted/40 px-3 py-2">
-            <p className="text-sm font-semibold">
-              Adding: {player.name} · {player.team} {player.pos}
-            </p>
-            <CompareLine info={newGuy} />
-          </div>
-          <ul className="divide-y">
-            {myIds.map((id) => {
-              const p = byId.get(id);
-              const info = compareData?.players[id];
-              return (
-                <li key={id} className="flex items-center justify-between gap-3 py-2">
-                  <span className="min-w-0">
-                    <span className="block truncate text-base font-semibold">
-                      {p ? `${p.name} · ${p.team} ${p.pos}` : id}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <CompareLine info={info} />
-                      {info && newGuy ? (
-                        <CompareDelta mine={newGuy.seasonAvg} theirs={info.seasonAvg} />
-                      ) : null}
-                    </span>
-                  </span>
-                  <Button
-                    variant="outline"
-                    disabled={pending}
-                    onClick={() => void submit(id, p?.name ?? "")}
-                    className="shrink-0"
-                  >
-                    {claimMode ? "Claim" : "Drop"}
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="text-xs text-muted-foreground">
-            Green means that player is outscoring {player.name} per game — think twice before
-            dropping them.
-          </p>
+          {candidate ? (
+            <>
+              <div className="grid grid-cols-[1fr_2.5rem_1fr] items-start gap-2">
+                <PlayerCardHeader player={player} label="Claim" />
+                <div className="pt-24 text-center text-xs font-bold text-muted-foreground">VS</div>
+                <PlayerCardHeader player={candidate} label="Drop" />
+              </div>
+              <ComparisonRows left={compareStats(player)} right={compareStats(candidate)} />
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Previous player"
+                  disabled={candidates.length < 2}
+                  onClick={() => setCandidateIndex((index) => (index - 1 + candidates.length) % candidates.length)}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <div className="min-w-0 text-center">
+                  <p className="text-sm font-semibold">{safeIndex + 1} of {candidates.length}</p>
+                  {otherPositions.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto px-1 py-0 text-xs"
+                      onClick={() => {
+                        setCandidateIndex(0);
+                        setShowOtherPositions((value) => !value);
+                      }}
+                    >
+                      {showOtherPositions ? `Only ${player.pos}s` : "Include other positions"}
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Next player"
+                  disabled={candidates.length < 2}
+                  onClick={() => setCandidateIndex((index) => (index + 1) % candidates.length)}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </div>
+              {rules.waiverMode === "locked" && ["live", "final"].includes(gameStatusFor(candidate.team, league.currentWeek)) ? (
+                <p className="text-center text-sm font-semibold text-destructive">
+                  {candidate.name} is locked because the game has started.
+                </p>
+              ) : (
+                <Button
+                  disabled={pending}
+                  onClick={() => void submit(candidate.id, candidate.name)}
+                  className="min-h-12 w-full whitespace-normal px-3 py-2 font-bold"
+                >
+                  {pending
+                    ? claimMode ? "Placing claim…" : "Making move…"
+                    : `${claimMode ? "Drop" : "Drop"} ${candidate.name} & ${claimMode ? "Claim" : "Add"} ${player.name}`}
+                </Button>
+              )}
+            </>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="font-semibold">No {player.pos}s are available to drop.</p>
+              {otherPositions.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => {
+                    setCandidateIndex(0);
+                    setShowOtherPositions(true);
+                  }}
+                >
+                  Compare other positions
+                </Button>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
