@@ -135,15 +135,25 @@ export function PlayerCell({
   // names aren't cut off; photo and details sit beneath it.
   if (mobileMatchup) {
     return (
-      <div className={cn("min-w-0", align === "right" && "text-right")}>
+      <div className={cn("min-w-0", align === "right" ? "text-right" : "text-left")}>
         <span className="block truncate text-sm font-semibold leading-tight sm:text-base">
           {onField && <FootballIcon className="mr-1 inline-block h-4 w-4 align-[-2px] text-primary" />}
           {player.name}
         </span>
-        <div className={cn("mt-1 flex min-w-0 items-center gap-2", align === "right" && "flex-row-reverse")}>
+        <div
+          className={cn(
+            "mt-1 flex min-w-0 items-center gap-2",
+            align === "right" ? "flex-row-reverse justify-start" : "justify-start",
+          )}
+        >
           {photoEl}
-          <div className="min-w-0">
-            <div className="flex items-center gap-1 text-xs">
+          <div className={cn("min-w-0", align === "right" ? "text-right" : "text-left")}>
+            <div
+              className={cn(
+                "flex items-center gap-1 text-xs",
+                align === "right" && "justify-end",
+              )}
+            >
               <span className="font-semibold uppercase tracking-wide text-muted-foreground">
                 {player.team} · {player.pos}
               </span>
