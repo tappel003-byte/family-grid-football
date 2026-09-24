@@ -31,7 +31,21 @@ export const makeRosterMove = createServerFn({ method: "POST" })
       .eq("slug", "main")
       .maybeSingle();
     if (!leagueRow) throw new Error("The league is not set up yet.");
-    const ROSTER_LIMIT = normalizeRules(leagueRow.rules).rosterLimit;
+    const rules = normalizeRules(leagueRow.rules);
+    const ROSTER_LIMIT = rules.rosterLimit;
+
+    // Once a player's game has started he can't be grabbed instantly this week.
+    if (data.addId && rules.waiverMode !== "free") {
+      const { lockedChecker } = await import("./kickoff.server");
+      const started = await lockedChecker(leagueRow.current_week);
+      if (started(data.addId)) {
+        throw new Error(
+          rules.waiverMode === "waivers"
+            ? `${data.addName}'s game has started — put in a waiver claim instead. It processes Wednesday at midnight Eastern.`
+            : `${data.addName}'s game has started — he can't be added this week.`,
+        );
+      }
+    }
 
     const { data: teamRows, error: teamsError } = await supabaseAdmin
       .from("teams")

@@ -71,6 +71,13 @@
       "when": 1790184806121,
       "tag": "0009_restrict_league_reads_to_members",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790220162385,
+      "tag": "0010_weekly_waiver_run",
+      "breakpoints": true
     }
   ]
 }

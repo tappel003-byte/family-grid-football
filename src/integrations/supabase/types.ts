@@ -511,6 +511,21 @@ export type Database = {
           },
         ]
       }
+      waiver_run_token: {
+        Row: {
+          id: number
+          token: string
+        }
+        Insert: {
+          id?: number
+          token?: string
+        }
+        Update: {
+          id?: number
+          token?: string
+        }
+        Relationships: []
+      }
       weekly_results: {
         Row: {
           created_at: string
