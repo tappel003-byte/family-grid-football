@@ -140,12 +140,32 @@ export function AddDropButton({
   const [pending, setPending] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [showOtherPositions, setShowOtherPositions] = useState(false);
   // Comparison numbers for the drop picker — shares the page's cached insights.
   const { data: compareData } = useQuery({
     ...insightsQueryOptions(league.currentWeek, league.scoring),
     enabled: dropOpen,
   });
-  const newGuy = compareData?.players[player.id];
+  const { data: market } = useQuery({ ...marketQueryOptions, enabled: dropOpen });
+  const { data: adds } = useQuery({ ...trendingQueryOptions("add"), enabled: dropOpen });
+  const { data: drops } = useQuery({ ...trendingQueryOptions("drop"), enabled: dropOpen });
+
+  const positionRanks = useMemo(() => {
+    const ranks = new Map<string, number>();
+    [...byId.values()]
+      .filter((candidate) => candidate.pos === player.pos)
+      .sort((a, b) => {
+        const pointsA = compareData?.players[a.id]?.seasonPts ?? 0;
+        const pointsB = compareData?.players[b.id]?.seasonPts ?? 0;
+        return pointsB - pointsA || a.name.localeCompare(b.name);
+      })
+      .forEach((candidate, index) => ranks.set(candidate.id, index + 1));
+    return ranks;
+  }, [byId, compareData, player.pos]);
+
+  const addsById = useMemo(() => new Map((adds ?? []).map((entry) => [entry.id, entry.count])), [adds]);
+  const dropsById = useMemo(() => new Map((drops ?? []).map((entry) => [entry.id, entry.count])), [drops]);
 
   const myTeam = user ? league.teams.find((t) => t.userId === user.id) : undefined;
   if (!myTeam) return null;
@@ -225,6 +245,35 @@ export function AddDropButton({
 
   const submit = claimMode ? runClaim : run;
 
+  const rosterPlayers = myIds.flatMap((id) => {
+    const rosterPlayer = byId.get(id);
+    return rosterPlayer ? [rosterPlayer] : [];
+  });
+  const samePosition = rosterPlayers.filter((rosterPlayer) => rosterPlayer.pos === player.pos);
+  const otherPositions = rosterPlayers.filter((rosterPlayer) => rosterPlayer.pos !== player.pos);
+  const candidates = showOtherPositions ? [...samePosition, ...otherPositions] : samePosition;
+  const safeIndex = candidates.length ? candidateIndex % candidates.length : 0;
+  const candidate = candidates[safeIndex];
+
+  const compareStats = (subject: SlimPlayer): CompareStats => {
+    const matchup = matchupFor(compareData ?? null, subject);
+    const matchupText = isOnBye(compareData ?? null, subject, league.currentWeek)
+      ? "BYE"
+      : matchup?.opponent
+        ? `${matchup.home ? "vs" : "@"} ${matchup.opponent}${matchup.grade ? ` · ${matchup.grade.label}` : ""}`
+        : "—";
+    return {
+      projection: scoreFor(subject, league.currentWeek, league).projected,
+      positionRank: positionRanks.get(subject.id) ?? null,
+      info: compareData?.players[subject.id],
+      ownership: market?.ownership[subject.id],
+      adds: addsById.get(subject.id) ?? 0,
+      drops: dropsById.get(subject.id) ?? 0,
+      matchup: matchupText,
+      age: subject.age,
+    };
+  };
+
   if (onMyTeam) {
     return (
       <>
@@ -286,7 +335,11 @@ export function AddDropButton({
             toast.error(blocked);
             return;
           }
-          if (rosterFull) setDropOpen(true);
+          if (rosterFull) {
+            setCandidateIndex(0);
+            setShowOtherPositions(false);
+            setDropOpen(true);
+          }
           else void submit(null, "");
         }}
         className="font-semibold"
@@ -294,53 +347,93 @@ export function AddDropButton({
         {claimMode ? "Claim" : "Add"}
       </Button>
       <Dialog open={dropOpen} onOpenChange={setDropOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-h-[92vh] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
           <DialogHeader>
-            <DialogTitle>Who comes off the roster?</DialogTitle>
+            <DialogTitle>Compare before you claim</DialogTitle>
             <DialogDescription>
-              Your roster is full, so pick one player to{" "}
-              {claimMode ? "let go if your claim wins" : "drop for"} {player.name}.
+              Your roster is full. Compare {player.name} with one player you could drop.
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg border bg-muted/40 px-3 py-2">
-            <p className="text-sm font-semibold">
-              Adding: {player.name} · {player.team} {player.pos}
-            </p>
-            <CompareLine info={newGuy} />
-          </div>
-          <ul className="divide-y">
-            {myIds.map((id) => {
-              const p = byId.get(id);
-              const info = compareData?.players[id];
-              return (
-                <li key={id} className="flex items-center justify-between gap-3 py-2">
-                  <span className="min-w-0">
-                    <span className="block truncate text-base font-semibold">
-                      {p ? `${p.name} · ${p.team} ${p.pos}` : id}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <CompareLine info={info} />
-                      {info && newGuy ? (
-                        <CompareDelta mine={newGuy.seasonAvg} theirs={info.seasonAvg} />
-                      ) : null}
-                    </span>
-                  </span>
-                  <Button
-                    variant="outline"
-                    disabled={pending}
-                    onClick={() => void submit(id, p?.name ?? "")}
-                    className="shrink-0"
-                  >
-                    {claimMode ? "Claim" : "Drop"}
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="text-xs text-muted-foreground">
-            Green means that player is outscoring {player.name} per game — think twice before
-            dropping them.
-          </p>
+          {candidate ? (
+            <>
+              <div className="grid grid-cols-[1fr_2.5rem_1fr] items-start gap-2">
+                <PlayerCardHeader player={player} label="Claim" />
+                <div className="pt-24 text-center text-xs font-bold text-muted-foreground">VS</div>
+                <PlayerCardHeader player={candidate} label="Drop" />
+              </div>
+              <ComparisonRows left={compareStats(player)} right={compareStats(candidate)} />
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Previous player"
+                  disabled={candidates.length < 2}
+                  onClick={() => setCandidateIndex((index) => (index - 1 + candidates.length) % candidates.length)}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <div className="min-w-0 text-center">
+                  <p className="text-sm font-semibold">{safeIndex + 1} of {candidates.length}</p>
+                  {otherPositions.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto px-1 py-0 text-xs"
+                      onClick={() => {
+                        setCandidateIndex(0);
+                        setShowOtherPositions((value) => !value);
+                      }}
+                    >
+                      {showOtherPositions ? `Only ${player.pos}s` : "Include other positions"}
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Next player"
+                  disabled={candidates.length < 2}
+                  onClick={() => setCandidateIndex((index) => (index + 1) % candidates.length)}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </div>
+              {rules.waiverMode === "locked" && ["live", "final"].includes(gameStatusFor(candidate.team, league.currentWeek)) ? (
+                <p className="text-center text-sm font-semibold text-destructive">
+                  {candidate.name} is locked because the game has started.
+                </p>
+              ) : (
+                <Button
+                  disabled={pending}
+                  onClick={() => void submit(candidate.id, candidate.name)}
+                  className="min-h-12 w-full whitespace-normal px-3 py-2 font-bold"
+                >
+                  {pending
+                    ? claimMode ? "Placing claim…" : "Making move…"
+                    : `${claimMode ? "Drop" : "Drop"} ${candidate.name} & ${claimMode ? "Claim" : "Add"} ${player.name}`}
+                </Button>
+              )}
+            </>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="font-semibold">No {player.pos}s are available to drop.</p>
+              {otherPositions.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => {
+                    setCandidateIndex(0);
+                    setShowOtherPositions(true);
+                  }}
+                >
+                  Compare other positions
+                </Button>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
