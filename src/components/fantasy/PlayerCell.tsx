@@ -105,76 +105,109 @@ export function PlayerCell({
       : game?.status === "final"
         ? `Final · ${scheduleLine}`
         : scheduleLine;
+  const photoEl = (
+    <div className={cn("relative shrink-0", photo === "desktop" && "hidden sm:block")}>
+      <img
+        src={headshotUrl(player.id, player.pos, player.team)}
+        alt=""
+        loading="lazy"
+        className={cn(
+          "rounded-full bg-muted object-cover ring-1 ring-border",
+          compact ? "h-10 w-10" : "h-12 w-12",
+          info?.severity === "out" && "opacity-70 ring-2 ring-injury-out",
+        )}
+        onError={(e) => {
+          e.currentTarget.src = teamLogoUrl(player.team);
+        }}
+      />
+      {player.pos !== "DEF" && (
+        <img
+          src={teamLogoUrl(player.team)}
+          alt=""
+          loading="lazy"
+          className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-background p-[1px] ring-1 ring-border"
+        />
+      )}
+    </div>
+  );
+
+  // Mobile matchup card: the name gets its own full-width line up top so long
+  // names aren't cut off; photo and details sit beneath it.
+  if (mobileMatchup) {
+    return (
+      <div className={cn("min-w-0", align === "right" && "text-right")}>
+        <span className="block truncate text-sm font-semibold leading-tight sm:text-base">
+          {onField && <FootballIcon className="mr-1 inline-block h-4 w-4 align-[-2px] text-primary" />}
+          {player.name}
+        </span>
+        <div className={cn("mt-1 flex min-w-0 items-center gap-2", align === "right" && "flex-row-reverse")}>
+          {photoEl}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1 text-xs">
+              <span className="font-semibold uppercase tracking-wide text-muted-foreground">
+                {player.team} · {player.pos}
+              </span>
+              <InjuryBadge injury={player.injury} size="sm" />
+              {week !== undefined && <ByeBadge player={player} week={week} size="sm" />}
+            </div>
+            {showGame && gameLine && (
+              <div
+                className={cn(
+                  "mt-0.5 whitespace-normal text-xs font-semibold leading-snug text-foreground/75",
+                  onField && "text-primary",
+                )}
+              >
+                {gameLine}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
         "flex min-w-0 items-center gap-3",
-        mobileMatchup && "gap-2",
         align === "right" && "flex-row-reverse text-right",
       )}
     >
-      <div className={cn("relative shrink-0", photo === "desktop" && "hidden sm:block")}>
-        <img
-          src={headshotUrl(player.id, player.pos, player.team)}
-          alt=""
-          loading="lazy"
-          className={cn(
-            "rounded-full bg-muted object-cover ring-1 ring-border",
-            compact ? "h-10 w-10" : "h-12 w-12",
-            info?.severity === "out" && "opacity-70 ring-2 ring-injury-out",
-          )}
-          onError={(e) => {
-            e.currentTarget.src = teamLogoUrl(player.team);
-          }}
-        />
-        {player.pos !== "DEF" && (
-          <img
-            src={teamLogoUrl(player.team)}
-            alt=""
-            loading="lazy"
-            className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-background p-[1px] ring-1 ring-border"
-          />
-        )}
-      </div>
+      {photoEl}
       <div className="min-w-0">
         <div
           className={cn(
             "flex min-w-0 items-center gap-2",
-            mobileMatchup && "block",
             align === "right" && "flex-row-reverse",
           )}
         >
-          <span className={cn("truncate text-base font-semibold leading-tight sm:text-lg", mobileMatchup && "block text-sm sm:text-base")}>
+          <span className={cn("truncate text-base font-semibold leading-tight sm:text-lg")}>
             {onField && (
               <FootballIcon
                 className={cn(
                   "mr-1 inline-block h-4 w-4 align-[-2px] text-primary",
-                  align === "right" && !mobileMatchup && "ml-1 mr-0",
+                  align === "right" && "ml-1 mr-0",
                 )}
               />
             )}
             {player.name}
           </span>
-          {!mobileMatchup && <InjuryBadge injury={player.injury} size={compact ? "sm" : "md"} />}
-          {!mobileMatchup && week !== undefined && <ByeBadge player={player} week={week} size={compact ? "sm" : "md"} />}
+          <InjuryBadge injury={player.injury} size={compact ? "sm" : "md"} />
+          {week !== undefined && <ByeBadge player={player} week={week} size={compact ? "sm" : "md"} />}
         </div>
         <div
           className={cn(
             "mt-0.5 flex items-center gap-2 text-sm",
-            mobileMatchup && "gap-1 text-xs",
             align === "right" && "justify-end",
           )}
         >
           <span className="font-semibold uppercase tracking-wide text-muted-foreground">
             {player.team} · {player.pos}
           </span>
-          {mobileMatchup && <InjuryBadge injury={player.injury} size="sm" />}
-          {mobileMatchup && week !== undefined && <ByeBadge player={player} week={week} size="sm" />}
           {info && (
             <span
               className={cn(
                 "font-semibold",
-                mobileMatchup && "hidden",
                 info.severity === "out" ? "text-injury-out" : "text-muted-foreground",
               )}
             >
@@ -185,8 +218,7 @@ export function PlayerCell({
         {showGame && gameLine && (
           <div
             className={cn(
-              "mt-0.5 text-xs font-semibold leading-snug text-foreground/75",
-              mobileMatchup ? "whitespace-normal" : "truncate",
+              "mt-0.5 truncate text-xs font-semibold leading-snug text-foreground/75",
               onField && "text-primary",
               align === "right" && "text-right",
             )}
