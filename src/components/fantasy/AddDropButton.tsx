@@ -398,7 +398,7 @@ export function AddDropButton({
                           {lockedNow ? " · locked" : ""}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {info ? `${fmt(info.seasonPts)} pts · L3 ${fmt(info.last3Avg)}` : "—"}
+                          {info ? `${fmt(info.seasonPts)} season pts · L3 ${fmt(info.last3Avg)}` : "—"}
                           {info && typeof positionRanks.get(p.id) === "number"
                             ? ` · ${p.pos} #${positionRanks.get(p.id)}`
                             : ""}
