@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +16,45 @@ import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
 import { placeClaim } from "@/lib/fantasy/waivers.functions";
 import { reloadLeague } from "@/lib/fantasy/store";
 import { gameStatusFor } from "@/lib/fantasy/hooks";
+import { insightsQueryOptions } from "@/components/fantasy/PlayerInsights";
+import { cn } from "@/lib/utils";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
+import type { PlayerInsight } from "@/lib/insights.functions";
+
+const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+
+/** One line of comparable numbers: season total and recent form. */
+function CompareLine({ info, className }: { info: PlayerInsight | undefined; className?: string }) {
+  if (!info) return <p className={cn("text-xs text-muted-foreground", className)}>No stats yet</p>;
+  return (
+    <p className={cn("text-xs text-muted-foreground tabular-nums", className)}>
+      Season {fmt(info.seasonPts)} · Avg {fmt(info.seasonAvg)} · Last 3 {fmt(info.last3Avg)}
+    </p>
+  );
+}
+
+/** Green/red gap versus the player being added, based on season average. */
+function CompareDelta({ mine, theirs }: { mine: number; theirs: number }) {
+  const diff = Math.round((theirs - mine) * 10) / 10;
+  if (Math.abs(diff) < 0.05) return <span className="text-xs text-muted-foreground">even</span>;
+  const better = diff > 0;
+  return (
+    <span
+      className={cn(
+        "text-xs font-bold tabular-nums",
+        better ? "text-green-600 dark:text-green-400" : "text-destructive",
+      )}
+      title={
+        better
+          ? "Averaging more per game than the player you would add"
+          : "Averaging less per game than the player you would add"
+      }
+    >
+      {better ? "+" : "−"}
+      {fmt(Math.abs(diff))}/gm
+    </span>
+  );
+}
 
 /** Add a free agent to your own team, or drop someone you already have. */
 export function AddDropButton({
