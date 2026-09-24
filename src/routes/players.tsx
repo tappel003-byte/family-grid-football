@@ -303,15 +303,15 @@ function PlayersPage() {
     const compare = (a: (typeof rankedPlayers)[number], b: (typeof rankedPlayers)[number]) =>
       b.points - a.points || a.name.localeCompare(b.name);
 
-    rankedPlayers
-      .toSorted(compare)
+    [...rankedPlayers]
+      .sort(compare)
       .forEach((player, index) => overall.set(player.id, index + 1));
 
     for (const position of new Set(rankedPlayers.map((player) => player.pos))) {
       const positionRanks = new Map<string, number>();
-      rankedPlayers
+      [...rankedPlayers]
         .filter((player) => player.pos === position)
-        .toSorted(compare)
+        .sort(compare)
         .forEach((player, index) => positionRanks.set(player.id, index + 1));
       byPosition.set(position, positionRanks);
     }
