@@ -22,6 +22,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StandingsRouteImport } from './routes/standings'
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TradesRouteImport } from './routes/trades'
+import { Route as WaiversRouteImport } from './routes/waivers'
 import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
 import { Route as ApiPublicNflScheduleRouteImport } from './routes/api/public/nfl-schedule'
 import { Route as ApiPublicRunWaiversRouteImport } from './routes/api/public/run-waivers'
@@ -91,6 +92,11 @@ const TradesRoute = TradesRouteImport.update({
   path: '/trades',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WaiversRoute = WaiversRouteImport.update({
+  id: '/waivers',
+  path: '/waivers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TeamTeamIdRoute = TeamTeamIdRouteImport.update({
   id: '/team/$teamId',
   path: '/team/$teamId',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/standings': typeof StandingsRoute
   '/teams': typeof TeamsRoute
   '/trades': typeof TradesRoute
+  '/waivers': typeof WaiversRoute
   '/team/$teamId': typeof TeamTeamIdRoute
   '/api/public/nfl-schedule': typeof ApiPublicNflScheduleRoute
   '/api/public/run-waivers': typeof ApiPublicRunWaiversRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/standings': typeof StandingsRoute
   '/teams': typeof TeamsRoute
   '/trades': typeof TradesRoute
+  '/waivers': typeof WaiversRoute
   '/team/$teamId': typeof TeamTeamIdRoute
   '/api/public/nfl-schedule': typeof ApiPublicNflScheduleRoute
   '/api/public/run-waivers': typeof ApiPublicRunWaiversRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/standings': typeof StandingsRoute
   '/teams': typeof TeamsRoute
   '/trades': typeof TradesRoute
+  '/waivers': typeof WaiversRoute
   '/team/$teamId': typeof TeamTeamIdRoute
   '/api/public/nfl-schedule': typeof ApiPublicNflScheduleRoute
   '/api/public/run-waivers': typeof ApiPublicRunWaiversRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/standings'
     | '/teams'
     | '/trades'
+    | '/waivers'
     | '/team/$teamId'
     | '/api/public/nfl-schedule'
     | '/api/public/run-waivers'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/standings'
     | '/teams'
     | '/trades'
+    | '/waivers'
     | '/team/$teamId'
     | '/api/public/nfl-schedule'
     | '/api/public/run-waivers'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/standings'
     | '/teams'
     | '/trades'
+    | '/waivers'
     | '/team/$teamId'
     | '/api/public/nfl-schedule'
     | '/api/public/run-waivers'
@@ -233,6 +245,7 @@ export interface RootRouteChildren {
   StandingsRoute: typeof StandingsRoute
   TeamsRoute: typeof TeamsRoute
   TradesRoute: typeof TradesRoute
+  WaiversRoute: typeof WaiversRoute
   TeamTeamIdRoute: typeof TeamTeamIdRoute
   ApiPublicNflScheduleRoute: typeof ApiPublicNflScheduleRoute
   ApiPublicRunWaiversRoute: typeof ApiPublicRunWaiversRoute
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TradesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/waivers': {
+      id: '/waivers'
+      path: '/waivers'
+      fullPath: '/waivers'
+      preLoaderRoute: typeof WaiversRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/team/$teamId': {
       id: '/team/$teamId'
       path: '/team/$teamId'
@@ -369,6 +389,7 @@ const rootRouteChildren: RootRouteChildren = {
   StandingsRoute: StandingsRoute,
   TeamsRoute: TeamsRoute,
   TradesRoute: TradesRoute,
+  WaiversRoute: WaiversRoute,
   TeamTeamIdRoute: TeamTeamIdRoute,
   ApiPublicNflScheduleRoute: ApiPublicNflScheduleRoute,
   ApiPublicRunWaiversRoute: ApiPublicRunWaiversRoute,
