@@ -74,6 +74,12 @@ export function AddDropButton({
   const [pending, setPending] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
+  // Comparison numbers for the drop picker — shares the page's cached insights.
+  const { data: compareData } = useQuery({
+    ...insightsQueryOptions(league.currentWeek, league.scoring),
+    enabled: dropOpen,
+  });
+  const newGuy = compareData?.players[player.id];
 
   const myTeam = user ? league.teams.find((t) => t.userId === user.id) : undefined;
   if (!myTeam) return null;
