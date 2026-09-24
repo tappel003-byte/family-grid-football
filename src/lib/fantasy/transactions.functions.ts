@@ -41,7 +41,7 @@ export const makeRosterMove = createServerFn({ method: "POST" })
       if (started(data.addId)) {
         throw new Error(
           rules.waiverMode === "waivers"
-            ? `${data.addName}'s game has started — put in a waiver claim instead. It processes Wednesday at midnight Eastern.`
+            ? `${data.addName}'s game has started — put in a waiver claim instead. It processes Wednesday at 12:01 AM Eastern.`
             : `${data.addName}'s game has started — he can't be added this week.`,
         );
       }
@@ -80,7 +80,7 @@ export const makeRosterMove = createServerFn({ method: "POST" })
           ...(((t.bench as string[]) ?? []) as string[]),
           ...((((t as { ir?: string[] }).ir as string[]) ?? []) as string[]),
         ];
-        return ids.includes(data.addId!);
+        return data.addId ? ids.includes(data.addId) : false;
       });
       if (taken) {
         throw new Error(
