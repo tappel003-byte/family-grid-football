@@ -2,6 +2,22 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { normalizeRules } from "./rules";
 
+type TeamRow = {
+  id: string;
+  slot: number;
+  name: string;
+  user_id: string | null;
+  starters: Array<string | null> | null;
+  bench: string[] | null;
+};
+
+function idsOf(team: TeamRow): string[] {
+  return [
+    ...(((team.starters as Array<string | null>) ?? []).filter(Boolean) as string[]),
+    ...(((team.bench as string[]) ?? []) as string[]),
+  ];
+}
+
 export type ClaimRow = {
   id: string;
   team_slot: number;
