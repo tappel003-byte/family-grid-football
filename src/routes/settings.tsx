@@ -554,7 +554,7 @@ function SettingsPage() {
               >
                 <option value="free">Grab anybody, anytime</option>
                 <option value="locked">Locked once a player's game kicks off</option>
-                <option value="waivers">Claim order — pickups wait and process in order</option>
+                <option value="waivers">Wednesday free agency — game-locked players go to claims</option>
               </select>
             </div>
             {league.rules.waiverMode === "waivers" && (
@@ -580,8 +580,8 @@ function SettingsPage() {
                   ))}
                 </select>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  A player dropped or added stays on claims until this day, then goes to whoever
-                  claimed him first in the order.
+                  Claims process Wednesday at 12:01 AM Eastern, lowest-ranked team first. Then
+                  free agents are immediate pickups until each player's game starts.
                 </p>
               </div>
             )}
@@ -677,7 +677,7 @@ function SettingsPage() {
         <section className="rounded-lg border bg-card p-5 shadow-sm">
           <h2 className="font-display text-2xl font-bold">Waiver claims</h2>
           <p className="mt-1 text-muted-foreground">
-            When the league uses claim order, pickups wait here until waivers run.
+            Only players whose game has started wait here. Unstarted free agents are immediate pickups.
           </p>
           {claims.filter((c) => c.status === "pending").length === 0 ? (
             <p className="mt-3 text-muted-foreground">No claims waiting.</p>

@@ -25,7 +25,7 @@ export const Route = createFileRoute("/waivers")({
   }),
   component: () => (
     <AppShell>
-      <PageTitle title="Waivers" subtitle="Claims run Wednesday at midnight Eastern — worst record picks first" />
+      <PageTitle title="Waivers" subtitle="Claims run Wednesday at 12:01 AM Eastern — lowest-ranked team picks first" />
       <Suspense fallback={<LoadingScreen />}>
         <WaiversPage />
       </Suspense>
@@ -114,8 +114,8 @@ function WaiversPage() {
       <div className="rounded-lg border border-primary/40 bg-primary/10 p-4">
         <p className="font-semibold">Next waiver run: {formatRunTime(nextWaiverRun(), tz)}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Until then, any free agent whose game hasn't started is an instant Add. After kickoff, you can
-          still put in a Claim — it waits for the run. Last run: {formatRunTime(lastRun, tz)}.
+          Wednesday opens free agency. Any unowned player is an instant Add until his game starts.
+          After kickoff, Claim stays available and waits for the next run. Last run: {formatRunTime(lastRun, tz)}.
         </p>
       </div>
 

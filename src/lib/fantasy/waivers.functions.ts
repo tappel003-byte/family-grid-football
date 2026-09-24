@@ -93,6 +93,14 @@ export const placeClaim = createServerFn({ method: "POST" })
       );
     }
 
+    // Before kickoff this is free agency, even on Wednesday. Claims are only
+    // for players whose game has already started or finished this week.
+    const { lockedChecker } = await import("./kickoff.server");
+    const started = await lockedChecker(leagueRow.current_week);
+    if (!started(data.playerId)) {
+      throw new Error(`${data.playerName} is still a free agent — add him now instead of submitting a claim.`);
+    }
+
     const { data: existing } = await supabaseAdmin
       .from("waiver_claims")
       .select("id")
@@ -186,7 +194,7 @@ export const cancelClaim = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Runs ready claims. `force` (commissioner-only) runs every pending claim now. */
+/** Runs claims ready at Wednesday 12:01am ET. `force` runs every pending claim now. */
 export const runWaivers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { force?: boolean }) => data)

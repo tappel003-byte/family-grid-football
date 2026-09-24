@@ -65,7 +65,7 @@ async function standingsOrder(
 
 /**
  * Processes pending claims in claim order (worst record first). Without
- * `force`, only claims placed before the latest Wednesday midnight run.
+ * `force`, only claims placed before the latest Wednesday 12:01am ET run.
  */
 export async function processWaivers(
   admin: any,

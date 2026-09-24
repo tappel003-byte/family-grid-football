@@ -176,7 +176,7 @@ export function AddDropButton({
   const onMyTeam = myIds.includes(player.id);
   const rules = league.rules;
   const gameStarted = ["live", "final"].includes(gameStatusFor(player.team, league.currentWeek));
-  // Waivers league: free agents are instant adds until their game kicks off, then claims.
+  // Wednesday opens free agency: unstarted players are instant adds until kickoff.
   const claimMode = rules.waiverMode === "waivers" && gameStarted;
   const locked = rules.waiverMode === "locked" && gameStarted;
   const cap = rules.positionLimits[player.pos] ?? 0;
@@ -234,7 +234,7 @@ export function AddDropButton({
         },
       });
       toast.success(
-        `Claim placed for ${player.name}. It processes Wednesday at midnight Eastern — worst record picks first.`,
+        `Claim placed for ${player.name}. It processes Wednesday at 12:01 AM Eastern — lowest-ranked team picks first.`,
       );
       setDropOpen(false);
       onDone?.();
@@ -348,7 +348,7 @@ export function AddDropButton({
           setDropOpen(true);
         }}
         className="font-semibold"
-        title={claimMode ? "His game has started — this is a waiver claim for Wednesday" : "Instant pickup"}
+        title={claimMode ? "His game has started — this claim waits until Wednesday" : "Add immediately"}
       >
         {verb}
       </Button>
@@ -360,8 +360,8 @@ export function AddDropButton({
                 <DialogTitle>{verb} {player.name}</DialogTitle>
                 <DialogDescription>
                   {claimMode
-                    ? "His game has started, so this is a waiver claim. It processes Wednesday at midnight Eastern, worst record first."
-                    : "Instant pickup — first come, first served."}{" "}
+                    ? "His game has started, so this claim waits until Wednesday at 12:01 AM Eastern."
+                    : "Add now — free agency is first come, first served until his game starts."}{" "}
                   {rosterFull ? "Pick who comes off your roster. Tap Compare to see them side by side." : "You have an open spot, or you can drop someone."}
                 </DialogDescription>
               </DialogHeader>
@@ -422,7 +422,9 @@ export function AddDropButton({
                 >
                   {pending
                     ? claimMode ? "Placing claim…" : "Making move…"
-                    : `Drop ${candidate.name} & ${verb} ${player.name}`}
+                    : claimMode
+                      ? `Drop ${candidate.name} & Submit claim for ${player.name}`
+                      : `Drop ${candidate.name} & Add ${player.name} now`}
                 </Button>
               )}
               <Button variant="outline" className="w-full" onClick={() => setCompareId(null)}>
