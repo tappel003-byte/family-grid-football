@@ -1,29 +1,21 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { SLOTS, slotAccepts } from "./league";
 import { normalizeRules } from "./rules";
 
-/** Claims sit until the league's waiver day comes around (about 4am Mountain). */
-const PROCESS_HOUR_UTC = 10;
+type TeamRow = {
+  id: string;
+  slot: number;
+  name: string;
+  user_id: string | null;
+  starters: Array<string | null> | null;
+  bench: string[] | null;
+};
 
-/** The moment a claim placed at `placedAt` is allowed to process. */
-export function nextWaiverRun(placedAt: number, waiverDay: number): number {
-  const d = new Date(placedAt);
-  const run = Date.UTC(
-    d.getUTCFullYear(),
-    d.getUTCMonth(),
-    d.getUTCDate(),
-    PROCESS_HOUR_UTC,
-    0,
-    0,
-    0,
-  );
-  let ms = run;
-  // Walk forward to the next waiver day that is strictly after the claim.
-  while (ms <= placedAt || new Date(ms).getUTCDay() !== waiverDay) {
-    ms += 24 * 60 * 60 * 1000;
-  }
-  return ms;
+function idsOf(team: TeamRow): string[] {
+  return [
+    ...(((team.starters as Array<string | null>) ?? []).filter(Boolean) as string[]),
+    ...(((team.bench as string[]) ?? []) as string[]),
+  ];
 }
 
 export type ClaimRow = {
@@ -43,66 +35,6 @@ export type ClaimRow = {
   created_at: string;
   resolved_at: string | null;
 };
-
-type TeamRow = {
-  id: string;
-  slot: number;
-  name: string;
-  user_id: string | null;
-  starters: Array<string | null> | null;
-  bench: string[] | null;
-};
-
-function idsOf(team: TeamRow): string[] {
-  return [
-    ...(((team.starters as Array<string | null>) ?? []).filter(Boolean) as string[]),
-    ...(((team.bench as string[]) ?? []) as string[]),
-  ];
-}
-
-/**
- * Worst record picks first. Records come from the archived weekly results,
- * so this needs no live feed.
- */
-async function standingsOrder(
-  admin: any,
-  leagueId: string,
-  slots: number[],
-): Promise<number[]> {
-  const { data: leagueRow } = await admin
-    .from("league")
-    .select("schedule")
-    .eq("id", leagueId)
-    .maybeSingle();
-  const schedule = (leagueRow?.schedule ?? []) as Array<Array<[number, number]>>;
-  const { data: rows } = await admin
-    .from("weekly_results")
-    .select("week, team_slot, points")
-    .eq("league_id", leagueId);
-  const results = (rows ?? []) as Array<{ week: number; team_slot: number; points: number }>;
-  if (!results.length) return [];
-
-  const pointsOf = (slot: number, week: number) =>
-    Number(results.find((r) => r.team_slot === slot && r.week === week)?.points ?? 0);
-
-  const weeks = [...new Set(results.map((r) => r.week))].sort((a, b) => a - b);
-  const records = slots.map((slot) => {
-    let score = 0;
-    let pf = 0;
-    for (const week of weeks) {
-      const pair = (schedule[week - 1] ?? []).find(([h, a]) => h === slot || a === slot);
-      if (!pair) continue;
-      const mine = pointsOf(slot, week);
-      const theirs = pointsOf(pair[0] === slot ? pair[1] : pair[0], week);
-      pf += mine;
-      if (mine > theirs) score += 2;
-      else if (mine === theirs) score += 1;
-    }
-    return { slot, score, pf };
-  });
-  records.sort((a, b) => a.score - b.score || a.pf - b.pf || a.slot - b.slot);
-  return records.map((r) => r.slot);
-}
 
 /** Pending claims first, then recently resolved. */
 export const listClaims = createServerFn({ method: "GET" })
@@ -166,10 +98,11 @@ export const placeClaim = createServerFn({ method: "POST" })
       .select("id")
       .eq("league_id", leagueRow.id)
       .eq("player_id", data.playerId)
+      .eq("team_slot", mine.slot)
       .eq("status", "pending")
       .limit(1);
     if ((existing ?? []).length > 0) {
-      throw new Error(`Someone already has a claim in for ${data.playerName}.`);
+      throw new Error(`You already have a claim in for ${data.playerName}.`);
     }
 
     if (data.dropId && !idsOf(mine).includes(data.dropId)) {
@@ -253,17 +186,11 @@ export const cancelClaim = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/**
- * Runs every pending claim in claiming order (worst team picks first).
- * `force` is commissioner-only; without it the claim must be a day old,
- * which lets any family member's app trigger the nightly run.
- */
+/** Runs ready claims. `force` (commissioner-only) runs every pending claim now. */
 export const runWaivers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { force?: boolean }) => data)
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
     const { data: commishFlag } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
       _role: "commissioner",
@@ -271,160 +198,7 @@ export const runWaivers = createServerFn({ method: "POST" })
     if (data.force && commishFlag !== true) {
       throw new Error("Only the commissioner can run waivers early.");
     }
-
-    const { data: leagueRow } = await supabaseAdmin
-      .from("league")
-      .select("id, current_week, rules")
-      .eq("slug", "main")
-      .maybeSingle();
-    if (!leagueRow) throw new Error("The league is not set up yet.");
-    const rules = normalizeRules(leagueRow.rules);
-    if (rules.waiverMode !== "waivers") throw new Error("Waivers are not turned on.");
-
-    const { data: pending } = await supabaseAdmin
-      .from("waiver_claims")
-      .select("*")
-      .eq("league_id", leagueRow.id)
-      .eq("status", "pending")
-      .order("created_at", { ascending: true });
-    const claims = (pending ?? []) as unknown as ClaimRow[];
-    if (!claims.length) return { won: 0, lost: 0 };
-
-    const now = Date.now();
-    const ready = claims.filter(
-      (c) => now >= nextWaiverRun(Date.parse(c.created_at) || now, rules.waiverDay),
-    );
-    const toRun = data.force ? claims : ready;
-    if (toRun.length === 0) return { won: 0, lost: 0, waiting: true };
-
-    const { data: teamRows } = await supabaseAdmin
-      .from("teams")
-      .select("id, slot, name, user_id, starters, bench")
-      .eq("league_id", leagueRow.id)
-      .order("slot", { ascending: true });
-    const teams = ((teamRows ?? []) as unknown as TeamRow[]).slice();
-
-    let order = rules.waiverOrder;
-    if (rules.autoWaiverOrder) {
-      const computed = await standingsOrder(
-        supabaseAdmin,
-        leagueRow.id,
-        teams.map((t) => t.slot),
-      );
-      if (computed.length) {
-        order = computed;
-        await supabaseAdmin
-          .from("league")
-          .update({ rules: { ...rules, waiverOrder: computed } as never })
-          .eq("id", leagueRow.id);
-      }
-    }
-
-    const priority = (slot: number): [number, number] => {
-      const idx = order.indexOf(slot);
-      return [idx === -1 ? 999 : idx, slot];
-    };
-    const ordered = toRun.slice().sort((a, b) => {
-      const [pa, sa] = priority(a.team_slot);
-      const [pb, sb] = priority(b.team_slot);
-      return pa - pb || sa - sb;
-    });
-
-    let won = 0;
-    let lost = 0;
-
-    for (const claim of ordered) {
-      const team = teams.find((t) => t.slot === claim.team_slot);
-      if (!team) {
-        await supabaseAdmin
-          .from("waiver_claims")
-          .update({ status: "lost", resolved_at: new Date().toISOString() })
-          .eq("id", claim.id);
-        lost++;
-        continue;
-      }
-
-      // Is the player still a free agent?
-      const owner = teams.find((t) => idsOf(t).includes(claim.player_id));
-      let reason = "";
-      if (owner) reason = owner.id === team.id ? "already on your roster" : `won by ${owner.name}`;
-
-      const starters = (((team.starters as Array<string | null>) ?? []) as Array<string | null>).slice();
-      const bench = ((team.bench as string[]) ?? []).slice();
-
-      let freedSlot = -1;
-      if (!reason && claim.drop_player_id) {
-        const si = starters.indexOf(claim.drop_player_id);
-        const bi = bench.indexOf(claim.drop_player_id);
-        if (si === -1 && bi === -1) {
-          reason = `${claim.drop_player_name} is no longer on your roster`;
-        } else if (si >= 0) {
-          starters[si] = null;
-          freedSlot = si;
-        } else {
-          bench.splice(bi, 1);
-        }
-      }
-
-      if (!reason) {
-        const size = starters.filter(Boolean).length + bench.length;
-        if (size >= rules.rosterLimit) {
-          reason = "no roster space";
-        } else if (freedSlot >= 0) {
-          const slotName = SLOTS[freedSlot];
-          if (slotName && slotAccepts(slotName, claim.player_pos)) {
-            starters[freedSlot] = claim.player_id;
-          } else {
-            bench.push(claim.player_id);
-          }
-        } else {
-          bench.push(claim.player_id);
-        }
-      }
-
-      if (reason) {
-        await supabaseAdmin
-          .from("waiver_claims")
-          .update({ status: "lost", resolved_at: new Date().toISOString() })
-          .eq("id", claim.id);
-        lost++;
-        continue;
-      }
-
-      team.starters = starters;
-      team.bench = bench;
-      const { error: updateError } = await supabaseAdmin
-        .from("teams")
-        .update({ starters, bench, updated_at: new Date().toISOString() })
-        .eq("id", team.id);
-      if (updateError) {
-        await supabaseAdmin
-          .from("waiver_claims")
-          .update({ status: "lost", resolved_at: new Date().toISOString() })
-          .eq("id", claim.id);
-        lost++;
-        continue;
-      }
-
-      await supabaseAdmin.from("transactions").insert({
-        league_id: leagueRow.id,
-        team_slot: team.slot,
-        team_name: team.name,
-        kind: "waiver",
-        added_player_id: claim.player_id,
-        added_player_name: claim.player_name,
-        dropped_player_id: claim.drop_player_id,
-        dropped_player_name: claim.drop_player_name,
-        actor_id: claim.actor_id,
-        actor_name: claim.actor_name,
-        week: claim.week,
-      });
-      await supabaseAdmin
-        .from("waiver_claims")
-        .update({ status: "won", resolved_at: new Date().toISOString() })
-        .eq("id", claim.id);
-      won++;
-    }
-
-    return { won, lost };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { processWaivers } = await import("./waivers.server");
+    return processWaivers(supabaseAdmin, !!data.force);
   });

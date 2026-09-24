@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -140,8 +140,7 @@ export function AddDropButton({
   const [pending, setPending] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
-  const [candidateIndex, setCandidateIndex] = useState(0);
-  const [showOtherPositions, setShowOtherPositions] = useState(false);
+  const [compareId, setCompareId] = useState<string | null>(null);
   // Comparison numbers for the drop picker — shares the page's cached insights.
   const { data: compareData } = useQuery({
     ...insightsQueryOptions(league.currentWeek, league.scoring),
@@ -176,10 +175,10 @@ export function AddDropButton({
   const myIds = rosterIds(myTeam);
   const onMyTeam = myIds.includes(player.id);
   const rules = league.rules;
-  const claimMode = rules.waiverMode === "waivers";
-  const locked =
-    rules.waiverMode === "locked" &&
-    ["live", "final"].includes(gameStatusFor(player.team, league.currentWeek));
+  const gameStarted = ["live", "final"].includes(gameStatusFor(player.team, league.currentWeek));
+  // Waivers league: free agents are instant adds until their game kicks off, then claims.
+  const claimMode = rules.waiverMode === "waivers" && gameStarted;
+  const locked = rules.waiverMode === "locked" && gameStarted;
   const cap = rules.positionLimits[player.pos] ?? 0;
   const atCap =
     cap > 0 &&
@@ -235,7 +234,7 @@ export function AddDropButton({
         },
       });
       toast.success(
-        `Claim placed for ${player.name}. Waivers process in order — the team with the worse record picks first.`,
+        `Claim placed for ${player.name}. It processes Wednesday at midnight Eastern — worst record picks first.`,
       );
       setDropOpen(false);
       onDone?.();
@@ -254,9 +253,8 @@ export function AddDropButton({
   });
   const samePosition = rosterPlayers.filter((rosterPlayer) => rosterPlayer.pos === player.pos);
   const otherPositions = rosterPlayers.filter((rosterPlayer) => rosterPlayer.pos !== player.pos);
-  const candidates = showOtherPositions ? [...samePosition, ...otherPositions] : samePosition;
-  const safeIndex = candidates.length ? candidateIndex % candidates.length : 0;
-  const candidate = candidates[safeIndex];
+  const candidates = [...samePosition, ...otherPositions];
+  const candidate = compareId ? byId.get(compareId) : undefined;
 
   const compareStats = (subject: SlimPlayer): CompareStats => {
     const matchup = matchupFor(compareData ?? null, subject);
@@ -323,119 +321,114 @@ export function AddDropButton({
   }
 
   const rosterFull = myIds.length >= rules.rosterLimit;
-  const blocked = locked
-    ? `${player.name}'s game has already started — he's locked this week.`
-    : atCap
-      ? `You already carry ${cap} ${player.pos}s, the most the league allows.`
-      : "";
+  const verb = claimMode ? "Claim" : "Add";
+  const blocked = locked ? `${player.name}'s game has already started — he's locked this week.` : "";
+  const dropLocked = (p: SlimPlayer) =>
+    rules.lockAtKickoff && ["live", "final"].includes(gameStatusFor(p.team, league.currentWeek));
+
+  function choose(drop: SlimPlayer | null) {
+    if (atCap && drop?.pos !== player.pos) {
+      toast.error(`You already carry ${cap} ${player.pos}s, the most allowed — drop a ${player.pos} for this one.`);
+      return;
+    }
+    void submit(drop?.id ?? null, drop?.name ?? "");
+  }
 
   return (
     <>
       <Button
         disabled={pending}
+        variant={claimMode ? "outline" : "default"}
         onClick={() => {
           if (blocked) {
             toast.error(blocked);
             return;
           }
-          if (rosterFull) {
-            setCandidateIndex(0);
-            setShowOtherPositions(false);
-            setDropOpen(true);
-          }
-          else void submit(null, "");
+          setCompareId(null);
+          setDropOpen(true);
         }}
         className="font-semibold"
+        title={claimMode ? "His game has started — this is a waiver claim for Wednesday" : "Instant pickup"}
       >
-        {claimMode ? "Claim" : "Add"}
+        {verb}
       </Button>
       <Dialog open={dropOpen} onOpenChange={setDropOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
-          <DialogHeader>
-            <DialogTitle>Compare before you claim</DialogTitle>
-            <DialogDescription>
-              Your roster is full. Compare {player.name} with one player you could drop.
-            </DialogDescription>
-          </DialogHeader>
-          {candidate ? (
+          {!candidate ? (
             <>
+              <DialogHeader>
+                <DialogTitle>{verb} {player.name}</DialogTitle>
+                <DialogDescription>
+                  {claimMode
+                    ? "His game has started, so this is a waiver claim. It processes Wednesday at midnight Eastern, worst record first."
+                    : "Instant pickup — first come, first served."}{" "}
+                  {rosterFull ? "Pick who comes off your roster. Tap Compare to see them side by side." : "You have an open spot, or you can drop someone."}
+                </DialogDescription>
+              </DialogHeader>
+              {!rosterFull && (
+                <Button disabled={pending} onClick={() => choose(null)} className="w-full font-bold">
+                  {pending ? "Working…" : `${verb} ${player.name} — no drop`}
+                </Button>
+              )}
+              <ul className="divide-y rounded-md border">
+                {candidates.map((p) => {
+                  const info = compareData?.players[p.id];
+                  const lockedNow = dropLocked(p);
+                  return (
+                    <li key={p.id} className="flex items-center gap-3 p-2">
+                      <img
+                        src={headshotUrl(p.id, p.pos, p.team)}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-full bg-muted object-cover"
+                        onError={(e) => { e.currentTarget.src = teamLogoUrl(p.team); }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {p.pos} · {p.team}
+                          {info ? ` · ${fmt(info.seasonPts)} pts · L3 ${fmt(info.last3Avg)}` : ""}
+                          {lockedNow ? " · locked" : ""}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="secondary" className="rounded-full" onClick={() => setCompareId(p.id)}>
+                        Compare
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Compare</DialogTitle>
+                <DialogDescription>{player.name} vs {candidate.name}</DialogDescription>
+              </DialogHeader>
               <div className="grid grid-cols-[1fr_2.5rem_1fr] items-start gap-2">
-                <PlayerCardHeader player={player} label="Claim" />
+                <PlayerCardHeader player={player} label={verb} />
                 <div className="pt-24 text-center text-xs font-bold text-muted-foreground">VS</div>
                 <PlayerCardHeader player={candidate} label="Drop" />
               </div>
               <ComparisonRows left={compareStats(player)} right={compareStats(candidate)} />
-              <div className="flex items-center justify-between gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label="Previous player"
-                  disabled={candidates.length < 2}
-                  onClick={() => setCandidateIndex((index) => (index - 1 + candidates.length) % candidates.length)}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <div className="min-w-0 text-center">
-                  <p className="text-sm font-semibold">{safeIndex + 1} of {candidates.length}</p>
-                  {otherPositions.length > 0 && (
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="h-auto px-1 py-0 text-xs"
-                      onClick={() => {
-                        setCandidateIndex(0);
-                        setShowOtherPositions((value) => !value);
-                      }}
-                    >
-                      {showOtherPositions ? `Only ${player.pos}s` : "Include other positions"}
-                    </Button>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label="Next player"
-                  disabled={candidates.length < 2}
-                  onClick={() => setCandidateIndex((index) => (index + 1) % candidates.length)}
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </div>
-              {rules.waiverMode === "locked" && ["live", "final"].includes(gameStatusFor(candidate.team, league.currentWeek)) ? (
+              {dropLocked(candidate) ? (
                 <p className="text-center text-sm font-semibold text-destructive">
-                  {candidate.name} is locked because the game has started.
+                  {candidate.name} is locked because his game has started.
                 </p>
               ) : (
                 <Button
                   disabled={pending}
-                  onClick={() => void submit(candidate.id, candidate.name)}
+                  onClick={() => choose(candidate)}
                   className="min-h-12 w-full whitespace-normal px-3 py-2 font-bold"
                 >
                   {pending
                     ? claimMode ? "Placing claim…" : "Making move…"
-                    : `${claimMode ? "Drop" : "Drop"} ${candidate.name} & ${claimMode ? "Claim" : "Add"} ${player.name}`}
+                    : `Drop ${candidate.name} & ${verb} ${player.name}`}
                 </Button>
               )}
+              <Button variant="outline" className="w-full" onClick={() => setCompareId(null)}>
+                <ArrowLeft className="mr-1 h-4 w-4" /> Back to my roster
+              </Button>
             </>
-          ) : (
-            <div className="py-8 text-center">
-              <p className="font-semibold">No {player.pos}s are available to drop.</p>
-              {otherPositions.length > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-3"
-                  onClick={() => {
-                    setCandidateIndex(0);
-                    setShowOtherPositions(true);
-                  }}
-                >
-                  Compare other positions
-                </Button>
-              )}
-            </div>
           )}
         </DialogContent>
       </Dialog>
