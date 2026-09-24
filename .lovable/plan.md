@@ -1,35 +1,40 @@
-# Claim flow, waiver window, and a Waivers screen
+# Waiver cycle, compare-then-decide claim flow, and a Waivers screen
 
-## What you asked for
-1. Tap Claim on a player → your full roster opens with a "Compare" chip next to each player → tap Compare for the side-by-side card view → go back, pick a different player, or submit the claim.
-2. Waiver timing: a waiver claim can be submitted at any time. The weekly batch processes automatically Wednesday at 5:00am Eastern, after the prior week's games are over. After processing, unclaimed players can be added instantly until their own game kicks off. A claim submitted after the weekly batch waits for the following Wednesday rather than being granted immediately.
-3. A Waivers screen in the More dropdown — that's where the waiver list lives.
+## The weekly cycle (Eastern time)
+```text
+Wed 12:00am ET  Waiver run: all pending claims process, worst record picks first
+Wed -> kickoff  Free agency: any unowned player whose game hasn't started = instant add/drop
+At his kickoff  That player locks to waivers for the rest of the week
+Anytime         You can submit a waiver claim; it waits for the next Wed 12:00am run
+```
+- After the run, every player nobody won becomes an instant pickup, first come first served. Standings don't matter.
+- Once a player's game starts (Thu, Sun, or Mon), nobody can instantly add him. A claim is still allowed and waits for next Wednesday.
+- Runs automatically even if nobody opens the app. Commissioners keep a "Run waivers now" backup button.
+- Your earlier test claim is still pending. It will process in the next run unless you cancel it on the Waivers screen.
 
-## 1. Compare-chip claim flow (Players page)
-Rework the drop dialog in `src/components/fantasy/AddDropButton.tsx` into two steps:
-- **Step 1 — pick:** Your roster listed top to bottom (same position first), each row showing season points, last-3 average, and a "Compare" chip. Tapping the chip opens step 2 for that player. The old arrows/counter go away.
-- **Step 2 — compare:** The existing side-by-side cards (claim player vs drop candidate, all tracked stats, stronger value highlighted), plus a "Back to my roster" button and the final action button naming both players ("Drop [X] & Claim [Y]").
-Free agency when the roster isn't full, roster rules, kickoff locks, and error messages stay as they are.
+## Claim flow (Players page)
+1. Tap the player's button. It clearly says **Add** (instant) or **Claim** (waiver) before you tap.
+2. **Your full roster opens.** Every player is listed, with the same position at the top. You are never forced to drop a player at the same position, so you can pick up a kicker and drop a receiver. Each row shows season points, last-3 average, and a **Compare** chip.
+3. **Compare** opens the detailed side-by-side cards with every stat we track (projection, position rank, season/avg/last 3, rostered and started %, trends, usage, matchup, age, and more). The stronger number in each row is highlighted.
+4. From there: **Back to my roster** to choose someone else, or the final button:
+   - Free agency: "Drop X & Add Y" (happens right away)
+   - Waivers: "Drop X & Claim Y" (saved for Wednesday)
+5. If your roster has an open spot, you can add or claim without dropping anyone, and Compare is still available.
+Roster size and position caps still apply.
 
-## 2. Weekly waiver cycle and processing
-In `src/lib/fantasy/waivers.functions.ts` and `src/lib/fantasy/rules.ts`:
-- **Always accept claims:** A family member can submit or cancel a waiver claim at any time. Claims submitted after this week's run remain pending for the following Wednesday.
-- **Processing:** Ready claims process Wednesday at 5:00am Eastern, worst record picking first — the existing claim-order logic is reused. The automatic run must not depend on a family member opening the app, so use one weekly scheduled database call for this genuinely time-based event. Commissioners keep a "Run waivers now" recovery button.
-- **First-come-first-served:** After Wednesday's batch, any player who cleared waivers with no successful claim is an instant add until his own game kicks off. The Claim/Add button must clearly show which action will happen before it is tapped.
-- **Sunday and game locks:** Once a player's game starts, he cannot be instantly added that week. A claim may still be entered, but it waits for the next Wednesday run after the week's games are complete.
+## Waivers screen (More menu)
+- **Status banner:** "Next waiver run: Wed 12:00am ET," shown in your own time zone.
+- **Your claims:** pending claims with Cancel, plus your recent wins and losses.
+- **League claim list:** all pending claims in pick order.
+- **Recent results:** what happened in the last run.
 
-## 3. Waivers screen (`/waivers`, added to the More dropdown)
-- **Status banner:** Where we are in the cycle — "Claims process Wednesday at 5am Eastern", "Free agents available until kickoff", or "Claim saved for next Wednesday" — shown in the family's local time.
-- **Your claims:** Pending claims with a "Cancel" button, plus your recent results (won/lost).
-- **League claim list:** Every pending claim in pick order, so everyone sees who's ahead of them.
-- **Recent results:** Last processed claims with what happened.
-
-## Technical notes
-- New file `src/routes/waivers.tsx`; one nav entry added to `NAV_MORE` in `src/components/fantasy/AppShell.tsx`.
-- `placeClaim` continues accepting claims anytime; `runWaivers` gains an exact Wednesday 5:00am Eastern readiness rule; `nextWaiverRun` is corrected to calculate the next weekly run across daylight-saving changes.
-- FCFS adds route through the existing roster-move path with a new per-player game-started check.
-- One weekly scheduled database call triggers processing reliably even when nobody opens the app; no recurring polling.
+## Technical details
+- `rules.ts`/`waivers.functions.ts`: replace `nextWaiverRun` with a DST-safe "most recent / next Wednesday 00:00 America/New_York" calculation. A claim is ready if it was created before the latest run boundary. `placeClaim` accepts claims anytime.
+- A player is eligible for an instant add when he is unowned, has no pending claim created before the last run boundary, and his game status for the current week is not live or final (reuse `gameInfoFor`). The server re-checks this in the add path (`claim.functions.ts`). If the game has started, it returns "claim instead".
+- Automatic run: a weekly pg_cron job at Wed 04:00 and 05:00 UTC (one of these is midnight ET depending on daylight saving; the handler exits unless it is actually past the boundary) calls a new `/api/public/run-waivers` route secured with the existing cron auth helper. Shared processing logic moves into a `.server.ts` helper used by both the cron route and `runWaivers`.
+- `AddDropButton.tsx`: two-step dialog (roster list with Compare chips, then compare view). Remove the arrows, the counter, and the same-position restriction.
+- New `src/routes/waivers.tsx` plus `NAV_MORE` entry in `AppShell.tsx`; head metadata included.
 
 ## Verification
-- Playwright at phone and desktop widths: Claim → roster list → Compare → side-by-side → submit; Waivers screen renders all three sections; instant Add changes to Claim at kickoff; a post-run claim remains queued for next Wednesday.
-- Typecheck plus the preview console clean.
+- Unit-check the run boundary across a daylight-saving change.
+- Playwright at phone and desktop sizes, signed in as Tim: Add vs Claim label, roster list, Compare, Back, submitting a claim, a kicker pickup dropping a non-kicker, and the Waivers screen sections.
