@@ -18,6 +18,7 @@ import {
 import { formatGameTime, useTimeZone } from "@/lib/timezone";
 import { ByeBadge, isOnBye, matchupFor, useInsights } from "./PlayerInsights";
 import { InjuryBadge } from "./PlayerCell";
+import { AddDropButton } from "./AddDropButton";
 import { cn } from "@/lib/utils";
 
 /** Everything the card shows, already computed by the Players list rows. */
