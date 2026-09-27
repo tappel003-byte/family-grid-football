@@ -38,7 +38,7 @@ import {
   useWeekData,
   scoreFor,
 } from "@/lib/fantasy/hooks";
-import { ownedIds } from "@/lib/fantasy/league";
+import { ownedIds, type League } from "@/lib/fantasy/league";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { listMyWatchlist, setWatched } from "@/lib/fantasy/community";
 import { useQueryClient } from "@tanstack/react-query";
