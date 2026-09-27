@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { AddDropButton } from "@/components/fantasy/AddDropButton";
-import { PlayerSheet } from "@/components/fantasy/PlayerSheet";
+import { PlayerSheet, PlayerCardTrigger } from "@/components/fantasy/PlayerSheet";
 import { ActivityFeed } from "@/components/fantasy/ActivityFeed";
 import {
   InsightsProvider,
@@ -38,7 +38,7 @@ import {
   useWeekData,
   scoreFor,
 } from "@/lib/fantasy/hooks";
-import { ownedIds } from "@/lib/fantasy/league";
+import { ownedIds, type League } from "@/lib/fantasy/league";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { listMyWatchlist, setWatched } from "@/lib/fantasy/community";
 import { useQueryClient } from "@tanstack/react-query";
@@ -83,7 +83,17 @@ export const Route = createFileRoute("/players")({
   notFoundComponent: () => <AppShell>No players found.</AppShell>,
 });
 
-function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, SlimPlayer> }) {
+function TrendingList({
+  type,
+  byId,
+  week,
+  league,
+}: {
+  type: "add" | "drop";
+  byId: Map<string, SlimPlayer>;
+  week: number;
+  league: League | null;
+}) {
   const { data, isPending } = useQuery(trendingQueryOptions(type));
   if (isPending) return <p className="p-4 text-muted-foreground">Loading trends…</p>;
   const rows = (data ?? [])
@@ -95,7 +105,9 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
     <ul className="divide-y">
       {rows.map((r) => (
         <li key={r.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
-          <PlayerCell player={r.player!} compact showGame={false} />
+          <PlayerCardTrigger player={r.player!} week={week} league={league}>
+            <PlayerCell player={r.player!} compact showGame={false} />
+          </PlayerCardTrigger>
           <span className="shrink-0 font-display text-lg font-bold tabular-nums">
             {type === "add" ? "+" : "−"}
             {r.count.toLocaleString()}
@@ -639,7 +651,7 @@ function PlayersPage() {
             <div className="flex items-center gap-2 border-b bg-secondary/60 px-4 py-3 font-display text-lg font-bold">
               <TrendingUp className="h-5 w-5" /> Most added in the last 24 hours
             </div>
-            <TrendingList type="add" byId={byId} />
+            <TrendingList type="add" byId={byId} week={week} league={league} />
           </div>
         </TabsContent>
 
@@ -648,7 +660,7 @@ function PlayersPage() {
             <div className="flex items-center gap-2 border-b bg-secondary/60 px-4 py-3 font-display text-lg font-bold">
               <TrendingDown className="h-5 w-5" /> Most dropped in the last 24 hours
             </div>
-            <TrendingList type="drop" byId={byId} />
+            <TrendingList type="drop" byId={byId} week={week} league={league} />
           </div>
         </TabsContent>
 

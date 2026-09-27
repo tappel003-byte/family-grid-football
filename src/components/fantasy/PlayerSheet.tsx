@@ -18,6 +18,7 @@ import {
 import { formatGameTime, useTimeZone } from "@/lib/timezone";
 import { ByeBadge, isOnBye, matchupFor, useInsights } from "./PlayerInsights";
 import { InjuryBadge } from "./PlayerCell";
+import { AddDropButton } from "./AddDropButton";
 import { cn } from "@/lib/utils";
 
 /** Everything the card shows, already computed by the Players list rows. */
@@ -95,6 +96,11 @@ export function PlayerSheet({
 }) {
   const { player } = row;
   const insights = useInsights();
+  const { players: allPlayers } = usePlayers();
+  const byIdMap = useMemo(
+    () => new Map(allPlayers.map((p) => [p.id, p])),
+    [allPlayers],
+  );
   const timeZone = useTimeZone();
   const game = gameInfoFor(player.team, week);
   const kickoff = formatGameTime(game?.startsAt, timeZone);
@@ -211,6 +217,13 @@ export function PlayerSheet({
             )}
           </div>
         </Section>
+
+        {/* Add / claim straight from the card */}
+        {league && !row.owner && (
+          <div className="[&_button]:h-10 [&_button]:w-full [&_button]:text-base">
+            <AddDropButton player={player} league={league} byId={byIdMap} />
+          </div>
+        )}
 
         {/* Waiver recommendation */}
         {row.rec && (
