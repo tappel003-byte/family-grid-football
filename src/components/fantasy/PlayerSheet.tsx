@@ -1,10 +1,20 @@
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Newspaper } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { League } from "@/lib/fantasy/league";
+import { ownedIds } from "@/lib/fantasy/league";
 import type { PlayerNews } from "@/lib/market.functions";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
-import { gameInfoFor, headshotUrl, scoreFor, teamLogoUrl } from "@/lib/fantasy/hooks";
+import {
+  gameInfoFor,
+  headshotUrl,
+  marketQueryOptions,
+  scoreFor,
+  teamLogoUrl,
+  trendingQueryOptions,
+  usePlayers,
+} from "@/lib/fantasy/hooks";
 import { formatGameTime, useTimeZone } from "@/lib/timezone";
 import { ByeBadge, isOnBye, matchupFor, useInsights } from "./PlayerInsights";
 import { InjuryBadge } from "./PlayerCell";
