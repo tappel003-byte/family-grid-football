@@ -74,6 +74,7 @@ export const getMarket = createServerFn({ method: "GET" }).handler(async (): Pro
     safeJson<{ articles?: EspnArticle[] }>(
       "https://site.api.espn.com/apis/site/v2/sports/football/nfl/news?limit=50",
       {},
+      { "user-agent": "curl/8.0", accept: "application/json" },
     ),
   ]);
 
