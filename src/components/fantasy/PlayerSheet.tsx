@@ -212,6 +212,13 @@ export function PlayerSheet({
           </div>
         </Section>
 
+        {/* Add / claim straight from the card */}
+        {league && !row.owner && (
+          <div className="[&_button]:h-10 [&_button]:w-full [&_button]:text-base">
+            <AddDropButton player={player} league={league} byId={byIdMap} />
+          </div>
+        )}
+
         {/* Waiver recommendation */}
         {row.rec && (
           <div className="rounded-xl bg-primary/10 p-3">
