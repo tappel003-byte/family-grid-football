@@ -3,11 +3,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Check, ChevronDown, ChevronUp, HelpCircle, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { Bookmark, Check, ChevronDown, ChevronUp, HelpCircle, History, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { AddDropButton } from "@/components/fantasy/AddDropButton";
+import { PlayerSheet } from "@/components/fantasy/PlayerSheet";
 import { ActivityFeed } from "@/components/fantasy/ActivityFeed";
 import {
   InsightsProvider,
@@ -233,7 +234,7 @@ function PlayersPage() {
   const [group, setGroup] = useState(SORT_GROUPS[0]!.label);
   const [sort, setSort] = useState<SortKey>("PROJ");
   const [dir, setDir] = useState<"desc" | "asc">("desc");
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [cardId, setCardId] = useState<string | null>(null);
   const [sortOpen, setSortOpen] = useState(false);
 
   const columns = SORT_GROUPS.find((g) => g.label === group)?.keys ?? SORT_GROUPS[0]!.keys;
@@ -256,13 +257,6 @@ function PlayersPage() {
     }
   };
 
-  const toggleExpanded = (id: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
 
 
   // Close the sort menu as soon as the user starts scrolling the list.
