@@ -6,6 +6,8 @@ export type SlimPlayer = {
   pos: string;
   team: string;
   injury: string | null;
+  injuryBodyPart?: string | null;
+  injuryNotes?: string | null;
   rank: number;
   age: number | null;
   number: number | null;
@@ -19,6 +21,8 @@ type RawPlayer = {
   position?: string;
   team?: string | null;
   injury_status?: string | null;
+  injury_body_part?: string | null;
+  injury_notes?: string | null;
   search_rank?: number | null;
   fantasy_positions?: string[] | null;
   age?: number | null;
@@ -55,6 +59,8 @@ export const getPlayers = createServerFn({ method: "GET" }).handler(
         pos,
         team: p.team,
         injury: p.injury_status && p.injury_status.length ? p.injury_status : null,
+        injuryBodyPart: p.injury_body_part || null,
+        injuryNotes: p.injury_notes || null,
         rank: p.search_rank && p.search_rank > 0 ? p.search_rank : 9999,
         age: p.age ?? null,
         number: p.number ?? null,

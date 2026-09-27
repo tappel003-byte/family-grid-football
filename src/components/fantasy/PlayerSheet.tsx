@@ -166,6 +166,12 @@ export function PlayerSheet({
                     player.age ? ` · Age ${player.age}` : ""
                   }`}
             </p>
+            {player.injury && player.injuryBodyPart && (
+              <p className="text-sm font-semibold text-injury-out">
+                {player.injury} · {player.injuryBodyPart}
+                {player.injuryNotes ? ` (${player.injuryNotes.toLowerCase()})` : ""}
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">
               {row.owner ? `Rostered by ${row.owner}` : "Free agent"}
             </p>
