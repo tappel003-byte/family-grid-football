@@ -106,15 +106,15 @@ export function PlayerSheet({
   const headlinePts = started && score ? score.actual : row.proj;
 
   const skill = player.pos !== "DEF" && player.pos !== "K";
-  const newsBody = (
+  const newsBody = row.news ? (
     <>
       <Newspaper className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       <span className="min-w-0">
-        <span className="block font-semibold leading-snug">{row.news!.headline}</span>
+        <span className="block font-semibold leading-snug">{row.news.headline}</span>
         <span className="block text-xs text-muted-foreground">Latest news · ESPN</span>
       </span>
     </>
-  );
+  ) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
