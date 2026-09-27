@@ -419,6 +419,9 @@ function PlayersPage() {
     await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
   };
 
+  const cardRow = cardId ? (results.find((r) => r.player.id === cardId) ?? null) : null;
+
+
 
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
