@@ -660,7 +660,7 @@ function PlayersPage() {
             <div className="flex items-center gap-2 border-b bg-secondary/60 px-4 py-3 font-display text-lg font-bold">
               <TrendingDown className="h-5 w-5" /> Most dropped in the last 24 hours
             </div>
-            <TrendingList type="drop" byId={byId} />
+            <TrendingList type="drop" byId={byId} week={week} league={league} />
           </div>
         </TabsContent>
 
