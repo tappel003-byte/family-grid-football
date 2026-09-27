@@ -36,12 +36,24 @@ export const Route = createFileRoute("/waivers")({
 });
 
 function ClaimLine({ c, action }: { c: ClaimRow; action?: React.ReactNode }) {
+  const { league } = useLeague();
+  const { players } = usePlayers();
+  const player = players.find((p) => p.id === c.player_id) ?? null;
+  const nameLine = (
+    <span className="block truncate font-semibold">
+      {c.team_name} → {c.player_name} <span className="text-muted-foreground">({c.player_pos})</span>
+    </span>
+  );
   return (
     <li className="flex items-center justify-between gap-3 p-3">
       <span className="min-w-0">
-        <span className="block truncate font-semibold">
-          {c.team_name} → {c.player_name} <span className="text-muted-foreground">({c.player_pos})</span>
-        </span>
+        {player && league ? (
+          <PlayerCardTrigger player={player} week={league.currentWeek} league={league}>
+            {nameLine}
+          </PlayerCardTrigger>
+        ) : (
+          nameLine
+        )}
         <span className="block truncate text-sm text-muted-foreground">
           {c.drop_player_id ? `dropping ${c.drop_player_name}` : "no drop"}
           {c.status !== "pending" ? ` · ${c.status === "won" ? "Won" : c.status === "lost" ? "Lost" : "Cancelled"}` : ""}
