@@ -7,6 +7,7 @@ import { scoreOverride } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle } from "lucide-react";
 import { PlayerCell, isInactive } from "./PlayerCell";
+import { PlayerCardTrigger } from "./PlayerSheet";
 import { cn } from "@/lib/utils";
 import { teamLogo } from "@/lib/fantasy/logos";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -185,7 +186,9 @@ function Side({
         align === "right" && "flex-row-reverse",
       )}
     >
-      <PlayerCell player={player} align={align} week={week} />
+      <PlayerCardTrigger player={player} week={week} league={league} className="flex-1">
+        <PlayerCell player={player} align={align} week={week} />
+      </PlayerCardTrigger>
       <div className={cn("shrink-0", align === "right" ? "text-left" : "text-right")}>
         <div className="font-display text-2xl font-bold tabular-nums">{s.actual.toFixed(1)}</div>
         <div className="text-xs text-muted-foreground">
@@ -232,7 +235,9 @@ function MobileSide({
         flagged && "bg-injury-out/15",
       )}
     >
-      <PlayerCell player={player} align={align} compact mobileMatchup week={week} />
+      <PlayerCardTrigger player={player} week={week} league={league}>
+        <PlayerCell player={player} align={align} compact mobileMatchup week={week} />
+      </PlayerCardTrigger>
       <div className={cn("mt-2 border-t border-border/70 pt-2", align === "right" && "text-right")}>
         <div className="font-display text-2xl font-bold tabular-nums">{score.actual.toFixed(1)}</div>
         <div className="text-xs font-medium text-muted-foreground">

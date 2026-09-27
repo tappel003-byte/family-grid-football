@@ -12,6 +12,8 @@ export type Ownership = {
 
 export type PlayerNews = {
   headline: string;
+  /** Short ESPN write-up under the headline, when there is one. */
+  description: string | null;
   published: string;
   link: string | null;
 };
@@ -29,6 +31,7 @@ type EspnPlayer = {
 
 type EspnArticle = {
   headline?: string;
+  description?: string;
   published?: string;
   links?: { web?: { href?: string } };
   categories?: Array<{ type?: string; athlete?: { id?: number } }>;
@@ -94,6 +97,7 @@ export const getMarket = createServerFn({ method: "GET" }).handler(async (): Pro
       if (!sleeperId || news[sleeperId]) continue;
       news[sleeperId] = {
         headline: art.headline,
+        description: art.description?.trim() || null,
         published: art.published ?? "",
         link: art.links?.web?.href ?? null,
       };

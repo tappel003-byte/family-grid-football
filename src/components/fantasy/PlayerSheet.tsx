@@ -111,7 +111,10 @@ export function PlayerSheet({
       <Newspaper className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       <span className="min-w-0">
         <span className="block font-semibold leading-snug">{row.news.headline}</span>
-        <span className="block text-xs text-muted-foreground">Latest news · ESPN</span>
+        {row.news.description && (
+          <span className="mt-1 block leading-snug text-foreground/85">{row.news.description}</span>
+        )}
+        <span className="block text-xs text-muted-foreground">Latest news · ESPN{row.news.link ? " · Tap for full story" : ""}</span>
       </span>
     </>
   ) : null;
