@@ -3,15 +3,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Check, ChevronDown, ChevronUp, HelpCircle, History, Newspaper, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { Bookmark, Check, ChevronDown, ChevronUp, HelpCircle, History, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { AddDropButton } from "@/components/fantasy/AddDropButton";
+import { PlayerSheet } from "@/components/fantasy/PlayerSheet";
 import { ActivityFeed } from "@/components/fantasy/ActivityFeed";
 import {
   InsightsProvider,
-  PlayerInsightChips,
   insightsQueryOptions,
   isOnBye,
   matchupFor,
@@ -233,7 +233,7 @@ function PlayersPage() {
   const [group, setGroup] = useState(SORT_GROUPS[0]!.label);
   const [sort, setSort] = useState<SortKey>("PROJ");
   const [dir, setDir] = useState<"desc" | "asc">("desc");
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [cardId, setCardId] = useState<string | null>(null);
   const [sortOpen, setSortOpen] = useState(false);
 
   const columns = SORT_GROUPS.find((g) => g.label === group)?.keys ?? SORT_GROUPS[0]!.keys;
@@ -256,13 +256,6 @@ function PlayersPage() {
     }
   };
 
-  const toggleExpanded = (id: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
 
 
   // Close the sort menu as soon as the user starts scrolling the list.
@@ -425,6 +418,9 @@ function PlayersPage() {
     await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
   };
 
+  const cardRow = cardId ? (results.find((r) => r.player.id === cardId) ?? null) : null;
+
+
 
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
@@ -574,51 +570,25 @@ function PlayersPage() {
                 </div>
 
                 {results.map((row) => {
-                  const { player, owner, news, rec } = row;
-                  const open = expanded.has(player.id);
+                  const { player, owner } = row;
                   return (
                     <div key={player.id} className="flex items-stretch border-b last:border-b-0">
                       <div className="sticky left-0 z-10 w-44 shrink-0 border-r bg-card px-2 py-2 sm:w-72 sm:px-3">
-                        <PlayerCell player={player} week={week} photo="desktop" showGame={false} />
+                        <button
+                          type="button"
+                          className="block w-full cursor-pointer rounded-lg text-left"
+                          onClick={() => setCardId(player.id)}
+                          aria-label={`Open ${player.name}'s full player card`}
+                        >
+                          <PlayerCell player={player} week={week} photo="desktop" showGame={false} />
+                        </button>
                         {!owner && (
                           <div className="mt-1 text-xs font-semibold text-accent-foreground">
                             Free agent
                           </div>
                         )}
-                        {open && (
-                          <div className="mt-1.5">
-                            {owner && <p className="text-sm text-muted-foreground">On {owner}</p>}
-                            {rec && <p className="text-sm text-muted-foreground">{rec.reason}</p>}
-                            {news && (
-                              <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
-                                <Newspaper className="mt-0.5 h-4 w-4 shrink-0" />
-                                {news.link ? (
-                                  <a
-                                    href={news.link}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="underline underline-offset-2 hover:text-foreground"
-                                  >
-                                    {news.headline}
-                                  </a>
-                                ) : (
-                                  news.headline
-                                )}
-                              </p>
-                            )}
-                            <PlayerInsightChips player={player} week={week} showForm={false} />
-                          </div>
-                        )}
+
                         <div className="mt-1.5 flex items-center gap-1.5 [&_button]:h-7 [&_button]:px-2 [&_button]:text-xs">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-1.5 text-xs font-semibold"
-                            aria-expanded={open}
-                            onClick={() => toggleExpanded(player.id)}
-                          >
-                            {open ? "Less" : "Details"}
-                          </Button>
                           <Button
                             size="icon"
                             variant={watched.has(player.id) ? "default" : "outline"}
@@ -691,6 +661,20 @@ function PlayersPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {cardRow && (
+        <PlayerSheet
+          row={cardRow}
+          posRank={ranks.byPosition.get(cardRow.player.pos)?.get(cardRow.player.id) ?? null}
+          week={week}
+          league={league}
+          open
+          onOpenChange={(o) => {
+            if (!o) setCardId(null);
+          }}
+        />
+      )}
     </InsightsProvider>
   );
 }
+
