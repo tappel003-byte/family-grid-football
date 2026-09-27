@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
 import { AddDropButton } from "@/components/fantasy/AddDropButton";
-import { PlayerSheet } from "@/components/fantasy/PlayerSheet";
+import { PlayerSheet, PlayerCardTrigger } from "@/components/fantasy/PlayerSheet";
 import { ActivityFeed } from "@/components/fantasy/ActivityFeed";
 import {
   InsightsProvider,
