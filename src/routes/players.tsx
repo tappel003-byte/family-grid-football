@@ -571,17 +571,24 @@ function PlayersPage() {
                 </div>
 
                 {results.map((row) => {
-                  const { player, owner, news, rec } = row;
-                  const open = expanded.has(player.id);
+                  const { player, owner } = row;
                   return (
                     <div key={player.id} className="flex items-stretch border-b last:border-b-0">
                       <div className="sticky left-0 z-10 w-44 shrink-0 border-r bg-card px-2 py-2 sm:w-72 sm:px-3">
-                        <PlayerCell player={player} week={week} photo="desktop" showGame={false} />
+                        <button
+                          type="button"
+                          className="block w-full cursor-pointer rounded-lg text-left"
+                          onClick={() => setCardId(player.id)}
+                          aria-label={`Open ${player.name}'s full player card`}
+                        >
+                          <PlayerCell player={player} week={week} photo="desktop" showGame={false} />
+                        </button>
                         {!owner && (
                           <div className="mt-1 text-xs font-semibold text-accent-foreground">
                             Free agent
                           </div>
                         )}
+
                         {open && (
                           <div className="mt-1.5">
                             {owner && <p className="text-sm text-muted-foreground">On {owner}</p>}
@@ -688,6 +695,20 @@ function PlayersPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {cardRow && (
+        <PlayerSheet
+          row={cardRow}
+          posRank={ranks.byPosition.get(cardRow.player.pos)?.get(cardRow.player.id) ?? null}
+          week={week}
+          league={league}
+          open
+          onOpenChange={(o) => {
+            if (!o) setCardId(null);
+          }}
+        />
+      )}
     </InsightsProvider>
   );
 }
+
