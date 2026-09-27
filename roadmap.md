@@ -13,3 +13,4 @@
 - [x] Add a first-sign-in “Keep me signed in” choice, on by default
 - [x] Explain each Players stat group beside its selector
 - [x] Move the player badge guide from the navigation to My Team
+- [ ] Make bench player rows match starter rows on phones and desktop without clipping names

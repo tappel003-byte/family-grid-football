@@ -436,81 +436,74 @@ export function RosterTable({
           </Link>
         )}
       </div>
-      <ul className="divide-y">
-        {benchPlayers.map((p) => {
-          const s = scoreFor(p, week, league);
-          return (
-            <li
-              key={p.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
-            >
-              <div className="min-w-0">
-                <PlayerCardTrigger player={p} week={week} league={league}>
-                  <PlayerCell player={p} compact week={week} />
-                </PlayerCardTrigger>
-                {!editable && onBlock.has(p.id) && <TradeAvailableBadge className="mt-1" />}
-                <PlayerInsightChips player={p} week={week} />
-              </div>
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                <div className="text-right">
-                  <div className="font-display text-lg font-bold tabular-nums">
-                    {s.actual.toFixed(1)}
+      <table className="w-full">
+        <thead className="hidden border-b text-left text-xs uppercase tracking-widest text-muted-foreground md:table-header-group">
+          <tr>
+            <th className="w-20 px-4 py-2">Slot</th>
+            <th className="px-4 py-2">Player</th>
+            <th className="w-32 px-4 py-2">Game</th>
+            <th className="w-24 px-4 py-2 text-right">Proj</th>
+            <th className="w-24 px-4 py-2 text-right">Points</th>
+            {editable && <th className="w-40 px-4 py-2 text-right">Move</th>}
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {benchPlayers.map((p) => {
+            const s = scoreFor(p, week, league);
+            return (
+              <tr key={p.id} className={cn("block md:table-row", isInactive(p.injury) && "bg-injury-out/10")}>
+                <td className="block px-4 pt-3 md:table-cell md:py-3">
+                  <span className="rounded bg-secondary px-2 py-0.5 font-display text-sm font-bold uppercase tracking-widest">BN</span>
+                </td>
+                <td className="block px-4 py-2 md:table-cell md:py-3">
+                  <div className="min-w-0">
+                    <PlayerCardTrigger player={p} week={week} league={league}>
+                      <PlayerCell player={p} week={week} />
+                    </PlayerCardTrigger>
+                    {!editable && onBlock.has(p.id) && <TradeAvailableBadge className="mt-1" />}
+                    <PlayerInsightChips player={p} week={week} />
                   </div>
-                  <div className="text-xs text-muted-foreground">proj {s.projected.toFixed(1)}</div>
-                </div>
+                </td>
+                <td className="block px-4 text-sm text-muted-foreground md:table-cell md:py-3" />
+                <td className="hidden px-4 py-3 text-right text-lg tabular-nums md:table-cell">
+                  {s.projected.toFixed(1)}
+                </td>
+                <td className="block px-4 md:table-cell md:py-3 md:text-right">
+                  <span className="font-display text-xl font-bold tabular-nums">{s.actual.toFixed(1)}</span>
+                  <span className="ml-2 text-sm text-muted-foreground md:hidden">proj {s.projected.toFixed(1)}</span>
+                </td>
                 {editable && (
-                  <>
-                    {locked(p) ? (
-                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-                        <Lock className="h-4 w-4" /> Locked
-                      </span>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 px-3 font-semibold"
-                        onClick={() => startBenchPlayer(p.id)}
-                      >
-                        Start
+                  <td className="block px-4 pb-3 pt-2 md:table-cell md:py-3 md:text-right">
+                    <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                      {locked(p) ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1.5 text-sm font-semibold text-muted-foreground">
+                          <Lock className="h-4 w-4" /> Game started
+                        </span>
+                      ) : (
+                        <Button variant="outline" size="sm" className="h-9 px-3 font-semibold" onClick={() => startBenchPlayer(p.id)}>
+                          Start
+                        </Button>
+                      )}
+                      {irOpen && isInactive(p.injury) && (
+                        <Button variant="outline" size="sm" className="h-9 px-3 font-semibold" disabled={pending} onClick={() => void moveToIR(p, true)}>
+                          Injured reserve
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm" className="h-9 px-3 font-semibold text-destructive" disabled={pending} onClick={() => setDropTarget(p)}>
+                        Drop
                       </Button>
-                    )}
-                    {irOpen && isInactive(p.injury) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 px-3 font-semibold"
-                        disabled={pending}
-                        onClick={() => void moveToIR(p, true)}
-                      >
-                        IR
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9 px-3 font-semibold text-destructive"
-                      disabled={pending}
-                      onClick={() => setDropTarget(p)}
-                    >
-                      Drop
-                    </Button>
-                    <TradeFlagToggle
-                      teamSlot={teamSlot}
-                      playerId={p.id}
-                      playerName={p.name}
-                      listed={onBlock.has(p.id)}
-                      className="ml-auto"
-                    />
-                  </>
+                      <TradeFlagToggle teamSlot={teamSlot} playerId={p.id} playerName={p.name} listed={onBlock.has(p.id)} className="ml-auto" />
+                    </div>
+                  </td>
                 )}
-              </div>
-            </li>
-          );
-        })}
-        {benchPlayers.length === 0 && (
-          <li className="px-4 py-6 text-muted-foreground">Bench is empty.</li>
-        )}
-      </ul>
+              </tr>
+            );
+          })}
+          {benchPlayers.length === 0 && (
+            <tr><td colSpan={editable ? 6 : 5} className="px-4 py-6 text-muted-foreground">Bench is empty.</td></tr>
+          )}
+        </tbody>
+      </table>
 
       {irSlots > 0 && (
         <>
