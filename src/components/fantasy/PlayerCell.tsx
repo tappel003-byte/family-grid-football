@@ -4,6 +4,20 @@ import { cn } from "@/lib/utils";
 import { ByeBadge } from "./PlayerInsights";
 import { formatGameTime, useTimeZone } from "@/lib/timezone";
 import { FootballIcon } from "./FootballIcon";
+import { useQuery } from "@tanstack/react-query";
+import { Newspaper } from "lucide-react";
+import { marketQueryOptions } from "@/lib/fantasy/hooks";
+
+function NewsIcon({ playerId }: { playerId: string }) {
+  const { data } = useQuery(marketQueryOptions);
+  if (!data?.news[playerId]) return null;
+  return (
+    <Newspaper
+      aria-label="Has recent news"
+      className="inline-block h-4 w-4 shrink-0 text-primary"
+    />
+  );
+}
 
 export type InjurySeverity = "out" | "doubtful" | "questionable";
 
@@ -158,6 +172,7 @@ export function PlayerCell({
                 {player.team} · {player.pos}
               </span>
               <InjuryBadge injury={player.injury} size="sm" />
+              <NewsIcon playerId={player.id} />
               {week !== undefined && <ByeBadge player={player} week={week} size="sm" />}
             </div>
             {showGame && gameLine && (
@@ -203,6 +218,7 @@ export function PlayerCell({
             {player.name}
           </span>
           <InjuryBadge injury={player.injury} size={compact ? "sm" : "md"} />
+          <NewsIcon playerId={player.id} />
           {week !== undefined && <ByeBadge player={player} week={week} size={compact ? "sm" : "md"} />}
         </div>
         <div
