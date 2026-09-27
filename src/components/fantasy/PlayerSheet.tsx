@@ -96,6 +96,11 @@ export function PlayerSheet({
 }) {
   const { player } = row;
   const insights = useInsights();
+  const { players: allPlayers } = usePlayers();
+  const byIdMap = useMemo(
+    () => new Map(allPlayers.map((p) => [p.id, p])),
+    [allPlayers],
+  );
   const timeZone = useTimeZone();
   const game = gameInfoFor(player.team, week);
   const kickoff = formatGameTime(game?.startsAt, timeZone);
