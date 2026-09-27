@@ -30,6 +30,7 @@ import { AlertTriangle, CalendarOff } from "lucide-react";
 import { isPlayerLocked } from "@/lib/fantasy/locks";
 import { Lock } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
+import { PlayerCardTrigger } from "./PlayerSheet";
 import { ChipLegend } from "./AppShell";
 import { TradeAvailableBadge, TradeFlagToggle, useTeamTradeBlock } from "./TradeFlag";
 import { PlayerInsightChips, useInsights, isOnBye } from "./PlayerInsights";
@@ -310,7 +311,9 @@ export function RosterTable({
                 <td className="block px-4 py-2 md:table-cell md:py-3">
                   {player ? (
                     <div className="min-w-0">
-                      <PlayerCell player={player} week={week} />
+                      <PlayerCardTrigger player={player} week={week} league={league}>
+                        <PlayerCell player={player} week={week} />
+                      </PlayerCardTrigger>
                       {!editable && onBlock.has(player.id) && (
                         <TradeAvailableBadge className="mt-1" />
                       )}
@@ -442,7 +445,9 @@ export function RosterTable({
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
             >
               <div className="min-w-0">
-                <PlayerCell player={p} compact week={week} />
+                <PlayerCardTrigger player={p} week={week} league={league}>
+                  <PlayerCell player={p} compact week={week} />
+                </PlayerCardTrigger>
                 {!editable && onBlock.has(p.id) && <TradeAvailableBadge className="mt-1" />}
                 <PlayerInsightChips player={p} week={week} />
               </div>
@@ -526,7 +531,9 @@ export function RosterTable({
                 key={p.id}
                 className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
               >
-                <PlayerCell player={p} compact week={week} />
+                <PlayerCardTrigger player={p} week={week} league={league}>
+                  <PlayerCell player={p} compact week={week} />
+                </PlayerCardTrigger>
                 {editable && (
                   <div className="flex shrink-0 items-center gap-2">
                     <Button
