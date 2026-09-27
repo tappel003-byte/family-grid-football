@@ -12,7 +12,6 @@ import { PlayerSheet } from "@/components/fantasy/PlayerSheet";
 import { ActivityFeed } from "@/components/fantasy/ActivityFeed";
 import {
   InsightsProvider,
-  PlayerInsightChips,
   insightsQueryOptions,
   isOnBye,
   matchupFor,
@@ -590,7 +589,6 @@ function PlayersPage() {
                         )}
 
                         <div className="mt-1.5 flex items-center gap-1.5 [&_button]:h-7 [&_button]:px-2 [&_button]:text-xs">
-                          <Button
                           <Button
                             size="icon"
                             variant={watched.has(player.id) ? "default" : "outline"}
