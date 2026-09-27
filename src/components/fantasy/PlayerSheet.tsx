@@ -288,3 +288,90 @@ export function PlayerSheet({
     </Dialog>
   );
 }
+
+/**
+ * Wraps any player row so tapping it opens the full card. Used on My Team,
+ * team pages and matchups, where the Players list's precomputed row is absent.
+ */
+export function PlayerCardTrigger({
+  player,
+  week,
+  league,
+  className,
+  children,
+}: {
+  player: SlimPlayer;
+  week: number;
+  league: League | null;
+  className?: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const insights = useInsights();
+  const { data: market } = useQuery(marketQueryOptions);
+  const { data: adds } = useQuery(trendingQueryOptions("add"));
+  const { data: drops } = useQuery(trendingQueryOptions("drop"));
+  const { players } = usePlayers();
+
+  const ranks = useMemo(() => {
+    const scored = players.map((p) => ({
+      id: p.id,
+      pos: p.pos,
+      name: p.name,
+      points: insights?.players[p.id]?.seasonPts ?? 0,
+    }));
+    const compare = (a: (typeof scored)[number], b: (typeof scored)[number]) =>
+      b.points - a.points || a.name.localeCompare(b.name);
+    const overall = new Map<string, number>();
+    [...scored].sort(compare).forEach((p, i) => overall.set(p.id, i + 1));
+    const samePos = new Map<string, number>();
+    scored
+      .filter((p) => p.pos === player.pos)
+      .sort(compare)
+      .forEach((p, i) => samePos.set(p.id, i + 1));
+    return { overall: overall.get(player.id) ?? 9999, pos: samePos.get(player.id) ?? null };
+  }, [players, insights, player.id, player.pos]);
+
+  const info = insights?.players[player.id];
+  const own = market?.ownership[player.id] ?? null;
+  const proj = league ? scoreFor(player, week, league).projected : 0;
+
+  const row: PlayerCardRow = {
+    player,
+    rank: ranks.overall,
+    owner: league?.teams.find((t) => ownedIds(t).includes(player.id))?.name ?? null,
+    proj,
+    own,
+    news: market?.news[player.id] ?? null,
+    last3Avg: info?.last3Avg ?? 0,
+    seasonPts: info?.seasonPts ?? 0,
+    seasonAvg: info?.seasonAvg ?? 0,
+    adds: (adds ?? []).find((a) => a.id === player.id)?.count ?? 0,
+    drops: (drops ?? []).find((a) => a.id === player.id)?.count ?? 0,
+    rec: null,
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`Open ${player.name}'s full player card`}
+        className={cn("block w-full min-w-0 text-left", className)}
+      >
+        {children}
+      </button>
+      {open && (
+        <PlayerSheet
+          row={row}
+          posRank={ranks.pos}
+          week={week}
+          league={league}
+          open
+          onOpenChange={setOpen}
+        />
+      )}
+    </>
+  );
+}
+
