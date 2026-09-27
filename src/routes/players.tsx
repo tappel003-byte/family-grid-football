@@ -589,40 +589,8 @@ function PlayersPage() {
                           </div>
                         )}
 
-                        {open && (
-                          <div className="mt-1.5">
-                            {owner && <p className="text-sm text-muted-foreground">On {owner}</p>}
-                            {rec && <p className="text-sm text-muted-foreground">{rec.reason}</p>}
-                            {news && (
-                              <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
-                                <Newspaper className="mt-0.5 h-4 w-4 shrink-0" />
-                                {news.link ? (
-                                  <a
-                                    href={news.link}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="underline underline-offset-2 hover:text-foreground"
-                                  >
-                                    {news.headline}
-                                  </a>
-                                ) : (
-                                  news.headline
-                                )}
-                              </p>
-                            )}
-                            <PlayerInsightChips player={player} week={week} showForm={false} />
-                          </div>
-                        )}
                         <div className="mt-1.5 flex items-center gap-1.5 [&_button]:h-7 [&_button]:px-2 [&_button]:text-xs">
                           <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-1.5 text-xs font-semibold"
-                            aria-expanded={open}
-                            onClick={() => toggleExpanded(player.id)}
-                          >
-                            {open ? "Less" : "Details"}
-                          </Button>
                           <Button
                             size="icon"
                             variant={watched.has(player.id) ? "default" : "outline"}
