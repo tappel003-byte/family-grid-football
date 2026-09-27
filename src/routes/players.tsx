@@ -83,7 +83,17 @@ export const Route = createFileRoute("/players")({
   notFoundComponent: () => <AppShell>No players found.</AppShell>,
 });
 
-function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, SlimPlayer> }) {
+function TrendingList({
+  type,
+  byId,
+  week,
+  league,
+}: {
+  type: "add" | "drop";
+  byId: Map<string, SlimPlayer>;
+  week: number;
+  league: League | null;
+}) {
   const { data, isPending } = useQuery(trendingQueryOptions(type));
   if (isPending) return <p className="p-4 text-muted-foreground">Loading trends…</p>;
   const rows = (data ?? [])
@@ -95,7 +105,9 @@ function TrendingList({ type, byId }: { type: "add" | "drop"; byId: Map<string, 
     <ul className="divide-y">
       {rows.map((r) => (
         <li key={r.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
-          <PlayerCell player={r.player!} compact showGame={false} />
+          <PlayerCardTrigger player={r.player!} week={week} league={league}>
+            <PlayerCell player={r.player!} compact showGame={false} />
+          </PlayerCardTrigger>
           <span className="shrink-0 font-display text-lg font-bold tabular-nums">
             {type === "add" ? "+" : "−"}
             {r.count.toLocaleString()}
