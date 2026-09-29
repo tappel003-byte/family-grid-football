@@ -251,19 +251,28 @@ export function PlayerSheet({
             <Stat label="Overall rank" value={`#${row.rank}`} />
             <Stat label={`${player.pos} rank`} value={posRank ? `#${posRank}` : "—"} />
           </Grid>
-          {info && info.last3.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              {info.last3.map((pts, i) => (
-                <span
-                  key={i}
-                  className="rounded-md bg-secondary px-2 py-0.5 text-xs font-semibold tabular-nums"
-                >
-                  W{week - info.last3.length + i + 1}: {pts.toFixed(1)}
-                </span>
+        </Section>
+
+        {/* Game log */}
+        {info?.gameLog && info.gameLog.length > 0 && (
+          <Section title="Game log">
+            <div className="divide-y rounded-xl border">
+              {[...info.gameLog].reverse().map((g) => (
+                <div key={g.week} className="flex items-center justify-between px-3 py-1.5 text-sm">
+                  <span className="font-semibold">
+                    W{g.week}{" "}
+                    <span className="font-normal text-muted-foreground">
+                      {g.opponent ? `${g.home ? "vs" : "@"} ${g.opponent}` : "Bye"}
+                    </span>
+                  </span>
+                  <span className="font-display font-bold tabular-nums">
+                    {g.pts === null ? "—" : g.pts.toFixed(1)}
+                  </span>
+                </div>
               ))}
             </div>
-          )}
-        </Section>
+          </Section>
+        )}
 
         {/* Usage */}
         {skill && info?.snapPct !== null && (
