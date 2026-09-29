@@ -10,6 +10,7 @@ type TeamRow = {
   user_id: string | null;
   starters: Array<string | null> | null;
   bench: string[] | null;
+  ir?: string[] | null;
 };
 
 function idsOf(team: TeamRow): string[] {
@@ -96,7 +97,7 @@ export async function processWaivers(
 
   const { data: teamRows } = await admin
     .from("teams")
-    .select("id, slot, name, user_id, starters, bench")
+    .select("id, slot, name, user_id, starters, bench, ir")
     .eq("league_id", leagueRow.id)
     .order("slot", { ascending: true });
   const teams = ((teamRows ?? []) as unknown as TeamRow[]).slice();
@@ -129,6 +130,12 @@ export async function processWaivers(
 
   let won = 0;
   let lost = 0;
+  // Position caps were checked when each claim was placed; re-check here because
+  // earlier claims in the same run can change a roster. Skipped only if the
+  // player feed is down, so an outage never wipes out legitimate claims.
+  const { playerPositionMap } = await import("./kickoff.server");
+  const { positionCapProblem } = await import("./roster-rules");
+  const positions = await playerPositionMap();
 
   for (const claim of ordered) {
     const team = teams.find((t) => t.slot === claim.team_slot);
@@ -142,7 +149,9 @@ export async function processWaivers(
     }
 
     // Is the player still a free agent?
-    const owner = teams.find((t) => idsOf(t).includes(claim.player_id));
+    const owner = teams.find(
+      (t) => idsOf(t).includes(claim.player_id) || (t.ir ?? []).includes(claim.player_id),
+    );
     let reason = "";
     if (owner) reason = owner.id === team.id ? "already on your roster" : `won by ${owner.name}`;
 
@@ -161,6 +170,17 @@ export async function processWaivers(
       } else {
         bench.splice(bi, 1);
       }
+    }
+
+    if (!reason && positions.size > 0) {
+      const problem = positionCapProblem({
+        rosterIds: [...(starters.filter(Boolean) as string[]), ...bench],
+        positionOf: (id) => positions.get(id) ?? (id.length <= 3 ? "DEF" : undefined),
+        addPos: claim.player_pos,
+        dropId: null,
+        limits: rules.positionLimits,
+      });
+      if (problem) reason = "position limit";
     }
 
     if (!reason) {

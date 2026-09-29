@@ -72,7 +72,10 @@ export async function seasonOf(): Promise<string> {
 }
 
 
-export async function archiveFinishedWeeks(supabaseAdmin: any): Promise<{ archived: number }> {
+export async function archiveFinishedWeeks(
+  supabaseAdmin: any,
+  regularSeasonOver = false,
+): Promise<{ archived: number }> {
     const { data: leagueRow } = await supabaseAdmin
       .from("league")
       .select("id, current_week, scoring")
@@ -96,7 +99,10 @@ export async function archiveFinishedWeeks(supabaseAdmin: any): Promise<{ archiv
     const done = new Set((existing ?? []).map((r: { week: number }) => Number(r.week)));
 
     const season = await seasonOf();
-    const lastWeek = Math.max(0, Math.min(18, Number(leagueRow.current_week) - 1));
+    const lastWeek = Math.max(
+      0,
+      Math.min(18, Number(leagueRow.current_week) - (regularSeasonOver ? 0 : 1)),
+    );
     let archived = 0;
 
     for (let week = 1; week <= lastWeek; week++) {
@@ -138,6 +144,8 @@ export async function rollWeek(supabaseAdmin: any) {
     if (error) throw new Error(error.message);
     advanced = true;
   }
-  const { archived } = await archiveFinishedWeeks(supabaseAdmin);
+  // Once the NFL moves past the regular season, the final week is finished too.
+  const regularSeasonOver = !!state?.season_type && state.season_type !== "regular" && state.season_type !== "pre";
+  const { archived } = await archiveFinishedWeeks(supabaseAdmin, regularSeasonOver);
   return { advanced, week: advanced ? target : row?.current_week ?? null, archived };
 }

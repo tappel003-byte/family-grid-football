@@ -77,14 +77,16 @@ export const placeClaim = createServerFn({ method: "POST" })
 
     const { data: teamRows } = await supabaseAdmin
       .from("teams")
-      .select("id, slot, name, user_id, starters, bench")
+      .select("id, slot, name, user_id, starters, bench, ir")
       .eq("league_id", leagueRow.id)
       .order("slot", { ascending: true });
     const teams = (teamRows ?? []) as unknown as TeamRow[];
     const mine = teams.find((t) => t.user_id === context.userId);
     if (!mine) throw new Error("You do not have a team in this league yet.");
 
-    const owner = teams.find((t) => idsOf(t).includes(data.playerId));
+    const owner = teams.find(
+      (t) => idsOf(t).includes(data.playerId) || (((t as { ir?: string[] }).ir ?? []) as string[]).includes(data.playerId),
+    );
     if (owner) {
       throw new Error(
         owner.id === mine.id
@@ -115,6 +117,21 @@ export const placeClaim = createServerFn({ method: "POST" })
 
     if (data.dropId && !idsOf(mine).includes(data.dropId)) {
       throw new Error(`${data.dropName} is not on your roster.`);
+    }
+    {
+      const { playerPositionMap } = await import("./kickoff.server");
+      const { positionCapProblem } = await import("./roster-rules");
+      const positions = await playerPositionMap();
+      if (positions.size > 0) {
+        const problem = positionCapProblem({
+          rosterIds: idsOf(mine),
+          positionOf: (id) => positions.get(id) ?? (id.length <= 3 ? "DEF" : undefined),
+          addPos: data.playerPos,
+          dropId: data.dropId,
+          limits: rules.positionLimits,
+        });
+        if (problem) throw new Error(problem);
+      }
     }
     if (!data.dropId) {
       const size = idsOf(mine).length;
