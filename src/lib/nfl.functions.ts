@@ -145,9 +145,12 @@ function mergeGames(base: Record<string, GameInfo>, rich: Record<string, GameInf
 type Cached = { at: number; data: WeekData };
 const cache = new Map<string, Cached>();
 
+/** ESPN rejects header-less server requests with 403, so always identify ourselves. */
+const FEED_HEADERS = { Accept: "application/json", "User-Agent": "Mozilla/5.0" };
+
 async function json<T>(url: string, fallback: T): Promise<T> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: FEED_HEADERS });
     if (!res.ok) return fallback;
     return (await res.json()) as T;
   } catch {
