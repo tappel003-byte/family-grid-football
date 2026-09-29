@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { availabilityFromKickoffs } from "./player-availability";
 import { lastWaiverRun, nextWaiverRun } from "./waiver-cycle";
 
