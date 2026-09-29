@@ -15,3 +15,5 @@
 - [x] Move the player badge guide from the navigation to My Team
 - [x] Make bench player rows match starter rows on phones and desktop without clipping names
 - [x] Replace week-only pickups with the full kickoff-to-Wednesday waiver cycle and verify every boundary
+- [x] Pre-launch audit: mid-game drop block, server position caps, IR players unclaimable, January season fix, Week 18 archive
+- [ ] Roster import dry run — waits on ESPN screenshots (Wednesday)

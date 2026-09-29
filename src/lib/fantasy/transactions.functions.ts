@@ -92,6 +92,32 @@ export const makeRosterMove = createServerFn({ method: "POST" })
       }
     }
 
+    // A player whose game has started can't be dropped mid-game (his points
+    // would vanish). Commissioner fixes are exempt.
+    if (data.dropId && rules.lockAtKickoff && !byCommish) {
+      const { lockedChecker } = await import("./kickoff.server");
+      const isLocked = await lockedChecker(leagueRow.current_week);
+      if (isLocked(data.dropId)) {
+        throw new Error(`${data.dropName}'s game has already started — he can't be dropped until it's over.`);
+      }
+    }
+
+    if (data.addId) {
+      const { playerPositionMap } = await import("./kickoff.server");
+      const { positionCapProblem } = await import("./roster-rules");
+      const positions = await playerPositionMap();
+      if (positions.size > 0) {
+        const problem = positionCapProblem({
+          rosterIds: [...(starters.filter(Boolean) as string[]), ...bench],
+          positionOf: (id) => positions.get(id) ?? (id.length <= 3 ? "DEF" : undefined),
+          addPos: data.addPos,
+          dropId: data.dropId,
+          limits: rules.positionLimits,
+        });
+        if (problem) throw new Error(problem);
+      }
+    }
+
     let freedSlot = -1;
     if (data.dropId) {
       const si = starters.indexOf(data.dropId);
