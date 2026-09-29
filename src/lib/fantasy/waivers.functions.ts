@@ -93,11 +93,11 @@ export const placeClaim = createServerFn({ method: "POST" })
       );
     }
 
-    // Before kickoff this is free agency, even on Wednesday. Claims are only
-    // for players whose game has already started or finished this week.
-    const { lockedChecker } = await import("./kickoff.server");
-    const started = await lockedChecker(leagueRow.current_week);
-    if (!started(data.playerId)) {
+    // Claims are valid from a player's kickoff through the following Wednesday
+    // run. The same state machine also guards instant adds.
+    const { availabilityChecker } = await import("./kickoff.server");
+    const availability = await availabilityChecker(leagueRow.current_week);
+    if (availability(data.playerId) !== "waiver") {
       throw new Error(`${data.playerName} is still a free agent — add him now instead of submitting a claim.`);
     }
 

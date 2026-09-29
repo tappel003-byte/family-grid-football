@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,13 @@ import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
 import { placeClaim } from "@/lib/fantasy/waivers.functions";
 import { reloadLeague } from "@/lib/fantasy/store";
 import {
-  gameStatusFor,
+  gameInfoFor,
   headshotUrl,
   marketQueryOptions,
   scoreFor,
   teamLogoUrl,
   trendingQueryOptions,
+  weekDataQueryOptions,
 } from "@/lib/fantasy/hooks";
 import {
   insightsQueryOptions,
@@ -34,6 +35,7 @@ import { cn } from "@/lib/utils";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import type { PlayerInsight } from "@/lib/insights.functions";
 import type { Ownership } from "@/lib/market.functions";
+import { availabilityFromGames } from "@/lib/fantasy/player-availability";
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
@@ -149,6 +151,11 @@ export function AddDropButton({
   const { data: market } = useQuery({ ...marketQueryOptions, enabled: dropOpen });
   const { data: adds } = useQuery({ ...trendingQueryOptions("add"), enabled: dropOpen });
   const { data: drops } = useQuery({ ...trendingQueryOptions("drop"), enabled: dropOpen });
+  const availabilityWeeks = [league.currentWeek, league.currentWeek - 1, league.currentWeek - 2]
+    .filter((week) => week >= 1);
+  const availabilityQueries = useQueries({
+    queries: availabilityWeeks.map((week) => weekDataQueryOptions(week)),
+  });
 
   const positionRanks = useMemo(() => {
     const ranks = new Map<string, number>();
@@ -175,10 +182,11 @@ export function AddDropButton({
   const myIds = rosterIds(myTeam);
   const onMyTeam = myIds.includes(player.id);
   const rules = league.rules;
-  const gameStarted = ["live", "final"].includes(gameStatusFor(player.team, league.currentWeek));
-  // Wednesday opens free agency: unstarted players are instant adds until kickoff.
-  const claimMode = rules.waiverMode === "waivers" && gameStarted;
-  const locked = rules.waiverMode === "locked" && gameStarted;
+  const availability = availabilityFromGames(
+    availabilityQueries.map((query) => query.data?.games[player.team]),
+  );
+  const claimMode = rules.waiverMode === "waivers" && availability === "waiver";
+  const locked = rules.waiverMode === "locked" && availability === "waiver";
   const cap = rules.positionLimits[player.pos] ?? 0;
   const atCap =
     cap > 0 &&
@@ -323,8 +331,10 @@ export function AddDropButton({
   const rosterFull = myIds.length >= rules.rosterLimit;
   const verb = claimMode ? "Claim" : "Add";
   const blocked = locked ? `${player.name}'s game has already started — he's locked this week.` : "";
-  const dropLocked = (p: SlimPlayer) =>
-    rules.lockAtKickoff && ["live", "final"].includes(gameStatusFor(p.team, league.currentWeek));
+  const dropLocked = (p: SlimPlayer) => {
+    const currentGame = gameInfoFor(p.team, league.currentWeek);
+    return rules.lockAtKickoff && (currentGame?.status === "live" || currentGame?.status === "final");
+  };
 
   function choose(drop: SlimPlayer | null) {
     if (atCap && drop?.pos !== player.pos) {

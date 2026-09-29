@@ -34,11 +34,12 @@ export const makeRosterMove = createServerFn({ method: "POST" })
     const rules = normalizeRules(leagueRow.rules);
     const ROSTER_LIMIT = rules.rosterLimit;
 
-    // Once a player's game has started he can't be grabbed instantly this week.
+    // The same kickoff-to-Wednesday state machine used by the screen is enforced
+    // here so stale screens and Tuesday week rollovers cannot create a bad add.
     if (data.addId && rules.waiverMode !== "free") {
-      const { lockedChecker } = await import("./kickoff.server");
-      const started = await lockedChecker(leagueRow.current_week);
-      if (started(data.addId)) {
+      const { availabilityChecker } = await import("./kickoff.server");
+      const availability = await availabilityChecker(leagueRow.current_week);
+      if (availability(data.addId) === "waiver") {
         throw new Error(
           rules.waiverMode === "waivers"
             ? `${data.addName}'s game has started — put in a waiver claim instead. It processes Wednesday at 12:01 AM Eastern.`
