@@ -146,7 +146,7 @@ type Cached = { at: number; data: WeekData };
 const cache = new Map<string, Cached>();
 
 /** ESPN rejects header-less server requests with 403, so always identify ourselves. */
-const FEED_HEADERS = { Accept: "application/json", "User-Agent": "Mozilla/5.0" };
+const FEED_HEADERS = { Accept: "application/json", "User-Agent": "curl/8.0" };
 
 async function json<T>(url: string, fallback: T): Promise<T> {
   try {
