@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
-import { useLeague } from "@/lib/fantasy/hooks";
+import { useLeague, useWeekData } from "@/lib/fantasy/hooks";
 import { useTradeBlock } from "@/components/fantasy/TradeFlag";
 import { Handshake } from "lucide-react";
 import { playersQueryOptions } from "@/lib/fantasy/hooks";
