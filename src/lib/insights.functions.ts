@@ -21,6 +21,8 @@ export type PlayerInsight = {
   targets: number;
   /** Share of team offensive snaps over the last three weeks, 0-100. */
   snapPct: number | null;
+  /** Every completed week: opponent and points (null = bye or didn't play). */
+  gameLog: Array<{ week: number; opponent: string | null; home: boolean; pts: number | null }>;
 };
 
 export type MatchupRating = {
@@ -85,7 +87,9 @@ export const getInsights = createServerFn({ method: "GET" })
     // This week's opponents.
     const matchups: Record<string, { opponent: string | null; home: boolean }> = {};
     const opponentByWeek = new Map<string, string>();
+    const homeByWeek = new Set<string>();
     for (const g of schedule) {
+      homeByWeek.add(`${g.week}-${g.home}`);
       opponentByWeek.set(`${g.week}-${g.home}`, g.away);
       opponentByWeek.set(`${g.week}-${g.away}`, g.home);
       if (g.week === data.week) {
@@ -98,7 +102,10 @@ export const getInsights = createServerFn({ method: "GET" })
     const recentWeeks: number[] = [];
     for (let w = data.week - 1; w >= 1 && recentWeeks.length < 3; w--) recentWeeks.push(w);
     recentWeeks.reverse();
-    const recentRaw = await Promise.all(recentWeeks.map((w) => loadWeekRaw(season, w)));
+    const allPast: number[] = [];
+    for (let w = 1; w < data.week; w++) allPast.push(w);
+    const pastRaw = await Promise.all(allPast.map((w) => loadWeekRaw(season, w)));
+    const recentRaw = recentWeeks.map((w) => pastRaw[w - 1]!);
 
     // Per-player recent form.
     const players: Record<string, PlayerInsight> = {};
@@ -127,6 +134,16 @@ export const getInsights = createServerFn({ method: "GET" })
           }
         }
       });
+      const gameLog = allPast.map((week, i) => {
+        const line = pastRaw[i]![id];
+        const played = line && Number(line["gp"] ?? 1) > 0;
+        return {
+          week,
+          opponent: opponentByWeek.get(`${week}-${m.team}`) ?? null,
+          home: homeByWeek.has(`${week}-${m.team}`),
+          pts: played ? Math.round(scoreRaw(line, data.scoring) * 10) / 10 : null,
+        };
+      });
       const seasonLine = seasonRaw[id];
       const games = seasonLine?.["gp"] ?? 0;
       const seasonPts = scoreRaw(seasonLine, data.scoring);
@@ -139,6 +156,7 @@ export const getInsights = createServerFn({ method: "GET" })
         games,
         targets: Math.round((targets / played) * 10) / 10,
         snapPct: snapDen > 0 ? Math.round((snapNum / snapDen) * 100) : null,
+        gameLog,
       };
     }
 
