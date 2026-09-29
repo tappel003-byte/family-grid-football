@@ -1,7 +1,10 @@
-/** Server-side view of which players are already locked because their game started. */
+/** Server-side source of truth for player kickoff and waiver availability. */
+
+import { availabilityFromKickoffs, type PlayerAvailability } from "./player-availability";
 
 type Scoreboard = {
   events?: Array<{
+    date?: string;
     status?: { type?: { state?: string; completed?: boolean } };
     competitions?: Array<{ competitors?: Array<{ team?: { abbreviation?: string } }> }>;
   }>;
@@ -14,6 +17,7 @@ const ROSTER_TTL = 1000 * 60 * 60 * 6;
 
 let lockedTeams: { at: number; week: number; teams: Set<string> } | null = null;
 let playerTeams: { at: number; map: Map<string, string> } | null = null;
+const scoreboardCache = new Map<number, { at: number; board: Scoreboard }>();
 
 /** ESPN rejects header-less server requests with 403, so always identify ourselves. */
 const FEED_HEADERS = { Accept: "application/json", "User-Agent": "curl/8.0" };
@@ -51,6 +55,29 @@ async function teamsInProgress(week: number): Promise<Set<string>> {
   return teams;
 }
 
+async function scoreboardFor(week: number, season: string): Promise<Scoreboard | null> {
+  const hit = scoreboardCache.get(week);
+  if (hit && Date.now() - hit.at < TEAM_TTL) return hit.board;
+  const primary = await json<Scoreboard | null>(
+    `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${season}`,
+    null,
+  );
+  if (primary?.events?.length) {
+    scoreboardCache.set(week, { at: Date.now(), board: primary });
+    return primary;
+  }
+  const cdn = await json<{ content?: { sbData?: Scoreboard } } | null>(
+    `https://cdn.espn.com/core/nfl/scoreboard?xhr=1&year=${season}&week=${week}&seasontype=2`,
+    null,
+  );
+  const fallback = cdn?.content?.sbData;
+  if (fallback?.events?.length) {
+    scoreboardCache.set(week, { at: Date.now(), board: fallback });
+    return fallback;
+  }
+  return null;
+}
+
 async function playerTeamMap(): Promise<Map<string, string>> {
   if (playerTeams && Date.now() - playerTeams.at < ROSTER_TTL) return playerTeams.map;
   const raw = await json<Record<string, RawPlayer>>(
@@ -73,5 +100,55 @@ export async function lockedChecker(week: number): Promise<(playerId: string | n
     if (!playerId) return false;
     const team = map.get(playerId);
     return !!team && teams.has(team);
+  };
+}
+
+/**
+ * Returns Claim from a player's latest actual kickoff until the following
+ * Wednesday run, then Add until his next kickoff. Looking back two weeks
+ * correctly handles Tuesday week rollovers and NFL bye weeks.
+ */
+export async function availabilityChecker(
+  week: number,
+  now: number = Date.now(),
+): Promise<(playerId: string | null) => PlayerAvailability> {
+  const state = await json<{ season?: string; week?: number } | null>(
+    "https://api.sleeper.app/v1/state/nfl",
+    null,
+  );
+  const season = state?.season ?? String(new Date(now).getUTCFullYear());
+  const actualWeek = Math.max(week, Number(state?.week ?? week));
+  const weeks = [actualWeek, actualWeek - 1, actualWeek - 2].filter((value) => value >= 1);
+  const [map, ...boards] = await Promise.all([
+    playerTeamMap(),
+    ...weeks.map((value) => scoreboardFor(value, season)),
+  ]);
+  if (map.size === 0 || boards.every((board) => board === null)) {
+    throw new Error("Player availability is temporarily unavailable. Please try again in a moment.");
+  }
+
+  const kickoffsByTeam = new Map<string, string[]>();
+  for (const board of boards) {
+    for (const event of board?.events ?? []) {
+      if (!event.date) continue;
+      for (const competitor of event.competitions?.[0]?.competitors ?? []) {
+        const raw = competitor.team?.abbreviation;
+        if (!raw) continue;
+        const team = raw === "WSH" ? "WAS" : raw;
+        const values = kickoffsByTeam.get(team) ?? [];
+        values.push(event.date);
+        kickoffsByTeam.set(team, values);
+      }
+    }
+  }
+
+  return (playerId) => {
+    if (!playerId) return "free-agent";
+    const rosterTeam = map.get(playerId);
+    const team = rosterTeam ?? (playerId.length <= 3 ? playerId : undefined);
+    if (!team) return "waiver";
+    const kickoffs = kickoffsByTeam.get(team);
+    if (!kickoffs) return "waiver";
+    return availabilityFromKickoffs(kickoffs, now);
   };
 }

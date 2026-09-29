@@ -14,3 +14,4 @@
 - [x] Explain each Players stat group beside its selector
 - [x] Move the player badge guide from the navigation to My Team
 - [x] Make bench player rows match starter rows on phones and desktop without clipping names
+- [x] Replace week-only pickups with the full kickoff-to-Wednesday waiver cycle and verify every boundary
