@@ -239,6 +239,31 @@ export function PlayerSheet({
           </div>
         )}
 
+        {/* Game log — collapsed by default, just above Production */}
+        {info?.gameLog && info.gameLog.length > 0 && (
+          <details className="group rounded-xl border">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground [&::-webkit-details-marker]:hidden">
+              Game log
+              <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="divide-y border-t">
+              {[...info.gameLog].reverse().map((g) => (
+                <div key={g.week} className="flex items-center justify-between px-3 py-1.5 text-sm">
+                  <span className="font-semibold">
+                    W{g.week}{" "}
+                    <span className="font-normal text-muted-foreground">
+                      {g.opponent ? `${g.home ? "vs" : "@"} ${g.opponent}` : "Bye"}
+                    </span>
+                  </span>
+                  <span className="font-display font-bold tabular-nums">
+                    {g.pts === null ? "—" : g.pts.toFixed(1)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+
         {/* Production */}
         <Section title="Production">
           <Grid cols={4}>
@@ -306,30 +331,6 @@ export function PlayerSheet({
             <div className="flex items-start gap-2 rounded-xl border p-3 text-sm">{newsBody}</div>
           ))}
 
-        {/* Game log — collapsed by default, at the bottom */}
-        {info?.gameLog && info.gameLog.length > 0 && (
-          <details className="group rounded-xl border">
-            <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground [&::-webkit-details-marker]:hidden">
-              Game log
-              <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
-            </summary>
-            <div className="divide-y border-t">
-              {[...info.gameLog].reverse().map((g) => (
-                <div key={g.week} className="flex items-center justify-between px-3 py-1.5 text-sm">
-                  <span className="font-semibold">
-                    W{g.week}{" "}
-                    <span className="font-normal text-muted-foreground">
-                      {g.opponent ? `${g.home ? "vs" : "@"} ${g.opponent}` : "Bye"}
-                    </span>
-                  </span>
-                  <span className="font-display font-bold tabular-nums">
-                    {g.pts === null ? "—" : g.pts.toFixed(1)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
       </DialogContent>
     </Dialog>
   );

@@ -9,13 +9,13 @@ export const Route = createFileRoute("/api/public/nfl-schedule")({
         const season = Math.min(2100, Math.max(2000, Math.round(Number(url.searchParams.get("season")) || new Date().getUTCFullYear())));
         let response = await fetch(
           `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${season}`,
-          { headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" } },
+          { headers: { Accept: "application/json", "User-Agent": "curl/8.0" } },
         );
 
         if (!response.ok) {
           response = await fetch(
             `https://cdn.espn.com/core/nfl/scoreboard?xhr=1&year=${season}&week=${week}&seasontype=2`,
-            { headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" } },
+            { headers: { Accept: "application/json", "User-Agent": "curl/8.0" } },
           );
           if (!response.ok) return Response.json({ events: [] }, { status: 502 });
           const payload = (await response.json()) as { content?: { sbData?: unknown } };

@@ -15,9 +15,12 @@ const ROSTER_TTL = 1000 * 60 * 60 * 6;
 let lockedTeams: { at: number; week: number; teams: Set<string> } | null = null;
 let playerTeams: { at: number; map: Map<string, string> } | null = null;
 
+/** ESPN rejects header-less server requests with 403, so always identify ourselves. */
+const FEED_HEADERS = { Accept: "application/json", "User-Agent": "curl/8.0" };
+
 async function json<T>(url: string, fallback: T): Promise<T> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: FEED_HEADERS });
     if (!res.ok) return fallback;
     return (await res.json()) as T;
   } catch {
