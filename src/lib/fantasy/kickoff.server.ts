@@ -10,14 +10,13 @@ type Scoreboard = {
   }>;
 };
 
-type RawPlayer = { player_id?: string; team?: string | null };
+type RawPlayer = { player_id?: string; team?: string | null; position?: string | null };
 
 const TEAM_TTL = 1000 * 60 * 5;
 const ROSTER_TTL = 1000 * 60 * 60 * 6;
 
-let lockedTeams: { at: number; week: number; teams: Set<string> } | null = null;
-let playerTeams: { at: number; map: Map<string, string> } | null = null;
-const scoreboardCache = new Map<number, { at: number; board: Scoreboard }>();
+let playerInfo: { at: number; teams: Map<string, string>; positions: Map<string, string> } | null = null;
+const scoreboardCache = new Map<string, { at: number; board: Scoreboard }>();
 
 /** ESPN rejects header-less server requests with 403, so always identify ourselves. */
 const FEED_HEADERS = { Accept: "application/json", "User-Agent": "curl/8.0" };
@@ -32,15 +31,75 @@ async function json<T>(url: string, fallback: T): Promise<T> {
   }
 }
 
-async function teamsInProgress(week: number): Promise<Set<string>> {
-  if (lockedTeams && lockedTeams.week === week && Date.now() - lockedTeams.at < TEAM_TTL) {
-    return lockedTeams.teams;
-  }
-  const season = String(new Date().getUTCFullYear());
-  const board = await json<Scoreboard>(
-    `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${season}`,
-    {},
+/** The NFL season label (Weeks 17-18 are played in January of the next year). */
+async function currentSeason(): Promise<{ season: string; week: number | null }> {
+  const state = await json<{ season?: string; week?: number } | null>(
+    "https://api.sleeper.app/v1/state/nfl",
+    null,
   );
+  return {
+    season: state?.season ?? String(new Date().getUTCFullYear()),
+    week: typeof state?.week === "number" ? state.week : null,
+  };
+}
+
+async function scoreboardFor(week: number, season: string): Promise<Scoreboard | null> {
+  const key = `${season}-${week}`;
+  const hit = scoreboardCache.get(key);
+  if (hit && Date.now() - hit.at < TEAM_TTL) return hit.board;
+  const primary = await json<Scoreboard | null>(
+    `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${season}`,
+    null,
+  );
+  if (primary?.events?.length) {
+    scoreboardCache.set(key, { at: Date.now(), board: primary });
+    return primary;
+  }
+  const cdn = await json<{ content?: { sbData?: Scoreboard } } | null>(
+    `https://cdn.espn.com/core/nfl/scoreboard?xhr=1&year=${season}&week=${week}&seasontype=2`,
+    null,
+  );
+  const fallback = cdn?.content?.sbData;
+  if (fallback?.events?.length) {
+    scoreboardCache.set(key, { at: Date.now(), board: fallback });
+    return fallback;
+  }
+  return null;
+}
+
+async function loadPlayerInfo() {
+  if (playerInfo && Date.now() - playerInfo.at < ROSTER_TTL) return playerInfo;
+  const raw = await json<Record<string, RawPlayer>>("https://api.sleeper.app/v1/players/nfl", {});
+  const teams = new Map<string, string>();
+  const positions = new Map<string, string>();
+  for (const p of Object.values(raw)) {
+    if (!p.player_id) continue;
+    if (p.team) teams.set(p.player_id, p.team);
+    if (p.position) positions.set(p.player_id, p.position);
+  }
+  if (teams.size > 0) playerInfo = { at: Date.now(), teams, positions };
+  return { at: Date.now(), teams, positions };
+}
+
+async function playerTeamMap(): Promise<Map<string, string>> {
+  return (await loadPlayerInfo()).teams;
+}
+
+/** Position for each player id (team defenses use their abbreviation as id). Empty if the feed is down. */
+export async function playerPositionMap(): Promise<Map<string, string>> {
+  return (await loadPlayerInfo()).positions;
+}
+
+/**
+ * True when this player's game for the week has already started. Fails safely:
+ * if the schedule can't be read, it throws instead of unlocking everyone.
+ */
+export async function lockedChecker(week: number): Promise<(playerId: string | null) => boolean> {
+  const { season } = await currentSeason();
+  const [board, map] = await Promise.all([scoreboardFor(week, season), playerTeamMap()]);
+  if (!board || map.size === 0) {
+    throw new Error("Game times are temporarily unavailable. Please try again in a moment.");
+  }
   const teams = new Set<string>();
   for (const event of board.events ?? []) {
     const state = event.status?.type?.state;
@@ -51,54 +110,9 @@ async function teamsInProgress(week: number): Promise<Set<string>> {
       if (abbr) teams.add(abbr === "WSH" ? "WAS" : abbr);
     }
   }
-  lockedTeams = { at: Date.now(), week, teams };
-  return teams;
-}
-
-async function scoreboardFor(week: number, season: string): Promise<Scoreboard | null> {
-  const hit = scoreboardCache.get(week);
-  if (hit && Date.now() - hit.at < TEAM_TTL) return hit.board;
-  const primary = await json<Scoreboard | null>(
-    `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${season}`,
-    null,
-  );
-  if (primary?.events?.length) {
-    scoreboardCache.set(week, { at: Date.now(), board: primary });
-    return primary;
-  }
-  const cdn = await json<{ content?: { sbData?: Scoreboard } } | null>(
-    `https://cdn.espn.com/core/nfl/scoreboard?xhr=1&year=${season}&week=${week}&seasontype=2`,
-    null,
-  );
-  const fallback = cdn?.content?.sbData;
-  if (fallback?.events?.length) {
-    scoreboardCache.set(week, { at: Date.now(), board: fallback });
-    return fallback;
-  }
-  return null;
-}
-
-async function playerTeamMap(): Promise<Map<string, string>> {
-  if (playerTeams && Date.now() - playerTeams.at < ROSTER_TTL) return playerTeams.map;
-  const raw = await json<Record<string, RawPlayer>>(
-    "https://api.sleeper.app/v1/players/nfl",
-    {},
-  );
-  const map = new Map<string, string>();
-  for (const p of Object.values(raw)) {
-    if (p.player_id && p.team) map.set(p.player_id, p.team);
-  }
-  playerTeams = { at: Date.now(), map };
-  return map;
-}
-
-/** True when this player's game for the week has already started. */
-export async function lockedChecker(week: number): Promise<(playerId: string | null) => boolean> {
-  const [teams, map] = await Promise.all([teamsInProgress(week), playerTeamMap()]);
-  if (teams.size === 0) return () => false;
   return (playerId) => {
     if (!playerId) return false;
-    const team = map.get(playerId);
+    const team = map.get(playerId) ?? (playerId.length <= 3 ? playerId : undefined);
     return !!team && teams.has(team);
   };
 }
@@ -112,12 +126,9 @@ export async function availabilityChecker(
   week: number,
   now: number = Date.now(),
 ): Promise<(playerId: string | null) => PlayerAvailability> {
-  const state = await json<{ season?: string; week?: number } | null>(
-    "https://api.sleeper.app/v1/state/nfl",
-    null,
-  );
-  const season = state?.season ?? String(new Date(now).getUTCFullYear());
-  const actualWeek = Math.max(week, Number(state?.week ?? week));
+  const state = await currentSeason();
+  const season = state.season;
+  const actualWeek = Math.max(week, Number(state.week ?? week));
   const weeks = [actualWeek, actualWeek - 1, actualWeek - 2].filter((value) => value >= 1);
   const [map, ...boards] = await Promise.all([
     playerTeamMap(),
