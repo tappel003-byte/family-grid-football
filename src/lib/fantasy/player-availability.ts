@@ -29,6 +29,7 @@ export function availabilityFromGames(
   games: Array<GameInfo | undefined>,
   now: number = Date.now(),
 ): PlayerAvailability {
+  if (games.every((game) => game === undefined)) return "waiver";
   const knownKickoffs = games.map((game) => game?.startsAt);
   const hasStartedGameWithoutTime = games.some(
     (game) => !game?.startsAt && (game?.status === "live" || game?.status === "final"),

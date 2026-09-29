@@ -55,10 +55,9 @@ async function teamsInProgress(week: number): Promise<Set<string>> {
   return teams;
 }
 
-async function scoreboardFor(week: number): Promise<Scoreboard | null> {
+async function scoreboardFor(week: number, season: string): Promise<Scoreboard | null> {
   const hit = scoreboardCache.get(week);
   if (hit && Date.now() - hit.at < TEAM_TTL) return hit.board;
-  const season = String(new Date().getUTCFullYear());
   const primary = await json<Scoreboard | null>(
     `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${season}`,
     null,
@@ -113,12 +112,18 @@ export async function availabilityChecker(
   week: number,
   now: number = Date.now(),
 ): Promise<(playerId: string | null) => PlayerAvailability> {
-  const weeks = [week, week - 1, week - 2].filter((value) => value >= 1);
+  const state = await json<{ season?: string; week?: number } | null>(
+    "https://api.sleeper.app/v1/state/nfl",
+    null,
+  );
+  const season = state?.season ?? String(new Date(now).getUTCFullYear());
+  const actualWeek = Math.max(week, Number(state?.week ?? week));
+  const weeks = [actualWeek, actualWeek - 1, actualWeek - 2].filter((value) => value >= 1);
   const [map, ...boards] = await Promise.all([
     playerTeamMap(),
-    ...weeks.map((value) => scoreboardFor(value)),
+    ...weeks.map((value) => scoreboardFor(value, season)),
   ]);
-  if (boards.every((board) => board === null)) {
+  if (map.size === 0 || boards.every((board) => board === null)) {
     throw new Error("Player availability is temporarily unavailable. Please try again in a moment.");
   }
 
@@ -141,7 +146,9 @@ export async function availabilityChecker(
     if (!playerId) return "free-agent";
     const rosterTeam = map.get(playerId);
     const team = rosterTeam ?? (playerId.length <= 3 ? playerId : undefined);
-    if (!team) return "free-agent";
-    return availabilityFromKickoffs(kickoffsByTeam.get(team) ?? [], now);
+    if (!team) return "waiver";
+    const kickoffs = kickoffsByTeam.get(team);
+    if (!kickoffs) return "waiver";
+    return availabilityFromKickoffs(kickoffs, now);
   };
 }
