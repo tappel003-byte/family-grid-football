@@ -46,6 +46,20 @@ function TeamsPage() {
   const { league, byId } = useLeague();
   const { data: block = [] } = useTradeBlock();
   if (!league) return <LoadingScreen label="Setting up your league…" />;
+  return <TeamsGrid league={league} byId={byId} block={block} />;
+}
+
+/** Split out so the week's live scores load only once the league is ready. */
+function TeamsGrid({
+  league,
+  byId,
+  block,
+}: {
+  league: NonNullable<ReturnType<typeof useLeague>["league"]>;
+  byId: ReturnType<typeof useLeague>["byId"];
+  block: { team_slot: number; player_id: string }[];
+}) {
+  useWeekData(league.currentWeek);
 
   return (
     <>
