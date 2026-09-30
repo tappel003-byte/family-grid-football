@@ -18,7 +18,7 @@ export const Route = createFileRoute("/chat")({
     { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: () => <AppShell><PageTitle title="League Chat" subtitle="Talk trash. Keep it in the family." /><Chat /></AppShell>,
-  errorComponent: ({ error }) => <AppShell><p role="alert">{error.message}</p></AppShell>,
+  errorComponent: ({ error }) => <AppShell><p role="alert">{error instanceof Error ? error.message : String(error)}</p></AppShell>,
   notFoundComponent: () => <AppShell>Nothing here.</AppShell>,
 });
 

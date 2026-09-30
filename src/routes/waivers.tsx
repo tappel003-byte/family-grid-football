@@ -32,7 +32,7 @@ export const Route = createFileRoute("/waivers")({
       </Suspense>
     </AppShell>
   ),
-  errorComponent: ({ error }) => <AppShell><p role="alert">{error.message}</p></AppShell>,
+  errorComponent: ({ error }) => <AppShell><p role="alert">{error instanceof Error ? error.message : String(error)}</p></AppShell>,
   notFoundComponent: () => <AppShell>Nothing here.</AppShell>,
 });
 

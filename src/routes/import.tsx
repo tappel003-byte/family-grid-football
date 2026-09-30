@@ -52,7 +52,7 @@ export const Route = createFileRoute("/import")({
   errorComponent: ({ error }) => (
     <AppShell>
       <p role="alert" className="text-lg">
-        {error.message}
+        {error instanceof Error ? error.message : String(error)}
       </p>
     </AppShell>
   ),

@@ -12,6 +12,6 @@ export const Route = createFileRoute("/activity")({
     { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: () => <AppShell><PageTitle title="League Activity" subtitle="The latest moves from every team" /><div className="overflow-hidden rounded-lg border bg-card"><ActivityFeed /></div></AppShell>,
-  errorComponent: ({ error }) => <AppShell><p role="alert">{error.message}</p></AppShell>,
+  errorComponent: ({ error }) => <AppShell><p role="alert">{error instanceof Error ? error.message : String(error)}</p></AppShell>,
   notFoundComponent: () => <AppShell>Nothing here.</AppShell>,
 });
