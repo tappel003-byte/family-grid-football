@@ -35,7 +35,7 @@ export const Route = createFileRoute("/teams")({
   errorComponent: ({ error }) => (
     <AppShell>
       <p role="alert" className="text-lg">
-        {error.message}
+        {error instanceof Error ? error.message : String(error)}
       </p>
     </AppShell>
   ),
