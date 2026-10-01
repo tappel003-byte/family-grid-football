@@ -11,7 +11,7 @@ import {
 } from "@/lib/fantasy/league.functions";
 import { reloadLeague } from "@/lib/fantasy/store";
 import { RULE_POSITIONS } from "@/lib/fantasy/rules";
-import { WEEKS, rosterIds, type League } from "@/lib/fantasy/league";
+import { rosterIds, type League } from "@/lib/fantasy/league";
 import {
   cancelClaim,
   listClaims,
@@ -145,8 +145,6 @@ function SettingsPage() {
   }
 
 
-  const [fixWeek, setFixWeek] = useState<number | null>(null);
-  const [draft, setDraft] = useState<Record<number, string>>({});
   if (!league) return <LoadingScreen label="Setting up your league…" />;
 
 
@@ -526,10 +524,6 @@ function SettingsPage() {
             )}
           </div>
 
-          </div>
-        </details>
-
-          </ul>
           </div>
         </details>
 
