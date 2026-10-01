@@ -1,5 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getPlayerNews } from "@/lib/player-news.functions";
 import { ChevronDown, Newspaper } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { League } from "@/lib/fantasy/league";
@@ -110,6 +112,15 @@ export function PlayerSheet({
   const score = league ? scoreFor(player, week, league) : null;
   const started = game?.status === "live" || game?.status === "final";
   const headlinePts = started && score ? score.actual : row.proj;
+
+  const fetchNews = useServerFn(getPlayerNews);
+  const { data: playerNews } = useQuery({
+    queryKey: ["player-news", player.id],
+    queryFn: () => fetchNews({ data: { sleeperId: player.id } }),
+    enabled: open,
+    staleTime: 1000 * 60 * 15,
+    retry: false,
+  });
 
   const skill = player.pos !== "DEF" && player.pos !== "K";
   const newsBody = row.news ? (
@@ -316,8 +327,49 @@ export function PlayerSheet({
           </Grid>
         </Section>
 
-        {/* News */}
-        {row.news &&
+        {/* News — this player's own ESPN news, else the league-wide headline */}
+        {playerNews && playerNews.length > 0 ? (
+          <Section title="Latest news · ESPN">
+            <div className="space-y-1.5">
+              {playerNews.map((n, i) => {
+                const date = n.published
+                  ? new Date(n.published).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                  : "";
+                const body = (
+                  <>
+                    <Newspaper className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0">
+                      <span className="block font-semibold leading-snug">{n.headline}</span>
+                      {n.description && (
+                        <span className="mt-1 block leading-snug text-foreground/85">{n.description}</span>
+                      )}
+                      <span className="block text-xs text-muted-foreground">
+                        {date}
+                        {n.link ? `${date ? " · " : ""}Full story` : ""}
+                      </span>
+                    </span>
+                  </>
+                );
+                return n.link ? (
+                  <a
+                    key={i}
+                    href={n.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-start gap-2 rounded-xl border p-3 text-sm hover:bg-secondary/50"
+                  >
+                    {body}
+                  </a>
+                ) : (
+                  <div key={i} className="flex items-start gap-2 rounded-xl border p-3 text-sm">
+                    {body}
+                  </div>
+                );
+              })}
+            </div>
+          </Section>
+        ) : (
+          row.news &&
           (row.news.link ? (
             <a
               href={row.news.link}
@@ -329,7 +381,8 @@ export function PlayerSheet({
             </a>
           ) : (
             <div className="flex items-start gap-2 rounded-xl border p-3 text-sm">{newsBody}</div>
-          ))}
+          ))
+        )}
 
       </DialogContent>
     </Dialog>
