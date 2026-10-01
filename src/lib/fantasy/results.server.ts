@@ -1,9 +1,10 @@
 /** Shared scoring archive + automatic week rollover (server only). */
+import { pointsAllowedTier } from "./stat-line";
 type StatLine = Record<string, number>;
 
 
 /** Same mapping the live scoring uses, kept local so this file imports nothing heavy. */
-function toLine(raw: Record<string, number> | undefined): StatLine {
+export function toLine(raw: Record<string, number> | undefined): StatLine {
   if (!raw) return {};
   const n = (k: string) => {
     const v = Number(raw[k] ?? 0);
@@ -33,15 +34,7 @@ function toLine(raw: Record<string, number> | undefined): StatLine {
     defSafety: n("safe"),
     defTd: n("def_td") + n("def_st_td") + n("st_td"),
     defBlockKick: n("blk_kick"),
-    ptsAllow0: n("pts_allow_0"),
-    ptsAllow1_6: n("pts_allow_1_6"),
-    ptsAllow7_13: n("pts_allow_7_13"),
-    ptsAllow14_17: n("pts_allow_14_20"),
-    ptsAllow18_21: 0,
-    ptsAllow22_27: n("pts_allow_21_27"),
-    ptsAllow28_34: n("pts_allow_28_34"),
-    ptsAllow35_45: n("pts_allow_35p"),
-    ptsAllow46: 0,
+    ...pointsAllowedTier(raw),
   };
   return line;
 }
