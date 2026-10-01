@@ -245,41 +245,78 @@ function SettingsPage() {
             Teams &amp; family members <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
           </summary>
           <div className="border-t px-5 pb-5">
-          <h2 className="mt-5 font-display text-xl font-bold">Teams</h2>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-display text-xl font-bold">Teams &amp; contacts</h2>
+            {(() => {
+              const emails = league.teams.map((t) => (t.email ?? "").trim()).filter((e) => e.includes("@"));
+              return (
+                <Button asChild={emails.length > 0} disabled={emails.length === 0}>
+                  {emails.length > 0 ? (
+                    <a href={`mailto:?bcc=${emails.map(encodeURIComponent).join(",")}&subject=${encodeURIComponent(league.name)}`}>
+                      Email league ({emails.length})
+                    </a>
+                  ) : (
+                    <span>Email league</span>
+                  )}
+                </Button>
+              );
+            })()}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Type each owner's real email and cell once. Changes save automatically.
+          </p>
           <ul className="mt-3 divide-y rounded-xl border">
-            {league.teams.map((team) => (
-              <li key={team.id} className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 p-3">
+            {league.teams.map((team) => {
+              const setField = (field: "name" | "owner" | "email" | "phone", value: string) =>
+                updateLeague((l) => ({
+                  ...l,
+                  teams: l.teams.map((t) => (t.id === team.id ? { ...t, [field]: value } : t)),
+                }));
+              const phoneDigits = (team.phone ?? "").replace(/[^\d+]/g, "");
+              return (
+              <li key={team.id} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 p-3">
                 <TeamCrest team={team} />
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Input
-                    className="h-10 text-base"
-                    aria-label={`${team.name} name`}
-                    value={team.name}
-                    onChange={(e) =>
-                      updateLeague((l) => ({
-                        ...l,
-                        teams: l.teams.map((t) =>
-                          t.id === team.id ? { ...t, name: e.target.value } : t,
-                        ),
-                      }))
-                    }
-                  />
-                  <Input
-                    className="h-10 text-base"
-                    aria-label={`${team.name} owner`}
-                    value={team.owner}
-                    onChange={(e) =>
-                      updateLeague((l) => ({
-                        ...l,
-                        teams: l.teams.map((t) =>
-                          t.id === team.id ? { ...t, owner: e.target.value } : t,
-                        ),
-                      }))
-                    }
-                  />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor={`${team.id}-name`} className="text-sm">Team name</Label>
+                    <Input id={`${team.id}-name`} className="mt-1 h-10 text-base" value={team.name}
+                      onChange={(e) => setField("name", e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor={`${team.id}-owner`} className="text-sm">Owner</Label>
+                    <Input id={`${team.id}-owner`} className="mt-1 h-10 text-base" value={team.owner}
+                      onChange={(e) => setField("owner", e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor={`${team.id}-email`} className="text-sm">Email</Label>
+                    <Input id={`${team.id}-email`} type="email" inputMode="email" autoComplete="off"
+                      placeholder="name@example.com" className="mt-1 h-10 text-base" value={team.email ?? ""}
+                      onChange={(e) => setField("email", e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor={`${team.id}-phone`} className="text-sm">Cell phone</Label>
+                    <Input id={`${team.id}-phone`} type="tel" inputMode="tel" autoComplete="off"
+                      placeholder="(505) 555-1234" className="mt-1 h-10 text-base" value={team.phone ?? ""}
+                      onChange={(e) => setField("phone", e.target.value)} />
+                  </div>
+                  {(phoneDigits.length >= 7 || (team.email ?? "").includes("@")) && (
+                    <div className="flex flex-wrap gap-2 sm:col-span-2">
+                      {phoneDigits.length >= 7 && (
+                        <>
+                          <Button asChild variant="outline" size="sm"><a href={`sms:${phoneDigits}`}>Text</a></Button>
+                          <Button asChild variant="outline" size="sm"><a href={`tel:${phoneDigits}`}>Call</a></Button>
+                        </>
+                      )}
+                      {(team.email ?? "").includes("@") && (
+                        <Button asChild variant="outline" size="sm"><a href={`mailto:${team.email}`}>Email</a></Button>
+                      )}
+                    </div>
+                  )}
+                  <div className="sm:col-span-2">
+                    <Label htmlFor={`${team.id}-manager`} className="text-sm">Signed-in family member</Label>
                   <select
-                    aria-label={`Who manages ${team.name}`}
-                    className="h-10 rounded-md border bg-background px-2 text-base sm:col-span-2"
+                    id={`${team.id}-manager`}
+                    className="mt-1 h-10 w-full rounded-md border bg-background px-2 text-base"
                     value={team.userId ?? ""}
                     onChange={(e) => {
                       const value = e.target.value || null;
@@ -294,17 +331,20 @@ function SettingsPage() {
                         .catch((err: Error) => toast.error(err.message));
                     }}
                   >
-                    <option value="">No family member linked yet</option>
+                    <option value="">Not claimed yet</option>
                     {members.map((m) => (
                       <option key={m.id} value={m.id}>
-                        {m.display_name} ({m.email})
+                        {m.display_name}
                       </option>
                     ))}
                   </select>
+                  </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
+
 
           <h2 className="mt-8 font-display text-xl font-bold">Family members</h2>
           <p className="mt-1 text-base text-muted-foreground">
@@ -321,7 +361,8 @@ function SettingsPage() {
                   <div className="min-w-0">
                     <div className="truncate text-base font-semibold">{m.display_name}</div>
                     <div className="truncate text-sm text-muted-foreground">
-                      {m.email} · {theirTeam ? theirTeam.name : "no team yet"}
+                      {m.email && !m.email.endsWith("@lafamiliafantasyfootball.com") ? `${m.email} · ` : ""}
+                      {theirTeam ? theirTeam.name : "no team yet"}
                     </div>
                   </div>
                   <Button
