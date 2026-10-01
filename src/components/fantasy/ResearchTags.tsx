@@ -20,7 +20,9 @@ export function usePractice(player: SlimPlayer): PracticeStatus | null {
 export function depthLabel(player: SlimPlayer): string | null {
   if (player.pos === "K" || player.pos === "DEF") return null;
   if (!player.depth || !player.depthPos) return null;
-  return `${player.depthPos}${player.depth}`;
+  const pos = /WR$/.test(player.depthPos) ? "WR" : /RB$/.test(player.depthPos) ? "RB" : player.depthPos;
+  if (pos !== player.pos) return null;
+  return `${pos}${player.depth}`;
 }
 
 export function DepthTag({ player }: { player: SlimPlayer }) {

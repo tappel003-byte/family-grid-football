@@ -202,7 +202,7 @@ export function PlayerSheet({
             )}
             {depth && (
               <p className="text-sm text-muted-foreground">
-                Depth chart: {ordinal(player.depth!)} {player.depthPos} for {player.team}
+                Depth chart: {ordinal(player.depth!)} {player.pos} for {player.team}
               </p>
             )}
             <p className="text-sm text-muted-foreground">
