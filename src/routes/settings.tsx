@@ -236,11 +236,7 @@ function SettingsPage() {
           </div>
         </section>
 
-        <details className="group rounded-lg border bg-card shadow-sm">
-          <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
-            Teams &amp; contacts <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
-          </summary>
-          <div className="border-t px-5 pb-5">
+        <section className="rounded-lg border bg-card px-5 pb-5 shadow-sm">
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-display text-xl font-bold">Teams &amp; contacts</h2>
             {(() => {
@@ -259,7 +255,7 @@ function SettingsPage() {
             })()}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Type each owner's real email and cell once. Changes save automatically.
+            Tap a team to edit its info or reset sign-in. Changes save automatically.
           </p>
           <ul className="mt-3 divide-y rounded-xl border">
             {league.teams.map((team) => {
@@ -270,9 +266,26 @@ function SettingsPage() {
                 }));
               const phoneDigits = (team.phone ?? "").replace(/[^\d+]/g, "");
               return (
-              <li key={team.id} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 p-3">
-                <TeamCrest team={team} />
-                <div className="grid gap-3 sm:grid-cols-2">
+              <li key={team.id}>
+                <details className="group/team">
+                  <summary className="flex cursor-pointer list-none items-center gap-3 p-3">
+                    <TeamCrest team={team} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">{team.name}</p>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {team.owner}{team.phone ? ` · ${team.phone}` : ""}
+                      </p>
+                    </div>
+                    {phoneDigits.length >= 7 && (
+                      <div className="flex shrink-0 gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button asChild variant="outline" size="sm"><a href={`tel:${phoneDigits}`}>Call</a></Button>
+                        <Button asChild variant="outline" size="sm"><a href={`sms:${phoneDigits}`}>Text</a></Button>
+                      </div>
+                    )}
+                    <span className="shrink-0 text-muted-foreground group-open/team:rotate-180">⌄</span>
+                  </summary>
+                <div className="grid gap-3 px-3 pb-4 sm:grid-cols-2">
+
                   <div>
                     <Label htmlFor={`${team.id}-name`} className="text-sm">Team name</Label>
                     <Input id={`${team.id}-name`} className="mt-1 h-10 text-base" value={team.name}
@@ -352,12 +365,12 @@ function SettingsPage() {
                   )}
                   </div>
                 </div>
+                </details>
               </li>
               );
             })}
           </ul>
-          </div>
-        </details>
+        </section>
 
 
         <details className="group rounded-lg border bg-card shadow-sm">
