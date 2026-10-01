@@ -22,6 +22,11 @@ import { ByeBadge, isOnBye, matchupFor, useInsights } from "./PlayerInsights";
 import { InjuryBadge } from "./PlayerCell";
 import { AddDropButton } from "./AddDropButton";
 import { cn } from "@/lib/utils";
+import { depthLabel, usePractice } from "./ResearchTags";
+
+function ordinal(n: number): string {
+  return ["", "1st", "2nd", "3rd"][n] ?? `${n}th`;
+}
 
 /** Everything the card shows, already computed by the Players list rows. */
 export type PlayerCardRow = {
@@ -121,6 +126,8 @@ export function PlayerSheet({
     staleTime: 1000 * 60 * 15,
     retry: false,
   });
+  const practice = usePractice(player);
+  const depth = depthLabel(player);
 
   const skill = player.pos !== "DEF" && player.pos !== "K";
   const newsBody = row.news ? (
@@ -181,6 +188,21 @@ export function PlayerSheet({
               <p className="text-sm font-semibold text-injury-out">
                 {player.injury} · {player.injuryBodyPart}
                 {player.injuryNotes ? ` (${player.injuryNotes.toLowerCase()})` : ""}
+              </p>
+            )}
+            {practice && (
+              <p
+                className={cn(
+                  "text-sm font-semibold",
+                  practice === "DNP" ? "text-injury-out" : "text-foreground/80",
+                )}
+              >
+                Practice: {practice === "DNP" ? "Did not practice" : "Limited"} · latest report
+              </p>
+            )}
+            {depth && (
+              <p className="text-sm text-muted-foreground">
+                Depth chart: {ordinal(player.depth!)} {player.pos} for {player.team}
               </p>
             )}
             <p className="text-sm text-muted-foreground">

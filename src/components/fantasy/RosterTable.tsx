@@ -458,7 +458,7 @@ export function RosterTable({
                 <td className="block px-4 py-2 md:table-cell md:py-3">
                   <div className="min-w-0">
                     <PlayerCardTrigger player={p} week={week} league={league}>
-                      <PlayerCell player={p} week={week} />
+                      <PlayerCell player={p} week={week} research />
                     </PlayerCardTrigger>
                     {!editable && onBlock.has(p.id) && <TradeAvailableBadge className="mt-1" />}
                     <PlayerInsightChips player={p} week={week} />
