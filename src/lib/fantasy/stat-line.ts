@@ -34,15 +34,25 @@ export function rawToStatLine(raw: RawStats): StatLine | null {
     defSafety: n("safe"),
     defTd: n("def_td") + n("def_st_td") + n("st_td"),
     defBlockKick: n("blk_kick"),
-    ptsAllow0: n("pts_allow_0"),
-    ptsAllow1_6: n("pts_allow_1_6"),
-    ptsAllow7_13: n("pts_allow_7_13"),
-    ptsAllow14_17: n("pts_allow_14_20"),
-    ptsAllow18_21: 0,
-    ptsAllow22_27: n("pts_allow_21_27"),
-    ptsAllow28_34: n("pts_allow_28_34"),
-    ptsAllow35_45: n("pts_allow_35p"),
-    ptsAllow46: 0,
+    ...pointsAllowedTier(raw),
   };
   return Object.values(line).some((value) => value !== 0) ? line : null;
+}
+
+/** One tier = 1 from the literal pts_allow; all 0 when pts_allow is missing (never a shutout). */
+export function pointsAllowedTier(raw: Record<string, number>) {
+  const t = { ptsAllow0: 0, ptsAllow1_6: 0, ptsAllow7_13: 0, ptsAllow14_17: 0, ptsAllow18_21: 0, ptsAllow22_27: 0, ptsAllow28_34: 0, ptsAllow35_45: 0, ptsAllow46: 0 };
+  if (!Object.prototype.hasOwnProperty.call(raw, "pts_allow")) return t;
+  const pa = raw["pts_allow"];
+  if (typeof pa !== "number" || !Number.isFinite(pa)) return t;
+  if (pa <= 0) t.ptsAllow0 = 1;
+  else if (pa <= 6) t.ptsAllow1_6 = 1;
+  else if (pa <= 13) t.ptsAllow7_13 = 1;
+  else if (pa <= 17) t.ptsAllow14_17 = 1;
+  else if (pa <= 21) t.ptsAllow18_21 = 1;
+  else if (pa <= 27) t.ptsAllow22_27 = 1;
+  else if (pa <= 34) t.ptsAllow28_34 = 1;
+  else if (pa <= 45) t.ptsAllow35_45 = 1;
+  else t.ptsAllow46 = 1;
+  return t;
 }
