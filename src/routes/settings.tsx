@@ -9,10 +9,9 @@ import {
   assignTeam,
   resetMemberPassword,
 } from "@/lib/fantasy/league.functions";
-import { setScoreOverride } from "@/lib/fantasy/overrides.functions";
-import { allOverrides, reloadLeague, reloadOverrides, scoreOverride } from "@/lib/fantasy/store";
+import { reloadLeague } from "@/lib/fantasy/store";
 import { RULE_POSITIONS } from "@/lib/fantasy/rules";
-import { WEEKS, rosterIds, type League } from "@/lib/fantasy/league";
+import { rosterIds, type League } from "@/lib/fantasy/league";
 import {
   cancelClaim,
   listClaims,
@@ -82,7 +81,6 @@ function SettingsPage() {
   const { data: members = [], refetch: refetchMembers } = useMembers(true);
   const assign = useServerFn(assignTeam);
   const resetPassword = useServerFn(resetMemberPassword);
-  const saveOverride = useServerFn(setScoreOverride);
   const claimsFetch = useServerFn(listClaims);
   const runClaimList = useServerFn(runWaivers);
   const pullClaim = useServerFn(cancelClaim);
@@ -147,12 +145,8 @@ function SettingsPage() {
   }
 
 
-  const [fixWeek, setFixWeek] = useState<number | null>(null);
-  const [draft, setDraft] = useState<Record<number, string>>({});
   if (!league) return <LoadingScreen label="Setting up your league…" />;
 
-  const correctionWeek = fixWeek ?? league.currentWeek;
-  const overrideCount = allOverrides().size;
 
   const applyPreset = (scoring: Scoring, name: string) => {
     updateLeague((l) => ({ ...l, scoring: { ...scoring } }));
@@ -530,90 +524,6 @@ function SettingsPage() {
             )}
           </div>
 
-          </div>
-        </details>
-
-        <details className="group rounded-lg border bg-card shadow-sm">
-          <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
-            Score corrections <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
-          </summary>
-          <div className="border-t px-5 pb-5">
-          <h2 className="mt-5 font-display text-xl font-bold">Fix a final score</h2>
-          <p className="mt-1 text-base text-muted-foreground">
-            Type a score to overrule the live total for one team in one week. Leave it blank to go
-            back to the real score.
-            {overrideCount > 0 ? ` ${overrideCount} correction${overrideCount === 1 ? "" : "s"} in place.` : ""}
-          </p>
-          <div className="mt-3">
-            <Label htmlFor="fix-week" className="text-base">
-              Week
-            </Label>
-            <select
-              id="fix-week"
-              className="mt-1 h-11 w-full rounded-md border bg-background px-3 text-base sm:max-w-[10rem]"
-              value={correctionWeek}
-              onChange={(e) => {
-                setFixWeek(Number(e.target.value));
-                setDraft({});
-              }}
-            >
-              {WEEKS.map((w) => (
-                <option key={w} value={w}>
-                  Week {w}
-                </option>
-              ))}
-            </select>
-          </div>
-          <ul className="mt-3 divide-y rounded-xl border">
-            {league.teams.map((team, slot) => {
-              const current = scoreOverride(correctionWeek, slot);
-              const value = draft[slot] ?? (current != null ? String(current) : "");
-              return (
-                <li key={team.id} className="flex items-center gap-3 p-3">
-                  <TeamCrest team={team} />
-                  <span className="min-w-0 flex-1 truncate text-base font-semibold">
-                    {team.name}
-                  </span>
-                  <Input
-                    aria-label={`Final score for ${team.name} in week ${correctionWeek}`}
-                    type="number"
-                    step="0.1"
-                    placeholder="live"
-                    className="h-10 w-24 text-base tabular-nums"
-                    value={value}
-                    onChange={(e) => setDraft((d) => ({ ...d, [slot]: e.target.value }))}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const raw = value.trim();
-                      const points = raw === "" ? null : Number(raw);
-                      void saveOverride({
-                        data: { week: correctionWeek, teamSlot: slot, points, note: "" },
-                      })
-                        .then(async () => {
-                          await reloadOverrides();
-                          setDraft((d) => {
-                            const next = { ...d };
-                            delete next[slot];
-                            return next;
-                          });
-                          toast.success(
-                            points == null
-                              ? `${team.name} back to the live score`
-                              : `${team.name} set to ${points} for week ${correctionWeek}`,
-                          );
-                        })
-                        .catch((err: Error) => toast.error(err.message));
-                    }}
-                  >
-                    Save
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
           </div>
         </details>
 
