@@ -447,7 +447,7 @@ export function RosterTable({
             {editable && <th className="w-40 px-4 py-2 text-right">Move</th>}
           </tr>
         </thead>
-        <tbody className="divide-y">
+        <tbody className="divide-y bg-secondary/40">
           {benchPlayers.map((p) => {
             const s = scoreFor(p, week, league);
             return (
