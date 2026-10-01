@@ -20,6 +20,10 @@ export type FantasyTeam = {
   userId?: string | null;
   /** Division label, e.g. "A" or "B". Empty when the league has no divisions. */
   division?: string;
+  /** Owner's real email, entered by the commissioner. */
+  email?: string;
+  /** Owner's cell phone, entered by the commissioner. */
+  phone?: string;
 };
 
 export type League = {

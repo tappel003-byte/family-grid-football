@@ -12,6 +12,8 @@ type TeamRow = {
   ir: string[];
   userId?: string | null;
   division?: string;
+  email?: string;
+  phone?: string;
 };
 
 export type LeaguePayload = {
@@ -40,6 +42,8 @@ export function toPayload(league: League): LeaguePayload {
       ir: t.ir ?? [],
       userId: t.userId ?? null,
       division: t.division ?? "",
+      email: t.email ?? "",
+      phone: t.phone ?? "",
     })),
   };
 }
@@ -200,6 +204,8 @@ export const saveLeague = createServerFn({ method: "POST" })
       ir: useNew ? (t.ir ?? []) : current!.ir,
       user_id: t.userId ?? null,
       division: t.division ?? "",
+      email: (t.email ?? "").trim(),
+      phone: (t.phone ?? "").trim(),
       updated_at: new Date().toISOString(),
     };
     });
