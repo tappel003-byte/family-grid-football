@@ -212,11 +212,13 @@ export type Database = {
           bench: Json
           color: string
           division: string
+          email: string
           id: string
           ir: Json
           league_id: string
           name: string
           owner: string
+          phone: string
           slot: number
           starters: Json
           updated_at: string
@@ -226,11 +228,13 @@ export type Database = {
           bench?: Json
           color?: string
           division?: string
+          email?: string
           id?: string
           ir?: Json
           league_id: string
           name?: string
           owner?: string
+          phone?: string
           slot: number
           starters?: Json
           updated_at?: string
@@ -240,11 +244,13 @@ export type Database = {
           bench?: Json
           color?: string
           division?: string
+          email?: string
           id?: string
           ir?: Json
           league_id?: string
           name?: string
           owner?: string
+          phone?: string
           slot?: number
           starters?: Json
           updated_at?: string

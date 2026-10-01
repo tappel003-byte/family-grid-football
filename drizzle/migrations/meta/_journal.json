@@ -78,6 +78,13 @@
       "when": 1790220162385,
       "tag": "0010_weekly_waiver_run",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790854178416,
+      "tag": "0011_add_team_contact_info",
+      "breakpoints": true
     }
   ]
 }
