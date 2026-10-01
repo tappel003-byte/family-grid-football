@@ -11,6 +11,9 @@ export type SlimPlayer = {
   rank: number;
   age: number | null;
   number: number | null;
+  depth?: number | null;
+  depthPos?: string | null;
+  gsis?: string | null;
 };
 
 type RawPlayer = {
@@ -28,6 +31,9 @@ type RawPlayer = {
   age?: number | null;
   number?: number | null;
   active?: boolean;
+  depth_chart_order?: number | null;
+  depth_chart_position?: string | null;
+  gsis_id?: string | null;
 };
 
 const FANTASY_POSITIONS = new Set(["QB", "RB", "WR", "TE", "K", "DEF"]);
@@ -64,6 +70,9 @@ export const getPlayers = createServerFn({ method: "GET" }).handler(
         rank: p.search_rank && p.search_rank > 0 ? p.search_rank : 9999,
         age: p.age ?? null,
         number: p.number ?? null,
+        depth: typeof p.depth_chart_order === "number" ? p.depth_chart_order : null,
+        depthPos: p.depth_chart_position || null,
+        gsis: p.gsis_id?.trim() || null,
       });
     }
     players.sort((a, b) => a.rank - b.rank);
