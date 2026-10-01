@@ -592,7 +592,7 @@ function PlayersPage() {
                           onClick={() => setCardId(player.id)}
                           aria-label={`Open ${player.name}'s full player card`}
                         >
-                          <PlayerCell player={player} week={week} photo="desktop" showGame={false} />
+                          <PlayerCell player={player} week={week} photo="desktop" showGame={false} research={!owner} />
                         </button>
                         {!owner && (
                           <div className="mt-1 text-xs font-semibold text-accent-foreground">

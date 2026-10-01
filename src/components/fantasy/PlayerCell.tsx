@@ -1,4 +1,5 @@
 import type { SlimPlayer } from "@/lib/sleeper.functions";
+import { DepthTag, PracticeTag } from "./ResearchTags";
 import { gameInfoFor, headshotUrl, teamLogoUrl } from "@/lib/fantasy/hooks";
 import { cn } from "@/lib/utils";
 import { ByeBadge } from "./PlayerInsights";
@@ -92,6 +93,7 @@ export function PlayerCell({
   photo = "always",
   week,
   showGame = true,
+  research = false,
 }: {
   player: SlimPlayer;
   align?: "left" | "right";
@@ -102,6 +104,8 @@ export function PlayerCell({
   week?: number;
   /** Hides the kickoff/TV line (used on dense screens like Players). */
   showGame?: boolean;
+  /** Shows depth chart and practice tags (bench and free-agent rows only). */
+  research?: boolean;
 }) {
   const info = injuryInfo(player.injury);
   const timeZone = useTimeZone();
@@ -218,6 +222,8 @@ export function PlayerCell({
             {player.name}
           </span>
           <InjuryBadge injury={player.injury} size={compact ? "sm" : "md"} />
+          {research && <PracticeTag player={player} />}
+          {research && <DepthTag player={player} />}
           <NewsIcon playerId={player.id} />
           {week !== undefined && <ByeBadge player={player} week={week} size={compact ? "sm" : "md"} />}
         </div>
