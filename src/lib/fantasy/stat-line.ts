@@ -43,7 +43,7 @@ export function rawToStatLine(raw: RawStats): StatLine | null {
 export function pointsAllowedTier(raw: Record<string, number>) {
   const t = { ptsAllow0: 0, ptsAllow1_6: 0, ptsAllow7_13: 0, ptsAllow14_17: 0, ptsAllow18_21: 0, ptsAllow22_27: 0, ptsAllow28_34: 0, ptsAllow35_45: 0, ptsAllow46: 0 };
   if (!Object.prototype.hasOwnProperty.call(raw, "pts_allow")) return t;
-  const pa = raw.pts_allow;
+  const pa = raw["pts_allow"];
   if (typeof pa !== "number" || !Number.isFinite(pa)) return t;
   if (pa <= 0) t.ptsAllow0 = 1;
   else if (pa <= 6) t.ptsAllow1_6 = 1;
