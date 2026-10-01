@@ -7,9 +7,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useAuth, useMembers } from "@/lib/auth";
 import {
   assignTeam,
-  removeMember,
   resetMemberPassword,
-  setMemberRole,
 } from "@/lib/fantasy/league.functions";
 import { setScoreOverride } from "@/lib/fantasy/overrides.functions";
 import { allOverrides, reloadLeague, reloadOverrides, scoreOverride } from "@/lib/fantasy/store";
@@ -83,9 +81,7 @@ function SettingsPage() {
   const { user } = useAuth();
   const { data: members = [], refetch: refetchMembers } = useMembers(true);
   const assign = useServerFn(assignTeam);
-  const changeRole = useServerFn(setMemberRole);
   const resetPassword = useServerFn(resetMemberPassword);
-  const kickMember = useServerFn(removeMember);
   const saveOverride = useServerFn(setScoreOverride);
   const claimsFetch = useServerFn(listClaims);
   const runClaimList = useServerFn(runWaivers);
@@ -338,113 +334,25 @@ function SettingsPage() {
                       </option>
                     ))}
                   </select>
-                  </div>
-                </div>
-              </li>
-              );
-            })}
-          </ul>
-
-
-          <h2 className="mt-8 font-display text-xl font-bold">Family members</h2>
-          <p className="mt-1 text-base text-muted-foreground">
-            Everyone who has signed in. Commissioners can change scoring, weeks and rosters.
-          </p>
-          <ul className="mt-3 divide-y rounded-xl border">
-            {members.length === 0 && (
-              <li className="p-3 text-base text-muted-foreground">Nobody has signed in yet.</li>
-            )}
-            {members.map((m) => {
-              const theirTeam = league.teams.find((t) => t.userId === m.id);
-              return (
-                <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-base font-semibold">{m.display_name}</div>
-                    <div className="truncate text-sm text-muted-foreground">
-                      {m.email && !m.email.endsWith("@lafamiliafantasyfootball.com") ? `${m.email} · ` : ""}
-                      {theirTeam ? theirTeam.name : "no team yet"}
-                    </div>
-                  </div>
-                  <Button
-                    variant={m.role === "commissioner" ? "default" : "outline"}
-                    size="sm"
-                    disabled={m.id === user?.id}
-                    onClick={() => {
-                      const role = m.role === "commissioner" ? "member" : "commissioner";
-                      void changeRole({ data: { userId: m.id, role } })
-                        .then(async () => {
-                          await refetchMembers();
-                          toast.success(
-                            role === "commissioner"
-                              ? `${m.display_name} is now a commissioner`
-                              : `${m.display_name} is now a regular member`,
-                          );
-                        })
-                        .catch((err: Error) => toast.error(err.message));
-                    }}
-                  >
-                    {m.role === "commissioner" ? "Commissioner" : "Make commissioner"}
-                  </Button>
-                  <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                  {team.userId && (
                     <Button
                       variant="outline"
                       size="sm"
+                      className="mt-2"
                       onClick={() => {
-                        void resetPassword({ data: { userId: m.id } })
+                        void resetPassword({ data: { userId: team.userId! } })
                           .then(() =>
-                            toast.success(
-                              `${m.display_name} can sign in again with the family password`,
-                            ),
+                            toast.success(`${team.owner} can sign in again with the family password`),
                           )
                           .catch((err: Error) => toast.error(err.message));
                       }}
                     >
                       Reset sign-in
                     </Button>
-                    {theirTeam && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          void assign({
-                            data: { slot: league.teams.indexOf(theirTeam), userId: null },
-                          })
-                            .then(async () => {
-                              await reloadLeague();
-                              await refetchMembers();
-                              toast.success(`${theirTeam.name} is free to be claimed again`);
-                            })
-                            .catch((err: Error) => toast.error(err.message));
-                        }}
-                      >
-                        Unclaim team
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive"
-                      disabled={m.id === user?.id}
-                      onClick={() => {
-                        if (
-                          !window.confirm(
-                            `Remove ${m.display_name} from the league? Their team goes back up for grabs.`,
-                          )
-                        )
-                          return;
-                        void kickMember({ data: { userId: m.id } })
-                          .then(async () => {
-                            await reloadLeague();
-                            await refetchMembers();
-                            toast.success(`${m.display_name} removed`);
-                          })
-                          .catch((err: Error) => toast.error(err.message));
-                      }}
-                    >
-                      Remove
-                    </Button>
+                  )}
                   </div>
-                </li>
+                </div>
+              </li>
               );
             })}
           </ul>
