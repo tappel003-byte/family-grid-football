@@ -119,12 +119,18 @@ export function PlayerSheet({
   const headlinePts = started && score ? score.actual : row.proj;
 
   const fetchNews = useServerFn(getPlayerNews);
-  const { data: playerNews } = useQuery({
+  const { data: rawPlayerNews } = useQuery({
     queryKey: ["player-news", player.id],
     queryFn: () => fetchNews({ data: { sleeperId: player.id } }),
     enabled: open,
     staleTime: 1000 * 60 * 15,
     retry: false,
+  });
+  // Only keep stories from the last 7 days; older ones drop off.
+  const playerNews = (rawPlayerNews ?? []).filter((n) => {
+    if (!n.published) return false;
+    const t = new Date(n.published).getTime();
+    return Number.isFinite(t) && Date.now() - t <= 1000 * 60 * 60 * 24 * 7;
   });
   const practice = usePractice(player);
   const depth = depthLabel(player);
