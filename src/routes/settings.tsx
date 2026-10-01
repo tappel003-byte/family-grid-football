@@ -238,7 +238,7 @@ function SettingsPage() {
 
         <details className="group rounded-lg border bg-card shadow-sm">
           <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
-            Teams &amp; family members <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
+            Teams &amp; contacts <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
           </summary>
           <div className="border-t px-5 pb-5">
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
