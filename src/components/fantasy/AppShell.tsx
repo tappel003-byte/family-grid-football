@@ -6,6 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { reloadLeague } from "@/lib/fantasy/store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import leagueCrest from "@/assets/league-crest.png";
 
 function Football({ className }: { className?: string }) {
   return (
@@ -195,9 +196,7 @@ function Shell({ children }: { children: ReactNode }) {
           {/* Top row: brand on the left, profile on the right */}
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-2.5 sm:py-3">
           <Link to="/" className="flex min-w-0 items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
-              <Football className="h-5 w-5" />
-            </span>
+            <img src={leagueCrest} alt="La Familia crest" width={44} height={44} className="h-11 w-11 shrink-0" />
             <span className="truncate font-display text-xl font-bold tracking-tight sm:text-2xl">
               La Familia
             </span>
