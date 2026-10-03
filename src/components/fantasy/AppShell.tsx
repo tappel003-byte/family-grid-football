@@ -196,7 +196,7 @@ function Shell({ children }: { children: ReactNode }) {
           {/* Top row: brand on the left, profile on the right */}
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-2.5 sm:py-3">
           <Link to="/" className="flex min-w-0 items-center gap-3">
-            <img src={leagueCrest} alt="La Familia crest" width={44} height={44} className="h-11 w-11 shrink-0" />
+            <img src={leagueCrest} alt="La Familia crest" width={60} height={60} className="h-[60px] w-[60px] shrink-0" />
             <span className="truncate font-display text-xl font-bold tracking-tight sm:text-2xl">
               La Familia
             </span>
