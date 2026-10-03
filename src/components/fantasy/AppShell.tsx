@@ -6,6 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { reloadLeague } from "@/lib/fantasy/store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import leagueCrest from "@/assets/league-crest.png";
 
 function Football({ className }: { className?: string }) {
@@ -183,6 +184,7 @@ function ProfileNav({
 
 function Shell({ children }: { children: ReactNode }) {
   const { isCommissioner, displayName, user } = useAuth();
+  const [crestOpen, setCrestOpen] = useState(false);
   const fetchAccount = useServerFn(getMyAccount);
   const { data: account } = useQuery({
     queryKey: ["my-header-person", user?.id],
@@ -195,12 +197,27 @@ function Shell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
           {/* Top row: brand on the left, profile on the right */}
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-2.5 sm:py-3">
-          <Link to="/" className="flex min-w-0 items-center gap-3">
-            <img src={leagueCrest} alt="La Familia crest" width={60} height={60} className="h-[60px] w-[60px] shrink-0" />
-            <span className="truncate font-display text-xl font-bold tracking-tight sm:text-2xl">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setCrestOpen(true)}
+              aria-label="View La Familia crest"
+              title="Tap to enlarge"
+              className="shrink-0 cursor-zoom-in rounded-full transition-transform hover:scale-105 active:scale-95"
+            >
+              <img src={leagueCrest} alt="La Familia crest" width={60} height={60} className="h-[60px] w-[60px]" />
+            </button>
+            <Link to="/" className="truncate font-display text-xl font-bold tracking-tight sm:text-2xl">
               La Familia
-            </span>
-          </Link>
+            </Link>
+          </div>
+          <Dialog open={crestOpen} onOpenChange={setCrestOpen}>
+            <DialogContent className="w-[calc(100vw-3rem)] max-w-sm rounded-2xl p-6">
+              <DialogTitle className="text-center font-display text-xl font-bold">La Familia</DialogTitle>
+              <img src={leagueCrest} alt="La Familia crest" className="mx-auto h-64 w-64 object-contain" />
+              <p className="text-center text-sm text-muted-foreground">Arizona · New Mexico · Minnesota</p>
+            </DialogContent>
+          </Dialog>
           <span className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <RefreshNav />
             <ProfileNav
