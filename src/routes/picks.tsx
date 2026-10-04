@@ -236,20 +236,24 @@ function Notebook({ data, meId }: { data: PicksBoard; meId?: string | undefined 
       </div>
       {!data.iAmDone && <p className="mt-2 text-sm text-muted-foreground">Picks for games that haven't started stay hidden until you finish yours.</p>}
 
-      {data.season_totals.length > 0 && (
-        <>
-          <h2 className="mb-3 mt-8 font-display text-2xl font-bold">Season standings</h2>
-          <div className="rounded-2xl border bg-card">
-            {data.season_totals.map((s, i) => (
-              <div key={s.userId} className="flex items-center justify-between border-b px-4 py-3 last:border-0">
-                <span className="font-semibold">{i + 1}. {s.name}</span>
-                <span className="tabular-nums text-muted-foreground">
-                  <b className="text-foreground">{s.correct}</b> right · {s.weeksWon} week{s.weeksWon === 1 ? "" : "s"} won
-                </span>
-              </div>
-            ))}
-          </div>
-        </>
+      <h2 className="mb-1 mt-8 font-display text-2xl font-bold">Season standings</h2>
+      <p className="mb-3 text-sm text-muted-foreground">
+        Champion = most correct picks for the season (not most weeks won). Weeks won only breaks ties.
+        Season scoring starts Week 5{data.week < 5 ? " — this week is a warm-up." : "."}
+      </p>
+      {data.season_totals.length > 0 ? (
+        <div className="rounded-2xl border bg-card">
+          {data.season_totals.map((s, i) => (
+            <div key={s.userId} className="flex items-center justify-between border-b px-4 py-3 last:border-0">
+              <span className="font-semibold">{i + 1}. {s.name}</span>
+              <span className="tabular-nums text-muted-foreground">
+                <b className="text-foreground">{s.correct}</b> right · {s.weeksWon} week{s.weeksWon === 1 ? "" : "s"} won
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-2xl border bg-card px-4 py-3 text-sm text-muted-foreground">No season picks counted yet.</p>
       )}
     </section>
   );
