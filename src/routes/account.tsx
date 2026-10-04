@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getMyAccount, saveMyAccount } from "@/lib/fantasy/account.functions";
 import { TrophyCase } from "@/components/fantasy/TrophyCase";
+import { RivalryCard } from "@/components/fantasy/RivalryCard";
 
 const TIME_ZONES = [
   ["America/Los_Angeles", "Pacific Time"],
@@ -194,6 +195,7 @@ function AccountPage() {
             </div>
           </div>
         </section>
+        <RivalryCard />
         <TrophyCase owner={data.displayName} teamName={data.team?.name} />
       </div>
     </>

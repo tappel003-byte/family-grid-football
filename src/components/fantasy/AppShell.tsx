@@ -165,6 +165,7 @@ function ProfileNav({
         <div className="border-b px-2 py-2">
           <p className="truncate font-display text-lg font-bold">{displayName || "My Account"}</p>
           {teamName && <p className="truncate text-sm text-muted-foreground">{teamName}</p>}
+          <RivalryLine />
         </div>
         <div className="flex flex-col py-1">
           <Link to="/account" className="flex items-center gap-2 rounded-md px-3 py-2.5 font-semibold hover:bg-secondary">
