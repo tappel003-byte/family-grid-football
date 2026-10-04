@@ -8,6 +8,9 @@ export type PickGame = {
   startsAt: string;
   network?: string | undefined;
   status: "scheduled" | "live" | "final";
+  /** Live only: top line (Q2, OT, HALF) and clock (4:15). */
+  liveTop?: string | undefined;
+  liveClock?: string | undefined;
   home: PickTeam;
   away: PickTeam;
 };
@@ -39,7 +42,7 @@ type Espn = {
   events?: Array<{
     id?: string;
     date?: string;
-    status?: { type?: { state?: string; completed?: boolean } };
+    status?: { period?: number; displayClock?: string; type?: { state?: string; completed?: boolean; name?: string; shortDetail?: string } };
     competitions?: Array<{
       broadcasts?: Array<{ names?: string[] }>;
       competitors?: Array<{
@@ -97,11 +100,19 @@ async function loadGames(season: string, week: number, current: number): Promise
     const away = side("away");
     if (!ev.id || !ev.date || !home || !away) continue;
     const t = ev.status?.type;
+    const status = t?.completed ? "final" : t?.state === "in" ? "live" : "scheduled";
+    const period = Number(ev.status?.period ?? 0);
+    const half = t?.name === "STATUS_HALFTIME" || /half/i.test(t?.shortDetail ?? "");
+    const endQ = t?.name === "STATUS_END_PERIOD";
+    const liveTop = status !== "live" ? undefined : half ? "HALF" : period >= 5 ? "OT" : period ? `Q${period}` : "LIVE";
+    const liveClock = status !== "live" || half ? undefined : endQ ? "End" : ev.status?.displayClock;
     games.push({
       id: ev.id,
       startsAt: ev.date,
       network: comp?.broadcasts?.[0]?.names?.[0],
-      status: t?.completed ? "final" : t?.state === "in" ? "live" : "scheduled",
+      status,
+      liveTop,
+      liveClock,
       home,
       away,
     });

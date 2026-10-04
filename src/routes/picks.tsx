@@ -174,9 +174,16 @@ function PicksPage() {
                       );
                     })()
                   ) : (
-                    <span key={`at-${i}`} className="font-display text-lg font-bold text-muted-foreground">
-                      {g.status === "final" ? "FINAL" : "@"}
-                    </span>
+                    g.status === "live" ? (
+                      <span key={`at-${i}`} className="flex flex-col items-center font-display font-bold leading-tight text-destructive tabular-nums">
+                        <span className="text-lg">{g.liveTop ?? "LIVE"}</span>
+                        {g.liveClock && <span className="text-base text-foreground">{g.liveClock}</span>}
+                      </span>
+                    ) : (
+                      <span key={`at-${i}`} className="font-display text-lg font-bold text-muted-foreground">
+                        {g.status === "final" ? "FINAL" : "@"}
+                      </span>
+                    )
                   ),
                 )}
               </div>
