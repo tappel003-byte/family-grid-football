@@ -37,7 +37,7 @@ const NAV = [
 ] as const;
 
 const NAV_MORE = [
-  { to: "/picks", label: "Picks" },
+  { to: "/picks", label: "Pick'em" },
   { to: "/teams", label: "Teams" },
   { to: "/trades", label: "Trades" },
   { to: "/history", label: "History" },
@@ -208,7 +208,7 @@ function PicksPill({ enabled, userId }: { enabled: boolean; userId: string | und
       }
     >
       {done ? <Check className="h-3.5 w-3.5" /> : <Football className="h-3.5 w-3.5" />}
-      {done ? "Picks In" : total ? `Picks ${made}/${total}` : "Picks"}
+      {done ? "Pick'em In" : total ? `Pick'em ${made}/${total}` : "Pick'em"}
     </Link>
   );
 }
