@@ -166,6 +166,7 @@ export type Database = {
           display_name: string
           email: string
           id: string
+          picks_rival: string | null
           time_zone: string
         }
         Insert: {
@@ -173,6 +174,7 @@ export type Database = {
           display_name?: string
           email?: string
           id: string
+          picks_rival?: string | null
           time_zone?: string
         }
         Update: {
@@ -180,6 +182,7 @@ export type Database = {
           display_name?: string
           email?: string
           id?: string
+          picks_rival?: string | null
           time_zone?: string
         }
         Relationships: []
