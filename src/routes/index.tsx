@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
 import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
-import { MatchupBoard, TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
+import { MatchupBoard, TeamCrest, teamRecord, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
-import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks";
+import { playersQueryOptions, useLeague, useWeekData, useWeeksData } from "@/lib/fantasy/hooks";
 import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,7 @@ function MatchupsPage() {
   const [picked, setPicked] = useState<number | null>(null);
   const activeWeek = week ?? league?.currentWeek ?? 1;
   const weekData = useWeekData(activeWeek);
+  useWeeksData(Math.max(0, (league?.currentWeek ?? 1) - 1));
 
   if (!league) return <LoadingScreen label="Drafting your family league…" />;
 
@@ -106,7 +107,12 @@ function MatchupsPage() {
               ].map(({ team, total }) => (
                 <div key={team.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-1">
                   <TeamCrest team={team} />
-                  <span className="truncate text-base font-semibold">{team.name}</span>
+                  <span className="truncate text-base font-semibold">
+                    {team.name}{" "}
+                    <span className="text-sm font-medium tabular-nums text-muted-foreground">
+                      ({teamRecord(team, league, byId)})
+                    </span>
+                  </span>
                   <span className="font-display text-xl font-bold tabular-nums">
                     {total.toFixed(1)}
                   </span>

@@ -34,6 +34,25 @@ export function teamTotals(team: FantasyTeam, week: number, league: League, byId
   };
 }
 
+/** Win-loss record from finished weeks (same math as Standings). */
+export function teamRecord(team: FantasyTeam, league: League, byId: Map<string, SlimPlayer>) {
+  const idx = league.teams.findIndex((t) => t.id === team.id);
+  let w = 0, l = 0, t = 0;
+  for (let wk = 1; wk < league.currentWeek; wk++) {
+    for (const [h, a] of league.schedule[wk - 1] ?? []) {
+      if (h !== idx && a !== idx) continue;
+      const opp = league.teams[h === idx ? a : h];
+      if (!opp) continue;
+      const me = teamTotals(team, wk, league, byId).actual;
+      const them = teamTotals(opp, wk, league, byId).actual;
+      if (me > them) w++;
+      else if (them > me) l++;
+      else t++;
+    }
+  }
+  return `${w}-${l}${t ? `-${t}` : ""}`;
+}
+
 /** How many starters are playing right now, how many haven't played, and game minutes left. */
 function teamLiveStatus(team: FantasyTeam, week: number, byId: Map<string, SlimPlayer>) {
   let playing = 0;
@@ -286,7 +305,9 @@ export function MatchupBoard({
               <div className="text-balance font-display text-base font-bold leading-tight sm:text-lg md:truncate md:text-xl">
                 {home.name}
               </div>
-              <div className="truncate text-sm text-muted-foreground">{home.owner}</div>
+              <div className="truncate text-sm text-muted-foreground">
+                <span className="font-semibold tabular-nums">({teamRecord(home, league, byId)})</span> {home.owner}
+              </div>
               <div className="mt-1 font-display text-sm font-bold text-primary">Projected {h.projected.toFixed(1)}</div>
             </div>
           </Link>
@@ -315,7 +336,9 @@ export function MatchupBoard({
               <div className="text-balance font-display text-base font-bold leading-tight sm:text-lg md:truncate md:text-xl">
                 {away.name}
               </div>
-              <div className="truncate text-sm text-muted-foreground">{away.owner}</div>
+              <div className="truncate text-sm text-muted-foreground">
+                <span className="font-semibold tabular-nums">({teamRecord(away, league, byId)})</span> {away.owner}
+              </div>
               <div className="mt-1 font-display text-sm font-bold text-primary">Projected {a.projected.toFixed(1)}</div>
             </div>
           </Link>
