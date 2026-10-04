@@ -202,7 +202,7 @@ export const getPicksBoard = createServerFn({ method: "GET" })
     }
     const season_totals = [...totals.entries()]
       .map(([userId, t]) => ({ userId, name: nameOf(userId), ...t }))
-      .sort((a, b) => b.correct - a.correct || b.weeksWon - a.weeksWon);
+      .sort((a, b) => b.weeksWon - a.weeksWon || b.correct - a.correct);
 
     return {
       season: state.season,
