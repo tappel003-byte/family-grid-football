@@ -1,3 +1,4 @@
+import { RivalryLine } from "@/components/fantasy/RivalryCard";
 import { Link } from "@tanstack/react-router";
 import { Check, HelpCircle, LogOut, RefreshCw, Settings, UserRound } from "lucide-react";
 import { getPicksBoard } from "@/lib/picks.functions";
