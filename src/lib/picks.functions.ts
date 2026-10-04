@@ -177,7 +177,7 @@ export const getPicksBoard = createServerFn({ method: "GET" })
     );
 
     // Season totals across every week anyone has picked.
-    const weeks = [...new Set((picks ?? []).map((p) => p.week))].filter((w) => w <= state.week);
+    const weeks = [...new Set((picks ?? []).map((p) => p.week))].filter((w) => w >= SEASON_START_WEEK && w <= state.week);
     const totals = new Map<string, { correct: number; weeksWon: number }>();
     for (const w of weeks) {
       const wg = w === week ? games : await loadGames(state.season, w, state.week);
@@ -218,6 +218,8 @@ export const getPicksBoard = createServerFn({ method: "GET" })
     };
   });
 
+/** Picks launched mid-Week 4; season and rivalry totals count from this week on. */
+const SEASON_START_WEEK = 5;
 export const savePick = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ week: z.number().int().min(1).max(18), gameId: z.string().max(40), team: z.string().max(5) }).parse(d))
@@ -302,7 +304,7 @@ export const getRivalry = createServerFn({ method: "GET" })
 
     const weeklyWins = { me: 0, them: 0 };
     const totalCorrect = { me: 0, them: 0 };
-    const weeks = [...new Set((picks ?? []).map((p) => p.week))].filter((w) => w <= state.week);
+    const weeks = [...new Set((picks ?? []).map((p) => p.week))].filter((w) => w >= SEASON_START_WEEK && w <= state.week);
     for (const w of weeks) {
       const wg = await loadGames(state.season, w, state.week);
       const a = pickMap(me, w);
