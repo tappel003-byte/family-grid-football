@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { League, FantasyTeam } from "@/lib/fantasy/league";
 import { SLOTS } from "@/lib/fantasy/league";
 import { gameInfoFor, scoreFor } from "@/lib/fantasy/hooks";
-import { scoreOverride } from "@/lib/fantasy/store";
+import { savedFinal, scoreOverride } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle } from "lucide-react";
 import { PlayerCell, isInactive } from "./PlayerCell";
