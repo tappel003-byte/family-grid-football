@@ -8,6 +8,7 @@ import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { MatchupRecap } from "@/components/fantasy/MatchupRecap";
+import { WeekInReview } from "@/components/fantasy/WeekInReview";
 
 export const Route = createFileRoute("/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
@@ -67,6 +68,8 @@ function MatchupsPage() {
 
   return (
     <>
+      <WeekInReview league={league} byId={byId} />
+
       {weekData.stale && (
         <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-base font-semibold text-amber-900">
           The live NFL feed is retrying — showing the last scores we received. Everything
