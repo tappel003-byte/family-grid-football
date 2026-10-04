@@ -6,7 +6,7 @@ import { gameInfoFor, scoreFor } from "@/lib/fantasy/hooks";
 import { savedFinal, scoreOverride } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle } from "lucide-react";
-import { PlayerCell, isInactive } from "./PlayerCell";
+import { PlayerCell, isInactive, isOnField } from "./PlayerCell";
 import { PlayerCardTrigger } from "./PlayerSheet";
 import { cn } from "@/lib/utils";
 import { teamLogo } from "@/lib/fantasy/logos";
@@ -203,6 +203,7 @@ function Side({
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg",
         flagged && "-mx-2 bg-injury-out/15 px-2 py-1",
+        !flagged && isOnField(player, week) && "-mx-2 bg-live/10 px-2 py-1 ring-1 ring-live/50",
         align === "right" && "flex-row-reverse",
       )}
     >
@@ -253,6 +254,7 @@ function MobileSide({
         "min-h-36 min-w-0 rounded-md p-2",
         align === "right" && "text-right",
         flagged && "bg-injury-out/15",
+        !flagged && isOnField(player, week) && "bg-live/10 ring-1 ring-live/50",
       )}
     >
       <PlayerCardTrigger player={player} week={week} league={league}>
