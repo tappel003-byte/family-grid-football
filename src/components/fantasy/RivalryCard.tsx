@@ -19,7 +19,7 @@ export function RivalryLine() {
   if (!data || !r) return null;
   return (
     <p className="mt-1 text-sm font-semibold">
-      Picks rivalry: {first(data.meName)} {r.weeklyWins.me} – {r.weeklyWins.them} {first(r.name)}
+      Pick'em rivalry: {first(data.meName)} {r.weeklyWins.me} – {r.weeklyWins.them} {first(r.name)}
     </p>
   );
 }
@@ -47,7 +47,7 @@ export function RivalryCard() {
 
   return (
     <section className="rounded-2xl border bg-card p-6">
-      <h2 className="font-display text-xl font-bold">Picks Rivalry</h2>
+      <h2 className="font-display text-xl font-bold">Pick'em Rivalry</h2>
       <p className="text-sm text-muted-foreground">A private head-to-head on weekly picks. Only you see it.</p>
       <div className="mt-4 grid gap-2">
         <Label htmlFor="acct-rival">Your rival</Label>

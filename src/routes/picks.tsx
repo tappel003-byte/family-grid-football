@@ -15,9 +15,9 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/picks")({
   head: () => ({
     meta: [
-      { title: "Weekly Picks — La Familia" },
+      { title: "Pick'em — La Familia" },
       { name: "description", content: "The family NFL pick'em: tap the helmet you think wins, Monday night total as the tiebreaker." },
-      { property: "og:title", content: "Weekly Picks — La Familia" },
+      { property: "og:title", content: "Pick'em — La Familia" },
       { property: "og:description", content: "Tap a helmet, pick every NFL game, and see the family notebook." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -89,7 +89,7 @@ function PicksPage() {
   return (
     <>
       <div className="mb-5 grid gap-3 sm:flex sm:items-end sm:justify-between">
-        <PageTitle title={`Week ${data.week} Picks`} subtitle="Tap the helmet you think wins. Monday night total breaks ties." />
+        <PageTitle title={`Week ${data.week} Pick'em`} subtitle="Tap the helmet you think wins. Monday night total breaks ties." />
         <WeekSelector week={data.week} onChange={setWeek} />
       </div>
 
