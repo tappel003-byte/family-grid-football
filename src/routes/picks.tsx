@@ -129,6 +129,12 @@ function PicksPage() {
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                 {[g.away, null, g.home].map((t, i) =>
                   t ? (
+                    (() => {
+                      const final = g.status === "final";
+                      const picked = mine === t.abbr;
+                      const hit = final && picked && !!t.winner;
+                      const miss = final && picked && !t.winner;
+                      return (
                     <button
                       key={t.abbr}
                       type="button"
@@ -136,22 +142,34 @@ function PicksPage() {
                       onClick={() => void choose(g, t.abbr)}
                       className={cn(
                         "relative flex flex-col items-center rounded-xl border-2 p-2 transition-colors",
-                        mine === t.abbr ? "border-primary bg-primary/10" : "border-transparent hover:bg-secondary",
-                        locked && mine !== t.abbr && "opacity-50",
-                        g.status === "final" && t.winner && "ring-2 ring-primary/40",
+                        final
+                          ? t.winner
+                            ? "border-green-600 bg-green-600/10"
+                            : "border-transparent opacity-50"
+                          : picked
+                            ? "border-primary bg-primary/10"
+                            : "border-transparent hover:bg-secondary",
+                        !final && locked && !picked && "opacity-50",
                       )}
                     >
-                      {mine === t.abbr && (
-                        <span className="absolute right-1 top-1 rounded-full bg-primary p-0.5 text-primary-foreground">
-                          <Check className="h-3.5 w-3.5" />
+                      {picked && (
+                        <span
+                          className={cn(
+                            "absolute right-1 top-1 rounded-full p-0.5 text-white",
+                            hit ? "bg-green-600" : miss ? "bg-red-600" : "bg-primary text-primary-foreground",
+                          )}
+                        >
+                          {miss ? <X className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+                        </span>
+                      )}
+                      {t.score != null && g.status !== "scheduled" && (
+                        <span className={cn("font-display text-2xl tabular-nums leading-none mb-1", t.winner ? "font-black" : "font-semibold")}>
+                          {t.score}
                         </span>
                       )}
                       <img src={teamLogoUrl(t.abbr)} alt="" className="h-16 w-16 object-contain" />
                       <span className="mt-1 text-center text-sm font-bold leading-tight">{t.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {t.record}
-                        {t.score != null && g.status !== "scheduled" && ` · ${t.score}`}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{t.record}</span>
                     </button>
                   ) : (
                     <span key={`at-${i}`} className="font-display text-sm font-bold text-muted-foreground">@</span>
