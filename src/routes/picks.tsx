@@ -143,25 +143,19 @@ function PicksPage() {
                       className={cn(
                         "relative flex flex-col items-center rounded-xl border-2 p-2 transition-colors",
                         final
-                          ? t.winner
-                            ? "border-green-600 bg-green-600/10"
-                            : "border-transparent opacity-50"
+                          ? picked
+                            ? hit
+                              ? "border-green-600 bg-green-600/10"
+                              : "border-red-600 bg-red-600/10"
+                            : t.winner
+                              ? "border-green-600/40"
+                              : "border-transparent opacity-50"
                           : picked
                             ? "border-primary bg-primary/10"
                             : "border-transparent hover:bg-secondary",
                         !final && locked && !picked && "opacity-50",
                       )}
                     >
-                      {picked && (
-                        <span
-                          className={cn(
-                            "absolute right-1 top-1 rounded-full p-0.5 text-white",
-                            hit ? "bg-green-600" : miss ? "bg-red-600" : "bg-primary text-primary-foreground",
-                          )}
-                        >
-                          {miss ? <X className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
-                        </span>
-                      )}
                       {t.score != null && g.status !== "scheduled" && (
                         <span className={cn("font-display text-2xl tabular-nums leading-none mb-1", t.winner ? "font-black" : "font-semibold")}>
                           {t.score}
@@ -170,6 +164,16 @@ function PicksPage() {
                       <img src={teamLogoUrl(t.abbr)} alt="" className="h-16 w-16 object-contain" />
                       <span className="mt-1 text-center text-sm font-bold leading-tight">{t.name}</span>
                       <span className="text-xs text-muted-foreground">{t.record}</span>
+                      {picked && (
+                        <span
+                          className={cn(
+                            "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold text-white",
+                            hit ? "bg-green-600" : miss ? "bg-red-600" : "bg-primary text-primary-foreground",
+                          )}
+                        >
+                          {miss ? <X className="h-3 w-3" /> : <Check className="h-3 w-3" />} Your pick
+                        </span>
+                      )}
                     </button>
                       );
                     })()
