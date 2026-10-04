@@ -238,7 +238,7 @@ function Notebook({ data, meId }: { data: PicksBoard; meId?: string | undefined 
 
       <h2 className="mb-1 mt-8 font-display text-2xl font-bold">Season standings</h2>
       <p className="mb-3 text-sm text-muted-foreground">
-        Champion = most correct picks for the season (not most weeks won). Weeks won only breaks ties.
+        Champion = most weeks won. Total correct picks breaks ties.
         Season scoring starts Week 5{data.week < 5 ? " — this week is a warm-up." : "."}
       </p>
       {data.season_totals.length > 0 ? (
@@ -247,7 +247,7 @@ function Notebook({ data, meId }: { data: PicksBoard; meId?: string | undefined 
             <div key={s.userId} className="flex items-center justify-between border-b px-4 py-3 last:border-0">
               <span className="font-semibold">{i + 1}. {s.name}</span>
               <span className="tabular-nums text-muted-foreground">
-                <b className="text-foreground">{s.correct}</b> right · {s.weeksWon} week{s.weeksWon === 1 ? "" : "s"} won
+                <b className="text-foreground">{s.weeksWon}</b> week{s.weeksWon === 1 ? "" : "s"} won · {s.correct} right
               </span>
             </div>
           ))}
