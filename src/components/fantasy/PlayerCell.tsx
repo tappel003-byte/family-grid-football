@@ -4,7 +4,6 @@ import { gameInfoFor, headshotUrl, teamLogoUrl } from "@/lib/fantasy/hooks";
 import { cn } from "@/lib/utils";
 import { ByeBadge } from "./PlayerInsights";
 import { formatGameTime, useTimeZone } from "@/lib/timezone";
-import { FootballIcon } from "./FootballIcon";
 import { useQuery } from "@tanstack/react-query";
 import { Newspaper } from "lucide-react";
 import { marketQueryOptions } from "@/lib/fantasy/hooks";
@@ -85,6 +84,24 @@ export function InjuryBadge({
   );
 }
 
+/** Offense is on the field when its team has the ball; a defense when the other team does. */
+export function isOnField(player: SlimPlayer, week: number | undefined): boolean {
+  if (week === undefined) return false;
+  const game = gameInfoFor(player.team, week);
+  if (game?.status !== "live" || !game.possessionKnown) return false;
+  return player.pos === "DEF" ? !game.hasBall : !!game.hasBall;
+}
+
+export function LiveDot() {
+  return (
+    <span aria-label="On the field" className="relative mr-1.5 inline-flex h-2.5 w-2.5 align-middle">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-75" />
+      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-live" />
+    </span>
+  );
+}
+
+
 export function PlayerCell({
   player,
   align = "left",
@@ -111,7 +128,7 @@ export function PlayerCell({
   const timeZone = useTimeZone();
   const game = week === undefined ? undefined : gameInfoFor(player.team, week);
   const kickoff = formatGameTime(game?.startsAt, timeZone);
-  const onField = game?.status === "live" && game.hasBall === true;
+  const onField = isOnField(player, week);
   const scheduleLine = kickoff
     ? `${kickoff} · ${game?.network ?? "TV TBD"}`
     : game?.label && game.label !== "Bye"
@@ -119,7 +136,7 @@ export function PlayerCell({
       : "Bye";
   const gameLine =
     game?.status === "live"
-      ? `${game.hasBall ? "Has the ball" : "On the field"} · ${game.label} · ${scheduleLine}`
+      ? `${onField ? (player.pos === "DEF" ? "Defending" : "Has the ball") : "Live"} · ${game.label} · ${scheduleLine}`
       : game?.status === "final"
         ? `Final · ${scheduleLine}`
         : scheduleLine;
@@ -155,7 +172,7 @@ export function PlayerCell({
     return (
       <div className={cn("min-w-0", align === "right" ? "text-right" : "text-left")}>
         <span className="block truncate text-sm font-semibold leading-tight sm:text-base">
-          {onField && <FootballIcon className="mr-1 inline-block h-4 w-4 align-[-2px] text-primary" />}
+          {onField && <LiveDot />}
           {player.name}
         </span>
         <div
@@ -183,7 +200,7 @@ export function PlayerCell({
               <div
                 className={cn(
                   "mt-0.5 whitespace-normal text-xs font-semibold leading-snug text-foreground/75",
-                  onField && "text-primary",
+                  onField && "text-live",
                 )}
               >
                 {gameLine}
@@ -211,14 +228,7 @@ export function PlayerCell({
           )}
         >
           <span className={cn("truncate text-base font-semibold leading-tight sm:text-lg")}>
-            {onField && (
-              <FootballIcon
-                className={cn(
-                  "mr-1 inline-block h-4 w-4 align-[-2px] text-primary",
-                  align === "right" && "ml-1 mr-0",
-                )}
-              />
-            )}
+            {onField && <LiveDot />}
             {player.name}
           </span>
           <InjuryBadge injury={player.injury} size={compact ? "sm" : "md"} />
@@ -251,7 +261,7 @@ export function PlayerCell({
           <div
             className={cn(
               "mt-0.5 truncate text-xs font-semibold leading-snug text-foreground/75",
-              onField && "text-primary",
+              onField && "text-live",
               align === "right" && "text-right",
             )}
           >

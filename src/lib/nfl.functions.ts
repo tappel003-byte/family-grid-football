@@ -12,6 +12,8 @@ export type GameInfo = {
   secondsLeft?: number;
   /** True while this team has possession of the ball in a live game. */
   hasBall?: boolean;
+  /** True while the live feed reports which team has the ball. */
+  possessionKnown?: boolean;
 };
 
 export type WeekData = {
@@ -113,7 +115,7 @@ export function scoreboardGames(scoreboard: Scoreboard): Record<string, GameInfo
           status === "live" &&
           !!possession &&
           (possession === competitor.id || possession === competitor.team?.id);
-        const info: GameInfo = { status, label, secondsLeft, hasBall };
+        const info: GameInfo = { status, label, secondsLeft, hasBall, possessionKnown: status === "live" && !!possession };
         if (startsAt) info.startsAt = startsAt;
         if (network) info.network = network;
         games[abbreviation === "WSH" ? "WAS" : abbreviation] = info;
