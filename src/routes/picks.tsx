@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, X } from "lucide-react";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { Input } from "@/components/ui/input";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
