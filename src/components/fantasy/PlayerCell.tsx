@@ -85,6 +85,24 @@ export function InjuryBadge({
   );
 }
 
+/** Offense is on the field when its team has the ball; a defense when the other team does. */
+export function isOnField(player: SlimPlayer, week: number | undefined): boolean {
+  if (week === undefined) return false;
+  const game = gameInfoFor(player.team, week);
+  if (game?.status !== "live" || !game.possessionKnown) return false;
+  return player.pos === "DEF" ? !game.hasBall : !!game.hasBall;
+}
+
+export function LiveDot() {
+  return (
+    <span aria-label="On the field" className="relative mr-1.5 inline-flex h-2.5 w-2.5 align-middle">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-75" />
+      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-live" />
+    </span>
+  );
+}
+
+
 export function PlayerCell({
   player,
   align = "left",
@@ -111,7 +129,7 @@ export function PlayerCell({
   const timeZone = useTimeZone();
   const game = week === undefined ? undefined : gameInfoFor(player.team, week);
   const kickoff = formatGameTime(game?.startsAt, timeZone);
-  const onField = game?.status === "live" && game.hasBall === true;
+  const onField = isOnField(player, week);
   const scheduleLine = kickoff
     ? `${kickoff} · ${game?.network ?? "TV TBD"}`
     : game?.label && game.label !== "Bye"
@@ -119,7 +137,7 @@ export function PlayerCell({
       : "Bye";
   const gameLine =
     game?.status === "live"
-      ? `${game.hasBall ? "Has the ball" : "On the field"} · ${game.label} · ${scheduleLine}`
+      ? `${onField ? (player.pos === "DEF" ? "Defending" : "Has the ball") : "Live"} · ${game.label} · ${scheduleLine}`
       : game?.status === "final"
         ? `Final · ${scheduleLine}`
         : scheduleLine;
