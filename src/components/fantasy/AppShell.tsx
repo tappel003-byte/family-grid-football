@@ -35,6 +35,7 @@ const NAV = [
 ] as const;
 
 const NAV_MORE = [
+  { to: "/picks", label: "Picks" },
   { to: "/teams", label: "Teams" },
   { to: "/trades", label: "Trades" },
   { to: "/history", label: "History" },
