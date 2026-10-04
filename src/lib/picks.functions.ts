@@ -253,3 +253,106 @@ export const saveTiebreaker = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export type RivalSwing = { gameId: string; label: string; mine: string; theirs: string; winner: string | null };
+export type Rivalry = {
+  meName: string;
+  options: Array<{ id: string; name: string }>;
+  rival: null | {
+    id: string;
+    name: string;
+    weeklyWins: { me: number; them: number };
+    totalCorrect: { me: number; them: number };
+    week: number;
+    bothDone: boolean;
+    swings: RivalSwing[];
+    tiebreak: { me: number | null; them: number | null };
+  };
+};
+
+/** Private head-to-head picks rivalry. Weekly wins decide the rivalry; total correct is the secondary tally. */
+export const getRivalry = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<Rivalry> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const me = context.userId;
+    const [{ data: profiles }, { data: teams }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, display_name, email, picks_rival"),
+      supabaseAdmin.from("teams").select("user_id, owner"),
+    ]);
+    const nameOf = (id: string) => {
+      const p = profiles?.find((x) => x.id === id);
+      return p?.display_name || teams?.find((t) => t.user_id === id)?.owner || p?.email?.split("@")[0] || "Family";
+    };
+    const options = (teams ?? [])
+      .filter((t) => t.user_id && t.user_id !== me)
+      .map((t) => ({ id: t.user_id as string, name: nameOf(t.user_id as string) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const rivalId = profiles?.find((p) => p.id === me)?.picks_rival ?? null;
+    if (!rivalId) return { meName: nameOf(me), options, rival: null };
+
+    const state = await seasonState();
+    const [{ data: picks }, { data: ties }] = await Promise.all([
+      supabaseAdmin.from("game_picks").select("user_id, week, game_id, team").eq("season", state.season).in("user_id", [me, rivalId]),
+      supabaseAdmin.from("pick_tiebreakers").select("user_id, week, total_points").eq("season", state.season).in("user_id", [me, rivalId]),
+    ]);
+    const pickMap = (u: string, w: number) =>
+      Object.fromEntries((picks ?? []).filter((p) => p.user_id === u && p.week === w).map((p) => [p.game_id, p.team]));
+    const tieOf = (u: string, w: number) => ties?.find((t) => t.user_id === u && t.week === w)?.total_points ?? null;
+
+    const weeklyWins = { me: 0, them: 0 };
+    const totalCorrect = { me: 0, them: 0 };
+    const weeks = [...new Set((picks ?? []).map((p) => p.week))].filter((w) => w <= state.week);
+    for (const w of weeks) {
+      const wg = await loadGames(state.season, w, state.week);
+      const a = pickMap(me, w);
+      const b = pickMap(rivalId, w);
+      const ca = wg.filter((g) => winnerOf(g) && a[g.id] === winnerOf(g)).length;
+      const cb = wg.filter((g) => winnerOf(g) && b[g.id] === winnerOf(g)).length;
+      totalCorrect.me += ca;
+      totalCorrect.them += cb;
+      const both = Object.keys(a).length > 0 && Object.keys(b).length > 0;
+      if (both && wg.length > 0 && wg.every((g) => g.status === "final")) {
+        const mt = mondayTotal(mondayOf(wg));
+        const da = mt != null ? Math.abs((tieOf(me, w) ?? 9999) - mt) : 9999;
+        const db = mt != null ? Math.abs((tieOf(rivalId, w) ?? 9999) - mt) : 9999;
+        if (ca > cb || (ca === cb && da < db)) weeklyWins.me += 1;
+        else if (cb > ca || db < da) weeklyWins.them += 1;
+      }
+    }
+
+    const games = await loadGames(state.season, state.week, state.week);
+    const a = pickMap(me, state.week);
+    const b = pickMap(rivalId, state.week);
+    const done = (m: Record<string, string>) => games.length > 0 && games.every((g) => m[g.id] || started(g));
+    const bothDone = done(a) && done(b);
+    const swings: RivalSwing[] = games
+      .filter((g) => (bothDone || started(g)) && a[g.id] && b[g.id] && a[g.id] !== b[g.id])
+      .map((g) => ({ gameId: g.id, label: `${g.away.abbr} @ ${g.home.abbr}`, mine: a[g.id]!, theirs: b[g.id]!, winner: winnerOf(g) }));
+    const monday = mondayOf(games);
+    const showTies = bothDone || (monday ? started(monday) : false);
+    return {
+      meName: nameOf(me),
+      options,
+      rival: {
+        id: rivalId,
+        name: nameOf(rivalId),
+        weeklyWins,
+        totalCorrect,
+        week: state.week,
+        bothDone,
+        swings,
+        tiebreak: { me: tieOf(me, state.week), them: showTies ? tieOf(rivalId, state.week) : null },
+      },
+    };
+  });
+
+export const setRival = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { rivalId: string | null }) => z.object({ rivalId: z.string().uuid().nullable() }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (data.rivalId === context.userId) throw new Error("You can't be your own rival.");
+    const { error } = await context.supabase.from("profiles").update({ picks_rival: data.rivalId }).eq("id", context.userId);
+    if (error) throw new Error("Could not save your rival.");
+    return { ok: true };
+  });
