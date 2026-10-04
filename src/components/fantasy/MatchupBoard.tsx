@@ -26,8 +26,9 @@ export function teamTotals(team: FantasyTeam, week: number, league: League, byId
   }
   const slot = league.teams.findIndex((t) => t.id === team.id);
   const fixed = slot >= 0 ? scoreOverride(week, slot) : undefined;
+  const saved = slot >= 0 && week < league.currentWeek ? savedFinal(week, slot) : undefined;
   return {
-    actual: Math.round((fixed ?? actual) * 10) / 10,
+    actual: Math.round((fixed ?? saved ?? actual) * 10) / 10,
     projected: Math.round(projected * 10) / 10,
     corrected: fixed != null,
   };
