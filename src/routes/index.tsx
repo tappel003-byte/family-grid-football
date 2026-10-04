@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
 import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
-import { MatchupBoard, TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
+import { MatchupBoard, TeamCrest, teamRecord, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
-import { playersQueryOptions, useLeague, useWeekData } from "@/lib/fantasy/hooks";
+import { playersQueryOptions, useLeague, useWeekData, useWeeksData } from "@/lib/fantasy/hooks";
 import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,7 @@ function MatchupsPage() {
   const [picked, setPicked] = useState<number | null>(null);
   const activeWeek = week ?? league?.currentWeek ?? 1;
   const weekData = useWeekData(activeWeek);
+  useWeeksData(Math.max(0, (league?.currentWeek ?? 1) - 1));
 
   if (!league) return <LoadingScreen label="Drafting your family league…" />;
 
