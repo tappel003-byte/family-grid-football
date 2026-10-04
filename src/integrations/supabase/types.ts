@@ -38,6 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
+      game_picks: {
+        Row: {
+          game_id: string
+          id: string
+          season: string
+          team: string
+          updated_at: string
+          user_id: string
+          week: number
+        }
+        Insert: {
+          game_id: string
+          id?: string
+          season: string
+          team: string
+          updated_at?: string
+          user_id: string
+          week: number
+        }
+        Update: {
+          game_id?: string
+          id?: string
+          season?: string
+          team?: string
+          updated_at?: string
+          user_id?: string
+          week?: number
+        }
+        Relationships: []
+      }
       league: {
         Row: {
           current_week: number
@@ -68,6 +98,33 @@ export type Database = {
           scoring?: Json
           slug?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      pick_tiebreakers: {
+        Row: {
+          id: string
+          season: string
+          total_points: number
+          updated_at: string
+          user_id: string
+          week: number
+        }
+        Insert: {
+          id?: string
+          season: string
+          total_points: number
+          updated_at?: string
+          user_id: string
+          week: number
+        }
+        Update: {
+          id?: string
+          season?: string
+          total_points?: number
+          updated_at?: string
+          user_id?: string
+          week?: number
         }
         Relationships: []
       }
