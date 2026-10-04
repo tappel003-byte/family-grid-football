@@ -18,14 +18,24 @@ export function allOverrides() {
   return overrides;
 }
 
+/** Saved final scores of finished weeks, keyed "week:slot" (rosters change after a week ends). */
+let savedFinals = new Map<string, number>();
+
+export function savedFinal(week: number, slot: number): number | undefined {
+  return savedFinals.get(`${week}:${slot}`);
+}
+
 async function fetchOverrides(leagueId: string) {
-  const { data } = await supabase
-    .from("score_overrides")
-    .select("week, team_slot, points")
-    .eq("league_id", leagueId);
+  const [{ data }, { data: finals }] = await Promise.all([
+    supabase.from("score_overrides").select("week, team_slot, points").eq("league_id", leagueId),
+    supabase.from("weekly_results").select("week, team_slot, points").eq("league_id", leagueId),
+  ]);
   const next = new Map<string, number>();
   for (const row of data ?? []) next.set(`${row.week}:${row.team_slot}`, Number(row.points));
   overrides = next;
+  const nextFinals = new Map<string, number>();
+  for (const row of finals ?? []) nextFinals.set(`${row.week}:${row.team_slot}`, Number(row.points));
+  savedFinals = nextFinals;
 }
 
 export async function reloadOverrides() {
