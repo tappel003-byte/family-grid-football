@@ -6,7 +6,7 @@ export type PickTeam = { abbr: string; name: string; record: string; score: numb
 export type PickGame = {
   id: string;
   startsAt: string;
-  network?: string;
+  network?: string | undefined;
   status: "scheduled" | "live" | "final";
   home: PickTeam;
   away: PickTeam;
