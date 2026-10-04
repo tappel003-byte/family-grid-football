@@ -106,7 +106,12 @@ function MatchupsPage() {
               ].map(({ team, total }) => (
                 <div key={team.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-1">
                   <TeamCrest team={team} />
-                  <span className="truncate text-base font-semibold">{team.name}</span>
+                  <span className="truncate text-base font-semibold">
+                    {team.name}{" "}
+                    <span className="text-sm font-medium tabular-nums text-muted-foreground">
+                      ({teamRecord(team, league, byId)})
+                    </span>
+                  </span>
                   <span className="font-display text-xl font-bold tabular-nums">
                     {total.toFixed(1)}
                   </span>
