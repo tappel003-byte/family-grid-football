@@ -171,8 +171,12 @@ function PicksPage() {
                       <span className="mt-1 text-center text-sm font-bold leading-tight">{t.name}</span>
                       <span className="text-xs text-muted-foreground">{t.record}</span>
                     </button>
+                      );
+                    })()
                   ) : (
-                    <span key={`at-${i}`} className="font-display text-sm font-bold text-muted-foreground">@</span>
+                    <span key={`at-${i}`} className="font-display text-lg font-bold text-muted-foreground">
+                      {g.status === "final" ? "FINAL" : "@"}
+                    </span>
                   ),
                 )}
               </div>
