@@ -186,7 +186,7 @@ function PicksPage() {
   );
 }
 
-function Notebook({ data, meId }: { data: PicksBoard; meId?: string }) {
+function Notebook({ data, meId }: { data: PicksBoard; meId?: string | undefined }) {
   if (!data.family.length) return null;
   return (
     <section className="mt-8">

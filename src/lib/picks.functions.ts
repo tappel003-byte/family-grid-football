@@ -120,7 +120,7 @@ const mondayTotal = (g: PickGame | null) =>
 
 export const getPicksBoard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { week?: number }) => ({ week: d.week ? Math.min(18, Math.max(1, Math.round(d.week))) : undefined }))
+  .inputValidator((d: { week?: number | undefined }) => ({ week: d.week ? Math.min(18, Math.max(1, Math.round(d.week))) : undefined }))
   .handler(async ({ data, context }): Promise<PicksBoard> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const state = await seasonState();
