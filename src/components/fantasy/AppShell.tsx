@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { HelpCircle, LogOut, RefreshCw, Settings, UserRound } from "lucide-react";
+import { Check, HelpCircle, LogOut, RefreshCw, Settings, UserRound } from "lucide-react";
+import { getPicksBoard } from "@/lib/picks.functions";
 import { useLeague } from "@/lib/fantasy/hooks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -183,6 +184,33 @@ function ProfileNav({
   );
 }
 
+/** Front-and-center shortcut to weekly picks; gold until done, green once all picks are in. */
+function PicksPill({ enabled, userId }: { enabled: boolean; userId: string | undefined }) {
+  const fetchBoard = useServerFn(getPicksBoard);
+  const { data } = useQuery({
+    queryKey: ["picks-board", userId, "now"],
+    enabled,
+    queryFn: () => fetchBoard({ data: {} }),
+    refetchInterval: 60_000,
+  });
+  const total = data?.games.length ?? 0;
+  const made = data ? data.games.filter((g) => data.myPicks[g.id]).length : 0;
+  const done = Boolean(data?.iAmDone);
+  return (
+    <Link
+      to="/picks"
+      className={
+        done
+          ? "shrink-0 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground sm:text-sm"
+          : "shrink-0 inline-flex items-center gap-1 rounded-full border-2 border-accent bg-accent/15 px-2.5 py-1 text-xs font-bold text-foreground sm:text-sm"
+      }
+    >
+      {done ? <Check className="h-3.5 w-3.5" /> : <Football className="h-3.5 w-3.5" />}
+      {done ? "Picks In" : total ? `Picks ${made}/${total}` : "Picks"}
+    </Link>
+  );
+}
+
 function Shell({ children }: { children: ReactNode }) {
   const { isCommissioner, displayName, user } = useAuth();
   const [crestOpen, setCrestOpen] = useState(false);
@@ -211,6 +239,7 @@ function Shell({ children }: { children: ReactNode }) {
             <Link to="/" className="truncate font-display text-xl font-bold tracking-tight sm:text-2xl">
               La Familia
             </Link>
+            <PicksPill enabled={Boolean(user)} userId={user?.id} />
           </div>
           <Dialog open={crestOpen} onOpenChange={setCrestOpen}>
             <DialogContent className="w-[calc(100vw-3rem)] max-w-sm rounded-2xl p-6">
