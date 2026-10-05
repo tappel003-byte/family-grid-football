@@ -161,7 +161,8 @@ export async function loadEspnIdMap(): Promise<Record<string, string>> {
       }
       for (const [espnId, key] of keyed) {
         const hits = bucket.get(key);
-        if (hits?.length === 1 && espnCount.get(key) === 1) map[espnId] = hits[0];
+        const only = hits?.length === 1 ? hits[0] : undefined;
+        if (only && espnCount.get(key) === 1) map[espnId] = only;
       }
     }
   } catch {
