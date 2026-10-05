@@ -133,6 +133,7 @@ function RefreshNav() {
           await Promise.all([
             reloadLeague(),
             queryClient.invalidateQueries({ queryKey: ["nfl-week-v4"] }),
+            queryClient.invalidateQueries({ queryKey: ["team-research"] }),
           ]);
         } finally {
           setBusy(false);
