@@ -2,6 +2,8 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getPlayerNews } from "@/lib/player-news.functions";
+import { getTeamResearch } from "@/lib/team-research.functions";
+import { ordinal } from "@/lib/injury-outlook";
 import { ChevronDown, Newspaper } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { League } from "@/lib/fantasy/league";
@@ -25,10 +27,6 @@ import { AddDropButton } from "./AddDropButton";
 import { cn } from "@/lib/utils";
 import { depthLabel, usePractice } from "./ResearchTags";
 import { ScoringSummary } from "./ScoringSummary";
-
-function ordinal(n: number): string {
-  return ["", "1st", "2nd", "3rd"][n] ?? `${n}th`;
-}
 
 /** Everything the card shows, already computed by the Players list rows. */
 export type PlayerCardRow = {
@@ -136,6 +134,19 @@ export function PlayerSheet({
   });
   const practice = usePractice(player);
   const depth = depthLabel(player);
+  const fetchResearch = useServerFn(getTeamResearch);
+  const { data: research } = useQuery({
+    queryKey: ["team-research"],
+    queryFn: () => fetchResearch(),
+    enabled: open,
+    staleTime: 1000 * 60 * 45,
+    refetchOnMount: "always",
+  });
+  const offenseRank =
+    player.pos === "DEF"
+      ? undefined
+      : research?.offenseRankByTeam[player.team === "WSH" ? "WAS" : player.team];
+  const injuryOutlook = research?.injuries[player.id];
 
   const skill = player.pos !== "DEF" && player.pos !== "K";
   const newsBody = row.news ? (
@@ -198,6 +209,9 @@ export function PlayerSheet({
                 {player.injuryNotes ? ` (${player.injuryNotes.toLowerCase()})` : ""}
               </p>
             )}
+            {injuryOutlook?.cardLine && (
+              <p className="text-sm font-semibold text-injury-out">{injuryOutlook.cardLine}</p>
+            )}
             {practice && (
               <p
                 className={cn(
@@ -208,9 +222,13 @@ export function PlayerSheet({
                 Practice: {practice === "DNP" ? "Did not practice" : "Limited"} · latest report
               </p>
             )}
-            {depth && (
+            {(depth || offenseRank != null) && (
               <p className="text-sm text-muted-foreground">
-                Depth chart: {ordinal(player.depth!)} {player.pos} for {player.team}
+                {depth && offenseRank != null
+                  ? `${depth} on the ${ordinal(offenseRank)}-ranked offense`
+                  : depth
+                    ? `Depth chart: ${ordinal(player.depth!)} ${player.pos} for ${player.team}`
+                    : `${ordinal(offenseRank!)}-ranked offense`}
               </p>
             )}
             <p className="text-sm text-muted-foreground">

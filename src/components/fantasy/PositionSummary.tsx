@@ -1,48 +1,45 @@
 import { useMemo } from "react";
-import { ArrowDown, ArrowRight, ArrowUp } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import type { FantasyTeam, League } from "@/lib/fantasy/league";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
+import { getTeamResearch } from "@/lib/team-research.functions";
 import { useInsights } from "./PlayerInsights";
 import { PlayerCardTrigger } from "./PlayerSheet";
+import { depthLabel } from "./ResearchTags";
+import { injuryInfo } from "./PlayerCell";
 import { cn } from "@/lib/utils";
 
 const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"] as const;
 
-type Trend = "up" | "flat" | "down";
+/** Starting slots needed each week (FLEX can soak an extra RB/WR/TE). */
+const START_NEED: Record<(typeof POSITIONS)[number], number> = {
+  QB: 1,
+  RB: 2,
+  WR: 2,
+  TE: 1,
+  K: 1,
+  DEF: 1,
+};
+const FLEX_POS = new Set(["RB", "WR", "TE"]);
 
-function trendFor(last3Avg: number, seasonAvg: number): Trend {
-  if (seasonAvg <= 0 && last3Avg <= 0) return "flat";
-  if (seasonAvg <= 0) return last3Avg > 0 ? "up" : "flat";
-  if (last3Avg >= seasonAvg * 1.1) return "up";
-  if (last3Avg <= seasonAvg * 0.9) return "down";
-  return "flat";
+function needLabel(pos: (typeof POSITIONS)[number], have: number): { text: string; thin: boolean } {
+  const need = START_NEED[pos];
+  const flex = FLEX_POS.has(pos);
+  const thin = have < need;
+  return {
+    text: flex ? `${have} of ${need}+` : `${have} of ${need}`,
+    thin,
+  };
 }
 
-function TrendArrow({ trend }: { trend: Trend }) {
-  if (trend === "up") {
-    return (
-      <span className="inline-flex items-center text-emerald-700" title="Scoring up vs season average" aria-label="Scoring up">
-        <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.5} />
-      </span>
-    );
-  }
-  if (trend === "down") {
-    return (
-      <span className="inline-flex items-center text-injury-out" title="Scoring down vs season average" aria-label="Scoring down">
-        <ArrowDown className="h-3.5 w-3.5" strokeWidth={2.5} />
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center text-muted-foreground" title="About even with season average" aria-label="Scoring steady">
-      <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
-    </span>
-  );
+function normTeam(team: string) {
+  return team === "WSH" ? "WAS" : team;
 }
 
 /**
- * Quick glance at the bottom of My Team: every rostered player grouped by
- * position, with league position-rank and a last-3 vs season trend arrow.
+ * Quick glance at the bottom of My Team: roster by position with depth,
+ * league rank, offense rank, thin-spot counts, and short injury chips.
  */
 export function PositionSummary({
   team,
@@ -58,6 +55,13 @@ export function PositionSummary({
   week: number;
 }) {
   const insights = useInsights();
+  const fetchResearch = useServerFn(getTeamResearch);
+  const { data: research } = useQuery({
+    queryKey: ["team-research"],
+    queryFn: () => fetchResearch(),
+    staleTime: 1000 * 60 * 45,
+    refetchOnMount: "always",
+  });
 
   const ranksByPos = useMemo(() => {
     const maps = new Map<string, Map<string, number>>();
@@ -111,28 +115,41 @@ export function PositionSummary({
     <section className="mt-6">
       <h2 className="mb-1 font-display text-2xl font-bold">By position</h2>
       <p className="mb-3 text-sm text-muted-foreground">
-        League position rank and whether recent scoring is up, steady, or down versus their season average.
+        Depth, league rank, and offense rank — plus how many you need to start. Tap a name for the full card.
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {POSITIONS.map((pos) => {
           const list = groups.get(pos) ?? [];
+          const need = needLabel(pos, list.length);
           return (
             <div key={pos} className="rounded-2xl border bg-card p-3 shadow-sm">
               <div className="mb-2 flex items-baseline justify-between gap-2 border-b pb-1.5">
                 <h3 className="font-display text-lg font-bold tracking-wide">{pos}</h3>
-                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  {list.length === 0 ? "empty" : `${list.length}`}
+                <span
+                  className={cn(
+                    "text-xs font-bold uppercase tracking-widest",
+                    need.thin ? "text-injury-out" : "text-muted-foreground",
+                  )}
+                >
+                  {list.length === 0 ? "empty" : need.text}
                 </span>
               </div>
               {list.length === 0 ? (
-                <p className="py-1 text-sm text-muted-foreground">None on roster</p>
+                <p className="py-1 text-sm font-semibold text-injury-out">None on roster — easy add</p>
               ) : (
                 <ul className="space-y-1">
                   {list.map((player) => {
-                    const info = insights?.players[player.id];
                     const rank = ranksByPos.get(pos)?.get(player.id);
-                    const trend = trendFor(info?.last3Avg ?? 0, info?.seasonAvg ?? 0);
+                    const depth = depthLabel(player);
+                    const off = research?.offenseRankByTeam[normTeam(player.team)];
                     const onIr = irSet.has(player.id);
+                    const chip =
+                      research?.injuries[player.id]?.matrixChip ??
+                      (injuryInfo(player.injury)?.severity === "out"
+                        ? injuryInfo(player.injury)!.tag
+                        : injuryInfo(player.injury)?.tag === "Q"
+                          ? "Q"
+                          : null);
                     return (
                       <li key={player.id}>
                         <PlayerCardTrigger
@@ -141,24 +158,36 @@ export function PositionSummary({
                           league={league}
                           className="rounded-lg px-1.5 py-1.5 hover:bg-secondary/60"
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight">
+                          <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                            <span className="min-w-0 truncate text-sm font-semibold leading-tight">
                               {player.name}
-                              {onIr && (
-                                <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                  IR
-                                </span>
-                              )}
                             </span>
+                            {onIr && (
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                IR
+                              </span>
+                            )}
+                            {depth && (
+                              <span className="text-xs font-bold text-muted-foreground">{depth}</span>
+                            )}
                             <span
                               className={cn(
-                                "shrink-0 font-display text-sm font-bold tabular-nums",
+                                "font-display text-sm font-bold tabular-nums",
                                 rank && rank <= 24 ? "text-foreground" : "text-muted-foreground",
                               )}
                             >
                               {rank ? `#${rank}` : "—"}
                             </span>
-                            <TrendArrow trend={trend} />
+                            {player.pos !== "DEF" && off != null && (
+                              <span className="text-xs font-semibold text-muted-foreground">
+                                Off #{off}
+                              </span>
+                            )}
+                            {chip && (
+                              <span className="rounded bg-injury-out/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-injury-out">
+                                {chip}
+                              </span>
+                            )}
                           </div>
                         </PlayerCardTrigger>
                       </li>
