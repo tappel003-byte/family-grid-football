@@ -521,6 +521,7 @@ export type Database = {
           drop_player_name: string
           id: string
           league_id: string
+          loss_reason: string
           player_id: string
           player_name: string
           player_pos: string
@@ -539,6 +540,7 @@ export type Database = {
           drop_player_name?: string
           id?: string
           league_id: string
+          loss_reason?: string
           player_id: string
           player_name?: string
           player_pos?: string
@@ -557,6 +559,7 @@ export type Database = {
           drop_player_name?: string
           id?: string
           league_id?: string
+          loss_reason?: string
           player_id?: string
           player_name?: string
           player_pos?: string

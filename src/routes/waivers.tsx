@@ -57,7 +57,17 @@ function ClaimLine({ c, action }: { c: ClaimRow; action?: React.ReactNode }) {
         )}
         <span className="block truncate text-sm text-muted-foreground">
           {c.drop_player_id ? `dropping ${c.drop_player_name}` : "no drop"}
-          {c.status !== "pending" ? ` · ${c.status === "won" ? "Won" : c.status === "lost" ? "Lost" : "Cancelled"}` : ""}
+          {c.status !== "pending"
+            ? ` · ${
+                c.status === "won"
+                  ? "Won"
+                  : c.status === "lost"
+                    ? c.loss_reason
+                      ? `Lost — ${c.loss_reason}`
+                      : "Lost"
+                    : "Cancelled"
+              }`
+            : ""}
         </span>
       </span>
       {action}

@@ -6,6 +6,13 @@ import { toast } from "sonner";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { TeamCrest } from "@/components/fantasy/MatchupBoard";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
@@ -117,6 +124,8 @@ function TradesPage() {
   const [theirs, setTheirs] = useState<Set<string>>(new Set());
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  /** Light confirm before accepting — trades move players immediately. */
+  const [confirmAcceptId, setConfirmAcceptId] = useState<string | null>(null);
 
   if (!league) return <LoadingScreen label="Setting up your league…" />;
 
@@ -171,11 +180,14 @@ function TradesPage() {
               ? "Offer declined"
               : "Offer pulled back",
         );
+        setConfirmAcceptId(null);
         await Promise.all([reloadLeague(), trades.refetch()]);
       })
       .catch((err: Error) => toast.error(err.message))
       .finally(() => setBusy(false));
   };
+
+  const pendingAccept = (trades.data ?? []).find((t) => t.id === confirmAcceptId);
 
   return (
     <>
@@ -327,7 +339,7 @@ function TradesPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {canAnswer && (
                     <>
-                      <Button disabled={busy} onClick={() => act(t.id, "accept")}>
+                      <Button disabled={busy} onClick={() => setConfirmAcceptId(t.id)}>
                         Accept trade
                       </Button>
                       <Button
@@ -350,6 +362,49 @@ function TradesPage() {
           );
         })}
       </ul>
+
+      <Dialog
+        open={!!confirmAcceptId}
+        onOpenChange={(open) => {
+          if (!open && !busy) setConfirmAcceptId(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Accept this trade?</DialogTitle>
+            <DialogDescription>
+              Players move right away on both rosters. You can&apos;t undo this from here.
+            </DialogDescription>
+          </DialogHeader>
+          {pendingAccept && (
+            <div className="space-y-1 rounded-xl border bg-secondary/40 p-4 text-sm">
+              <p>
+                <span className="font-semibold">{pendingAccept.fromTeamName} sends:</span>{" "}
+                {pendingAccept.fromPlayerNames.join(", ") || "nobody"}
+              </p>
+              <p>
+                <span className="font-semibold">{pendingAccept.toTeamName} sends:</span>{" "}
+                {pendingAccept.toPlayerNames.join(", ") || "nobody"}
+              </p>
+            </div>
+          )}
+          <div className="mt-2 flex justify-end gap-3">
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => setConfirmAcceptId(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={busy || !confirmAcceptId}
+              onClick={() => confirmAcceptId && act(confirmAcceptId, "accept")}
+            >
+              {busy ? "Accepting…" : "Yes, accept"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

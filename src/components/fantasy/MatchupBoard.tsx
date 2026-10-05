@@ -64,7 +64,9 @@ function WinBar({ home, away, chance, done }: { home: FantasyTeam; away: Fantasy
     <div className="mt-2 w-full max-w-xs">
       <div className="flex justify-between text-xs font-bold tabular-nums">
         <span className={cn(hp >= ap ? "text-primary" : "text-muted-foreground")}>{label(hp)}</span>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Win chance</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {done ? "Final share" : "Win chance · estimate"}
+        </span>
         <span className={cn(ap > hp ? "text-primary" : "text-muted-foreground")}>{label(ap)}</span>
       </div>
       <div className="mt-1 flex h-2 overflow-hidden rounded-full bg-muted" aria-label={`${home.name} ${hp}%, ${away.name} ${ap}%`}>

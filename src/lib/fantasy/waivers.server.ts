@@ -20,6 +20,17 @@ function idsOf(team: TeamRow): string[] {
   ];
 }
 
+/** Mark lost; include loss_reason when the column exists (safe if migration pending). */
+async function markLost(admin: any, claimId: string, reason: string) {
+  const resolved_at = new Date().toISOString();
+  const withReason = await admin
+    .from("waiver_claims")
+    .update({ status: "lost", resolved_at, loss_reason: reason || "" })
+    .eq("id", claimId);
+  if (!withReason.error) return;
+  await admin.from("waiver_claims").update({ status: "lost", resolved_at }).eq("id", claimId);
+}
+
 /**
  * Worst record picks first. Records come from the archived weekly results,
  * so this needs no live feed.
@@ -140,10 +151,7 @@ export async function processWaivers(
   for (const claim of ordered) {
     const team = teams.find((t) => t.slot === claim.team_slot);
     if (!team) {
-      await admin
-        .from("waiver_claims")
-        .update({ status: "lost", resolved_at: new Date().toISOString() })
-        .eq("id", claim.id);
+      await markLost(admin, claim.id, "team not found");
       lost++;
       continue;
     }
@@ -200,10 +208,7 @@ export async function processWaivers(
     }
 
     if (reason) {
-      await admin
-        .from("waiver_claims")
-        .update({ status: "lost", resolved_at: new Date().toISOString() })
-        .eq("id", claim.id);
+      await markLost(admin, claim.id, reason);
       lost++;
       continue;
     }
@@ -215,10 +220,7 @@ export async function processWaivers(
       .update({ starters, bench, updated_at: new Date().toISOString() })
       .eq("id", team.id);
     if (updateError) {
-      await admin
-        .from("waiver_claims")
-        .update({ status: "lost", resolved_at: new Date().toISOString() })
-        .eq("id", claim.id);
+      await markLost(admin, claim.id, "could not update roster");
       lost++;
       continue;
     }
