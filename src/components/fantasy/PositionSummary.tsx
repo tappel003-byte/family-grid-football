@@ -23,17 +23,20 @@ const START_NEED: Record<(typeof POSITIONS)[number], number> = {
 };
 const FLEX_POS = new Set(["RB", "WR", "TE"]);
 
-/** Header count: "3 on roster · start 1" — not the cryptic "3 of 1". */
+/**
+ * Header count. Flex spots (RB/WR/TE) can also fill FLEX, so we say
+ * "start 2 + flex" instead of the cryptic "2+".
+ */
 function needLabel(pos: (typeof POSITIONS)[number], have: number): { text: string; thin: boolean } {
   const need = START_NEED[pos];
   const flex = FLEX_POS.has(pos);
   const thin = have < need;
-  const start = flex ? `${need}+` : String(need);
+  const start = flex ? `${need} + flex` : String(need);
   if (have === 0) {
     return { text: `None · start ${start}`, thin: true };
   }
   if (thin) {
-    return { text: `Only ${have} · need ${start} to start`, thin: true };
+    return { text: `Only ${have} · need ${start}`, thin: true };
   }
   return { text: `${have} on roster · start ${start}`, thin: false };
 }
