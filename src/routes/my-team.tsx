@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
 import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { RosterTable } from "@/components/fantasy/RosterTable";
+import { PositionSummary } from "@/components/fantasy/PositionSummary";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/my-team")({
 });
 
 function MyTeamPage() {
-  const { league, byId } = useLeague();
+  const { league, byId, players } = useLeague();
   const { user } = useAuth();
   const [week, setWeek] = useState<number | null>(null);
   const activeWeek = week ?? league?.currentWeek ?? 1;
@@ -92,6 +93,13 @@ function MyTeamPage() {
       </div>
       <InsightsProvider week={activeWeek} scoring={league.scoring}>
         <RosterTable team={team} league={league} byId={byId} week={activeWeek} editable />
+        <PositionSummary
+          team={team}
+          league={league}
+          byId={byId}
+          players={players}
+          week={activeWeek}
+        />
       </InsightsProvider>
     </>
   );
