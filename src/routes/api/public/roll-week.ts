@@ -22,7 +22,10 @@ export const Route = createFileRoute("/api/public/roll-week")({
         try {
           return Response.json(await rollWeek(supabaseAdmin));
         } catch (err) {
-          return Response.json({ error: err instanceof Error ? err.message : "failed" });
+          return Response.json(
+            { error: err instanceof Error ? err.message : "failed" },
+            { status: 500 },
+          );
         }
       },
     },

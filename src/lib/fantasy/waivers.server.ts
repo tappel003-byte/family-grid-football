@@ -89,6 +89,18 @@ export async function processWaivers(
     .eq("slug", "main")
     .maybeSingle();
   if (!leagueRow) throw new Error("The league is not set up yet.");
+
+  const { withLeagueJob } = await import("./job-lock");
+  return withLeagueJob(admin, leagueRow.id, "waivers", () =>
+    processWaiversLocked(admin, force, leagueRow),
+  );
+}
+
+async function processWaiversLocked(
+  admin: any,
+  force: boolean,
+  leagueRow: { id: string; current_week: number; rules: unknown },
+): Promise<{ won: number; lost: number; waiting?: boolean }> {
   const rules = normalizeRules(leagueRow.rules);
   if (rules.waiverMode !== "waivers") throw new Error("Waivers are not turned on.");
 

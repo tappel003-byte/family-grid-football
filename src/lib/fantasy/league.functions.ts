@@ -74,7 +74,7 @@ export const saveLeague = createServerFn({ method: "POST" })
 
     const { data: existing } = await supabaseAdmin
       .from("league")
-      .select("id")
+      .select("id, current_week")
       .eq("slug", "main")
       .maybeSingle();
 
@@ -153,6 +153,13 @@ export const saveLeague = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       leagueId = created.id;
     } else {
+      // If the commissioner bumps the week, freeze the week we're leaving so
+      // standings don't pick up Wednesday's lineup on a stats retry.
+      const previousWeek = Number(existing?.current_week ?? 0);
+      if (leagueId && data.currentWeek > previousWeek && previousWeek >= 1) {
+        const { freezeWeekLineups } = await import("./results.server");
+        await freezeWeekLineups(supabaseAdmin, leagueId, previousWeek);
+      }
       const { error } = await supabaseAdmin
         .from("league")
         .update({

@@ -78,6 +78,20 @@ export const setInjuredReserve = createServerFn({ method: "POST" })
         );
       }
       ir.splice(ii, 1);
+      const { playerPositionMap } = await import("./kickoff.server");
+      const { positionCapProblem } = await import("./roster-rules");
+      const positions = await playerPositionMap();
+      if (positions.size > 0) {
+        const addPos = positions.get(data.playerId) ?? "";
+        const problem = positionCapProblem({
+          rosterIds: [...(starters.filter(Boolean) as string[]), ...bench],
+          positionOf: (id) => positions.get(id) ?? (id.length <= 3 ? "DEF" : undefined),
+          addPos,
+          dropId: null,
+          limits: rules.positionLimits,
+        });
+        if (problem) throw new Error(problem);
+      }
       bench.push(data.playerId);
     }
 

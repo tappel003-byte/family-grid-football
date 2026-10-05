@@ -242,49 +242,80 @@ export const respondToTrade = createServerFn({ method: "POST" })
     const fromNext = apply(from, give, get);
     const toNext = apply(to, get, give);
 
-    const stamp = new Date().toISOString();
-    const [a, b] = await Promise.all([
-      supabaseAdmin.from("teams").update({ ...fromNext, updated_at: stamp }).eq("id", from.id),
-      supabaseAdmin.from("teams").update({ ...toNext, updated_at: stamp }).eq("id", to.id),
-    ]);
-    if (a.error) throw new Error(a.error.message);
-    if (b.error) throw new Error(b.error.message);
+    const { playerPositionMap } = await import("./kickoff.server");
+    const positions = await playerPositionMap();
+    if (positions.size > 0) {
+      const checkCaps = (teamName: string, next: { starters: Array<string | null>; bench: string[] }) => {
+        const ids = [...(next.starters.filter(Boolean) as string[]), ...next.bench];
+        const counts = new Map<string, number>();
+        for (const id of ids) {
+          const pos = positions.get(id) ?? (id.length <= 3 ? "DEF" : "");
+          if (!pos) continue;
+          counts.set(pos, (counts.get(pos) ?? 0) + 1);
+        }
+        for (const [pos, limit] of Object.entries(rules.positionLimits)) {
+          if (limit <= 0) continue;
+          if ((counts.get(pos) ?? 0) > limit) {
+            throw new Error(
+              `${teamName} would end up with more than ${limit} ${pos}s — that trade can't go through.`,
+            );
+          }
+        }
+      };
+      checkCaps(from.name, fromNext);
+      checkCaps(to.name, toNext);
+    }
 
-    await supabaseAdmin
-      .from("trades")
-      .update({
-        status: "accepted",
-        resolver_id: context.userId,
-        resolver_name: actorName,
-        resolved_at: stamp,
-      })
-      .eq("id", trade.id);
+    const { withLeagueJob } = await import("./job-lock");
+    return withLeagueJob(supabaseAdmin, leagueRow.id, `trade:${trade.id}`, async () => {
+      const stamp = new Date().toISOString();
+      const { data: claimed, error: claimError } = await supabaseAdmin
+        .from("trades")
+        .update({
+          status: "accepted",
+          resolver_id: context.userId,
+          resolver_name: actorName,
+          resolved_at: stamp,
+        })
+        .eq("id", trade.id)
+        .eq("status", "pending")
+        .select("id");
+      if (claimError) throw new Error(claimError.message);
+      if (!claimed?.length) throw new Error("That trade has already been settled.");
 
-    const names = (list: string[]) => (list.length ? list.join(", ") : "nobody");
-    await supabaseAdmin.from("transactions").insert([
-      {
-        league_id: leagueRow.id,
-        team_slot: from.slot,
-        team_name: from.name,
-        kind: "trade",
-        added_player_name: names(trade.to_player_names ?? []),
-        dropped_player_name: names(trade.from_player_names ?? []),
-        actor_id: context.userId,
-        actor_name: actorName,
-        week: leagueRow.current_week,
-      },
-      {
-        league_id: leagueRow.id,
-        team_slot: to.slot,
-        team_name: to.name,
-        kind: "trade",
-        added_player_name: names(trade.from_player_names ?? []),
-        dropped_player_name: names(trade.to_player_names ?? []),
-        actor_id: context.userId,
-        actor_name: actorName,
-        week: leagueRow.current_week,
-      },
-    ]);
+      const [a, b] = await Promise.all([
+        supabaseAdmin.from("teams").update({ ...fromNext, updated_at: stamp }).eq("id", from.id),
+        supabaseAdmin.from("teams").update({ ...toNext, updated_at: stamp }).eq("id", to.id),
+      ]);
+      if (a.error) throw new Error(a.error.message);
+      if (b.error) throw new Error(b.error.message);
 
-    return { ok: true, status: "accepted" };
+      const names = (list: string[]) => (list.length ? list.join(", ") : "nobody");
+      await supabaseAdmin.from("transactions").insert([
+        {
+          league_id: leagueRow.id,
+          team_slot: from.slot,
+          team_name: from.name,
+          kind: "trade",
+          added_player_name: names(trade.to_player_names ?? []),
+          dropped_player_name: names(trade.from_player_names ?? []),
+          actor_id: context.userId,
+          actor_name: actorName,
+          week: leagueRow.current_week,
+        },
+        {
+          league_id: leagueRow.id,
+          team_slot: to.slot,
+          team_name: to.name,
+          kind: "trade",
+          added_player_name: names(trade.from_player_names ?? []),
+          dropped_player_name: names(trade.to_player_names ?? []),
+          actor_id: context.userId,
+          actor_name: actorName,
+          week: leagueRow.current_week,
+        },
+      ]);
+
+      return { ok: true, status: "accepted" as const };
+    });
   });
