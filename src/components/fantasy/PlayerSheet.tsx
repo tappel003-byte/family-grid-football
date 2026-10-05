@@ -13,7 +13,7 @@ import {
   headshotUrl,
   marketQueryOptions,
   scoreFor,
-  statLineFor,
+
   teamLogoUrl,
   trendingQueryOptions,
   usePlayers,
@@ -24,6 +24,7 @@ import { InjuryBadge } from "./PlayerCell";
 import { AddDropButton } from "./AddDropButton";
 import { cn } from "@/lib/utils";
 import { depthLabel, usePractice } from "./ResearchTags";
+import { ScoringSummary } from "./ScoringSummary";
 
 function ordinal(n: number): string {
   return ["", "1st", "2nd", "3rd"][n] ?? `${n}th`;
