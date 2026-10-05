@@ -91,16 +91,83 @@ export async function loadState(): Promise<{ season: string; week: number }> {
 let espnIdCache: { at: number; map: Record<string, string> } | null = null;
 
 /** Maps ESPN athlete id -> Sleeper player id, so national data can be joined. */
+const normName = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g, "")
+    .replace(/[^a-z]/g, "");
+
+const ESPN_POS: Record<number, string> = { 1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K" };
+
+/** ESPN ID → Sleeper ID. Uses Sleeper's espn_id first, then falls back to a
+ *  unique name + position match for players Sleeper left blank. */
 export async function loadEspnIdMap(): Promise<Record<string, string>> {
   if (espnIdCache && Date.now() - espnIdCache.at < META_TTL) return espnIdCache.map;
-  const raw = await json<Record<string, { espn_id?: number | string | null }>>(
-    "https://api.sleeper.app/v1/players/nfl",
-    {},
-  );
+  const raw = await json<
+    Record<
+      string,
+      {
+        espn_id?: number | string | null;
+        full_name?: string | null;
+        position?: string | null;
+        active?: boolean;
+      }
+    >
+  >("https://api.sleeper.app/v1/players/nfl", {});
   const map: Record<string, string> = {};
+  const linkedSleeper = new Set<string>();
   for (const [id, p] of Object.entries(raw)) {
-    if (p.espn_id) map[String(p.espn_id)] = id;
+    if (p.espn_id) {
+      map[String(p.espn_id)] = id;
+      linkedSleeper.add(id);
+    }
   }
+
+  // Suspenders: name + position fallback for unlinked players.
+  try {
+    const bucket = new Map<string, string[]>();
+    for (const [id, p] of Object.entries(raw)) {
+      if (linkedSleeper.has(id) || !p.full_name || !p.position || p.active === false) continue;
+      const key = `${normName(p.full_name)}|${p.position}`;
+      const arr = bucket.get(key) ?? [];
+      arr.push(id);
+      bucket.set(key, arr);
+    }
+    const season = String(new Date().getUTCFullYear());
+    const res = await fetch(
+      `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/players?view=players_wl`,
+      {
+        headers: {
+          accept: "application/json",
+          "user-agent": "curl/8.0",
+          "x-fantasy-filter": JSON.stringify({ filterActive: { value: true } }),
+        },
+      },
+    );
+    if (res.ok) {
+      const espn = (await res.json()) as {
+        id?: number;
+        fullName?: string;
+        defaultPositionId?: number;
+      }[];
+      const espnCount = new Map<string, number>();
+      const keyed: [string, string][] = [];
+      for (const e of espn) {
+        const pos = e.defaultPositionId ? ESPN_POS[e.defaultPositionId] : undefined;
+        if (!e.id || !e.fullName || !pos || map[String(e.id)]) continue;
+        const key = `${normName(e.fullName)}|${pos}`;
+        espnCount.set(key, (espnCount.get(key) ?? 0) + 1);
+        keyed.push([String(e.id), key]);
+      }
+      for (const [espnId, key] of keyed) {
+        const hits = bucket.get(key);
+        if (hits?.length === 1 && espnCount.get(key) === 1) map[espnId] = hits[0];
+      }
+    }
+  } catch {
+    // fallback is best-effort
+  }
+
   espnIdCache = { at: Date.now(), map };
   return map;
 }
