@@ -30,6 +30,8 @@ export type ClaimRow = {
   drop_player_name: string;
   week: number;
   status: string;
+  /** Plain-English why a claim lost, when available. */
+  loss_reason?: string;
   actor_id: string | null;
   actor_name: string;
   created_at: string;

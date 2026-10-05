@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { MatchupBoard, TeamCrest, teamRecord, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague, useWeekData, useWeeksData } from "@/lib/fantasy/hooks";
 import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
+import { NeedsAttention } from "@/components/fantasy/NeedsAttention";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { MatchupRecap } from "@/components/fantasy/MatchupRecap";
 import { WeekInReview } from "@/components/fantasy/WeekInReview";
+import { useTimeZone } from "@/lib/timezone";
 
 export const Route = createFileRoute("/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
@@ -49,11 +51,18 @@ export const Route = createFileRoute("/")({
 function MatchupsPage() {
   const { league, byId } = useLeague();
   const { user } = useAuth();
+  const tz = useTimeZone();
   const [week, setWeek] = useState<number | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
+  const [scoresAsOf, setScoresAsOf] = useState<Date | null>(null);
   const activeWeek = week ?? league?.currentWeek ?? 1;
   const weekData = useWeekData(activeWeek);
   useWeeksData(Math.max(0, (league?.currentWeek ?? 1) - 1));
+
+  // Quiet freshness clock — updates whenever week data refreshes (no rule changes).
+  useEffect(() => {
+    setScoresAsOf(new Date());
+  }, [weekData]);
 
   if (!league) return <LoadingScreen label="Drafting your family league…" />;
 
@@ -65,6 +74,13 @@ function MatchupsPage() {
   const pair = pairs[selected];
   const home = pair ? league.teams[pair[0]] : undefined;
   const away = pair ? league.teams[pair[1]] : undefined;
+  const asOfLabel = scoresAsOf
+    ? scoresAsOf.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: tz,
+      })
+    : null;
 
   return (
     <>
@@ -76,6 +92,9 @@ function MatchupsPage() {
           updates itself once the feed answers again.
         </div>
       )}
+      <InsightsProvider week={league.currentWeek} scoring={league.scoring}>
+        <NeedsAttention league={league} byId={byId} />
+      </InsightsProvider>
       <div className="mb-5 grid grid-cols-1 gap-3 sm:flex sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
@@ -83,6 +102,9 @@ function MatchupsPage() {
           </h1>
           <p className="mt-1 text-base text-muted-foreground sm:text-lg">
             Week {activeWeek} matchups
+            {asOfLabel && !weekData.stale ? (
+              <span className="text-sm"> · Scores as of {asOfLabel}</span>
+            ) : null}
           </p>
         </div>
         <WeekSelector week={activeWeek} onChange={(w) => { setWeek(w); setPicked(null); }} />

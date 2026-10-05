@@ -143,6 +143,10 @@ export function AddDropButton({
   const [dropOpen, setDropOpen] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
   const [compareId, setCompareId] = useState<string | null>(null);
+  /** Claim-only: final "what will happen" step before the claim is placed. */
+  const [claimConfirm, setClaimConfirm] = useState<{ dropId: string | null; dropName: string } | null>(
+    null,
+  );
   // Comparison numbers for the drop picker — shares the page's cached insights.
   const { data: compareData } = useQuery({
     ...insightsQueryOptions(league.currentWeek, league.scoring),
@@ -244,6 +248,7 @@ export function AddDropButton({
       toast.success(
         `Claim placed for ${player.name}. It processes Wednesday at 12:01 AM Eastern — lowest-ranked team picks first.`,
       );
+      setClaimConfirm(null);
       setDropOpen(false);
       onDone?.();
     } catch (err) {
@@ -341,7 +346,14 @@ export function AddDropButton({
       toast.error(`You already carry ${cap} ${player.pos}s, the most allowed — drop a ${player.pos} for this one.`);
       return;
     }
-    void submit(drop?.id ?? null, drop?.name ?? "");
+    const dropId = drop?.id ?? null;
+    const dropName = drop?.name ?? "";
+    // Claims wait until Wednesday — show a final confirm so people know what they queued.
+    if (claimMode) {
+      setClaimConfirm({ dropId, dropName });
+      return;
+    }
+    void submit(dropId, dropName);
   }
 
   return (
@@ -355,6 +367,7 @@ export function AddDropButton({
             return;
           }
           setCompareId(null);
+          setClaimConfirm(null);
           setDropOpen(true);
         }}
         className="font-semibold"
@@ -362,9 +375,54 @@ export function AddDropButton({
       >
         {verb}
       </Button>
-      <Dialog open={dropOpen} onOpenChange={setDropOpen}>
+      <Dialog
+        open={dropOpen}
+        onOpenChange={(open) => {
+          setDropOpen(open);
+          if (!open) setClaimConfirm(null);
+        }}
+      >
         <DialogContent className="max-h-[92vh] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
-          {!candidate ? (
+          {claimConfirm ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Confirm claim</DialogTitle>
+                <DialogDescription>
+                  Double-check what happens before this goes into Wednesday&apos;s waiver run.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2 rounded-xl border bg-secondary/40 p-4 text-sm">
+                <p>
+                  <span className="font-semibold">Add:</span> {player.name} ({player.pos} · {player.team})
+                </p>
+                <p>
+                  <span className="font-semibold">Drop:</span>{" "}
+                  {claimConfirm.dropId ? claimConfirm.dropName : "nobody (open roster spot)"}
+                </p>
+                <p>
+                  <span className="font-semibold">Processes:</span> Wednesday 12:01 AM Eastern
+                </p>
+                <p className="text-muted-foreground">
+                  Lowest-ranked team picks first. If someone ahead of you gets him, your claim is lost.
+                </p>
+              </div>
+              <Button
+                disabled={pending}
+                onClick={() => void runClaim(claimConfirm.dropId, claimConfirm.dropName)}
+                className="min-h-12 w-full font-bold"
+              >
+                {pending ? "Placing claim…" : "Yes, place this claim"}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={pending}
+                onClick={() => setClaimConfirm(null)}
+              >
+                <ArrowLeft className="mr-1 h-4 w-4" /> Back
+              </Button>
+            </>
+          ) : !candidate ? (
             <>
               <DialogHeader>
                 <DialogTitle>{verb} {player.name}</DialogTitle>
