@@ -16,9 +16,28 @@ export function usePractice(player: SlimPlayer): PracticeStatus | null {
   return data.byGsis[player.gsis] ?? null;
 }
 
-/** e.g. "RB2" — only for skill positions with a depth spot. */
+/** Local copy of "won't play" — avoids importing PlayerCell (circular). */
+function depthHiddenByInjury(injury: string | null): boolean {
+  if (!injury) return false;
+  const i = injury.toUpperCase();
+  return (
+    i.startsWith("OUT") ||
+    i.startsWith("IR") ||
+    i.startsWith("PUP") ||
+    i.startsWith("SUS") ||
+    i.startsWith("DNR") ||
+    i.startsWith("NA")
+  );
+}
+
+/**
+ * e.g. "RB2" — only for skill positions with a depth spot.
+ * Hidden when OUT/IR/PUP/suspended: Sleeper's chart is "who's active today",
+ * so stars slide to WR5 while hurt — that reads like fantasy rank, not role.
+ */
 export function depthLabel(player: SlimPlayer): string | null {
   if (player.pos === "K" || player.pos === "DEF") return null;
+  if (depthHiddenByInjury(player.injury)) return null;
   if (!player.depth || !player.depthPos) return null;
   const pos = /WR$/.test(player.depthPos) ? "WR" : /RB$/.test(player.depthPos) ? "RB" : player.depthPos;
   if (pos !== player.pos) return null;

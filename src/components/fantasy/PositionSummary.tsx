@@ -115,7 +115,7 @@ export function PositionSummary({
     <section className="mt-6">
       <h2 className="mb-1 font-display text-2xl font-bold">By position</h2>
       <p className="mb-3 text-sm text-muted-foreground">
-        Depth, league rank, and team offense rank (1 = highest-scoring NFL offense) — plus how many you need to start. Tap a name for the full card.
+        NFL depth (WR1, RB2, …), league rank (#), and team offense rank. If someone&apos;s Out, we show Out only — we don&apos;t demote them to WR5. Tap a name for the full card.
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {POSITIONS.map((pos) => {
