@@ -115,7 +115,7 @@ export function PositionSummary({
     <section className="mt-6">
       <h2 className="mb-1 font-display text-2xl font-bold">By position</h2>
       <p className="mb-3 text-sm text-muted-foreground">
-        Depth, league rank, and offense rank — plus how many you need to start. Tap a name for the full card.
+        Depth, league rank, and team offense rank (1 = highest-scoring NFL offense) — plus how many you need to start. Tap a name for the full card.
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {POSITIONS.map((pos) => {
@@ -180,7 +180,7 @@ export function PositionSummary({
                             </span>
                             {player.pos !== "DEF" && off != null && (
                               <span className="text-xs font-semibold text-muted-foreground">
-                                Off #{off}
+                                Team off #{off}
                               </span>
                             )}
                             {chip && (
