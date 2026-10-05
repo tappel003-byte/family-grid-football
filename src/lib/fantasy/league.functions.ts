@@ -179,8 +179,14 @@ export const saveLeague = createServerFn({ method: "POST" })
 
     const rows = data.teams.map((t) => {
       const current = currentBySlot.get(t.slot);
-      const maySetRoster = !current || current.user_id === context.userId;
-      // Commissioners may rearrange another team's lineup (same players, same IR).
+      // League-wide saves may only rearrange lineups (same players, same IR) — for
+      // every team, including your own. Adds/drops/IR go through their own server
+      // functions, so a stale browser copy can never wipe a roster.
+      const currentAll = current
+        ? [...((current.starters as Array<string | null>) ?? []), ...((current.bench as string[]) ?? []), ...((current.ir as string[]) ?? [])].filter(Boolean)
+        : [];
+      const maySetRoster = !current || currentAll.length === 0;
+      const isOwn = !!current && current.user_id === context.userId;
       const mayRearrange =
         !!current &&
         !maySetRoster &&
@@ -189,7 +195,7 @@ export const saveLeague = createServerFn({ method: "POST" })
           [...t.starters, ...t.bench],
         ) &&
         samePlayers((current.ir as string[]) ?? [], t.ir ?? []);
-      if (mayRearrange && JSON.stringify(current.starters ?? []) !== JSON.stringify(t.starters)) {
+      if (mayRearrange && !isOwn && JSON.stringify(current.starters ?? []) !== JSON.stringify(t.starters)) {
         helped.push(t);
       }
       const useNew = maySetRoster || mayRearrange;
