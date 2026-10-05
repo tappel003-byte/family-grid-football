@@ -17,21 +17,60 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 export function teamTotals(team: FantasyTeam, week: number, league: League, byId: Map<string, SlimPlayer>) {
   let actual = 0;
   let projected = 0;
+  /** Projected points still to come from players whose games aren't over. */
+  let remaining = 0;
+  const past = week < league.currentWeek;
   for (const id of team.starters) {
     const p = id ? byId.get(id) : undefined;
     if (!p) continue;
     const s = scoreFor(p, week, league);
     actual += s.actual;
     projected += s.projected;
+    if (past) continue;
+    const g = gameInfoFor(p.team, week);
+    if (!g || g.status === "final" || g.status === "none") continue;
+    const share = g.status === "scheduled" ? 1 : Math.max(0, Math.min(1, (g.secondsLeft ?? 1800) / 3600));
+    remaining += Math.max(0, s.projected) * share;
   }
   const slot = league.teams.findIndex((t) => t.id === team.id);
   const fixed = slot >= 0 ? scoreOverride(week, slot) : undefined;
-  const saved = slot >= 0 && week < league.currentWeek ? savedFinal(week, slot) : undefined;
+  const saved = slot >= 0 && past ? savedFinal(week, slot) : undefined;
+  const finalActual = fixed ?? saved ?? actual;
+  const done = past || fixed != null;
   return {
-    actual: Math.round((fixed ?? saved ?? actual) * 10) / 10,
-    projected: Math.round(projected * 10) / 10,
+    actual: Math.round(finalActual * 10) / 10,
+    projected: Math.round((done ? finalActual : actual + remaining) * 10) / 10,
+    remaining: done ? 0 : remaining,
     corrected: fixed != null,
   };
+}
+
+/** Chance the home team wins, from live projected totals and points still to play. */
+function winChance(h: { projected: number; remaining: number }, a: { projected: number; remaining: number }) {
+  const diff = h.projected - a.projected;
+  const left = h.remaining + a.remaining;
+  if (left < 0.5) return diff > 0 ? 1 : diff < 0 ? 0 : 0.5;
+  const sd = Math.max(1, 1.6 * Math.sqrt(left));
+  const z = diff / sd;
+  return 1 / (1 + Math.exp(-1.702 * z));
+}
+
+function WinBar({ home, away, chance }: { home: FantasyTeam; away: FantasyTeam; chance: number }) {
+  const hp = Math.round(chance * 100);
+  const ap = 100 - hp;
+  return (
+    <div className="mt-2 w-full max-w-xs">
+      <div className="flex justify-between text-xs font-bold tabular-nums">
+        <span className={cn(hp >= ap ? "text-primary" : "text-muted-foreground")}>{hp}%</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Win chance</span>
+        <span className={cn(ap > hp ? "text-primary" : "text-muted-foreground")}>{ap}%</span>
+      </div>
+      <div className="mt-1 flex h-2 overflow-hidden rounded-full bg-muted" aria-label={`${home.name} ${hp}%, ${away.name} ${ap}%`}>
+        <div className="h-full bg-primary transition-all duration-700" style={{ width: `${hp}%` }} />
+        <div className="h-full flex-1 bg-muted-foreground/30" />
+      </div>
+    </div>
+  );
 }
 
 /** Win-loss record from finished weeks (same math as Standings). */
@@ -322,6 +361,7 @@ export function MatchupBoard({
               <span className="mx-2 text-muted-foreground">–</span>
               {a.actual.toFixed(1)}
             </div>
+            <WinBar home={home} away={away} chance={winChance(h, a)} />
             {(h.corrected || a.corrected) && (
               <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">
                 Final score set by the commissioner
