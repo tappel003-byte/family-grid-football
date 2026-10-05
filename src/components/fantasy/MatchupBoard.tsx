@@ -55,15 +55,17 @@ function winChance(h: { projected: number; remaining: number }, a: { projected: 
   return 1 / (1 + Math.exp(-1.702 * z));
 }
 
-function WinBar({ home, away, chance }: { home: FantasyTeam; away: FantasyTeam; chance: number }) {
-  const hp = Math.round(chance * 100);
+function WinBar({ home, away, chance, done }: { home: FantasyTeam; away: FantasyTeam; chance: number; done: boolean }) {
+  let hp = Math.round(chance * 100);
+  if (!done) hp = Math.max(1, Math.min(99, hp));
   const ap = 100 - hp;
+  const label = (p: number) => (done ? `${p}%` : p >= 99 ? ">99%" : p <= 1 ? "<1%" : `${p}%`);
   return (
     <div className="mt-2 w-full max-w-xs">
       <div className="flex justify-between text-xs font-bold tabular-nums">
-        <span className={cn(hp >= ap ? "text-primary" : "text-muted-foreground")}>{hp}%</span>
+        <span className={cn(hp >= ap ? "text-primary" : "text-muted-foreground")}>{label(hp)}</span>
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Win chance</span>
-        <span className={cn(ap > hp ? "text-primary" : "text-muted-foreground")}>{ap}%</span>
+        <span className={cn(ap > hp ? "text-primary" : "text-muted-foreground")}>{label(ap)}</span>
       </div>
       <div className="mt-1 flex h-2 overflow-hidden rounded-full bg-muted" aria-label={`${home.name} ${hp}%, ${away.name} ${ap}%`}>
         <div className="h-full bg-primary transition-all duration-700" style={{ width: `${hp}%` }} />
@@ -361,7 +363,12 @@ export function MatchupBoard({
               <span className="mx-2 text-muted-foreground">–</span>
               {a.actual.toFixed(1)}
             </div>
-            <WinBar home={home} away={away} chance={winChance(h, a)} />
+            <WinBar
+              home={home}
+              away={away}
+              chance={winChance(h, a)}
+              done={week < league.currentWeek || (h.corrected && a.corrected) || (h.remaining + a.remaining < 0.01 && teamLiveStatus(home, week, byId).minutesLeft === 0 && teamLiveStatus(away, week, byId).minutesLeft === 0)}
+            />
             {(h.corrected || a.corrected) && (
               <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">
                 Final score set by the commissioner
