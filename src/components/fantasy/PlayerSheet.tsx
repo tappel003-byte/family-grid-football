@@ -248,6 +248,7 @@ export function PlayerSheet({
                 </p>
               </div>
             </div>
+            {started && league && <ScoringSummary playerId={player.id} week={week} league={league} />}
             {m?.grade && (
               <span
                 className={cn(
