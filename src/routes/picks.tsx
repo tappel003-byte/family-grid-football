@@ -106,7 +106,11 @@ function PicksPage() {
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
             <div className="h-full bg-primary transition-all" style={{ width: `${data.games.length ? (made / data.games.length) * 100 : 0}%` }} />
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">Finish your picks to see everyone else's.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {data.week >= 5 && made === data.games.length && data.games.length > 0 && data.myTiebreaker == null
+              ? "Last step: enter the Monday night total points to finish."
+              : "Finish your picks and the Monday night total to see everyone else's."}
+          </p>
         </div>
       )}
       {err && <p role="alert" className="mb-4 font-semibold text-destructive">{err}</p>}
@@ -205,7 +209,7 @@ function PicksPage() {
                     onChange={(e) => setTieText(e.target.value)}
                     onBlur={() => void saveTie()}
                     className="h-10 w-20 text-base"
-                    placeholder="47"
+                    placeholder="—"
                   />
                 </div>
               )}
