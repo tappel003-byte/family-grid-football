@@ -3,7 +3,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { getPracticeReport, type PracticeStatus } from "@/lib/practice.functions";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { cn } from "@/lib/utils";
-import { isInactive } from "./PlayerCell";
 
 export function usePractice(player: SlimPlayer): PracticeStatus | null {
   const fetchReport = useServerFn(getPracticeReport);
@@ -17,6 +16,20 @@ export function usePractice(player: SlimPlayer): PracticeStatus | null {
   return data.byGsis[player.gsis] ?? null;
 }
 
+/** Local copy of "won't play" — avoids importing PlayerCell (circular). */
+function depthHiddenByInjury(injury: string | null): boolean {
+  if (!injury) return false;
+  const i = injury.toUpperCase();
+  return (
+    i.startsWith("OUT") ||
+    i.startsWith("IR") ||
+    i.startsWith("PUP") ||
+    i.startsWith("SUS") ||
+    i.startsWith("DNR") ||
+    i.startsWith("NA")
+  );
+}
+
 /**
  * e.g. "RB2" — only for skill positions with a depth spot.
  * Hidden when OUT/IR/PUP/suspended: Sleeper's chart is "who's active today",
@@ -24,7 +37,7 @@ export function usePractice(player: SlimPlayer): PracticeStatus | null {
  */
 export function depthLabel(player: SlimPlayer): string | null {
   if (player.pos === "K" || player.pos === "DEF") return null;
-  if (isInactive(player.injury)) return null;
+  if (depthHiddenByInjury(player.injury)) return null;
   if (!player.depth || !player.depthPos) return null;
   const pos = /WR$/.test(player.depthPos) ? "WR" : /RB$/.test(player.depthPos) ? "RB" : player.depthPos;
   if (pos !== player.pos) return null;
