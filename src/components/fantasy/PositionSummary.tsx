@@ -23,14 +23,19 @@ const START_NEED: Record<(typeof POSITIONS)[number], number> = {
 };
 const FLEX_POS = new Set(["RB", "WR", "TE"]);
 
+/** Header count: "3 on roster · start 1" — not the cryptic "3 of 1". */
 function needLabel(pos: (typeof POSITIONS)[number], have: number): { text: string; thin: boolean } {
   const need = START_NEED[pos];
   const flex = FLEX_POS.has(pos);
   const thin = have < need;
-  return {
-    text: flex ? `${have} of ${need}+` : `${have} of ${need}`,
-    thin,
-  };
+  const start = flex ? `${need}+` : String(need);
+  if (have === 0) {
+    return { text: `None · start ${start}`, thin: true };
+  }
+  if (thin) {
+    return { text: `Only ${have} · need ${start} to start`, thin: true };
+  }
+  return { text: `${have} on roster · start ${start}`, thin: false };
 }
 
 function normTeam(team: string) {
@@ -127,11 +132,11 @@ export function PositionSummary({
                 <h3 className="font-display text-lg font-bold tracking-wide">{pos}</h3>
                 <span
                   className={cn(
-                    "text-xs font-bold uppercase tracking-widest",
+                    "max-w-[70%] text-right text-xs font-semibold leading-snug",
                     need.thin ? "text-injury-out" : "text-muted-foreground",
                   )}
                 >
-                  {list.length === 0 ? "empty" : need.text}
+                  {need.text}
                 </span>
               </div>
               {list.length === 0 ? (
