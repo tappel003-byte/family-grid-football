@@ -43,7 +43,7 @@ export function ScoringSummary({ playerId, week, league }: { playerId: string; w
   const rows = stats
     ? FIELDS.flatMap(({ key, label }) => {
         const n = Number(stats[key] ?? 0);
-        if (!n) return [];
+        if (!n || !league.scoring[key]) return [];
         const pts = Math.round(n * (league.scoring[key] ?? 0) * 100) / 100;
         return [{ key, text: label(Math.round(n * 10) / 10), pts }];
       })
