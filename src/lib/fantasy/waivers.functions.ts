@@ -202,7 +202,7 @@ export const cancelClaim = createServerFn({ method: "POST" })
     const mine = (teamRows ?? []).find(
       (t: { slot: number; user_id: string | null }) => t.user_id === context.userId,
     );
-    if (!commish && mine && mine.slot !== (claim as ClaimRow).team_slot) {
+    if (!commish && (!mine || mine.slot !== (claim as ClaimRow).team_slot)) {
       throw new Error("You can only pull back your own claim.");
     }
 
