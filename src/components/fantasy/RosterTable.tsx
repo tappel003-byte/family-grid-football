@@ -98,7 +98,7 @@ export function RosterTable({
   league,
   byId,
   week,
-  editable = true,
+  editable: editableProp = true,
 }: {
   team: FantasyTeam;
   league: League;
@@ -106,6 +106,9 @@ export function RosterTable({
   week: number;
   editable?: boolean;
 }) {
+  // One live lineup per team: only the active week may change it.
+  const otherWeek = week !== league.currentWeek;
+  const editable = editableProp && !otherWeek;
   const [flash, setFlash] = useState<string | null>(null);
   const insights = useInsights();
   const move = useServerFn(makeRosterMove);
@@ -236,6 +239,11 @@ export function RosterTable({
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+      {otherWeek && editableProp && (
+        <div className="border-b bg-secondary/40 px-4 py-2 text-sm text-muted-foreground">
+          Viewing Week {week} · lineup changes open when Week {week} begins (Tuesday 6 AM ET).
+        </div>
+      )}
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b bg-secondary/60 px-4 py-3 sm:flex sm:justify-between">
         <h2 className="truncate font-display text-xl font-bold">Starting Lineup</h2>
         {editable && (
