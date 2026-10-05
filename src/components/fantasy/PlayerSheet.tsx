@@ -13,6 +13,7 @@ import {
   headshotUrl,
   marketQueryOptions,
   scoreFor,
+  statLineFor,
   teamLogoUrl,
   trendingQueryOptions,
   usePlayers,
