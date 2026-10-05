@@ -157,10 +157,13 @@ export const getPicksBoard = createServerFn({ method: "GET" })
       byUserWeek.set(k, m);
     }
     const tieOf = (u: string, w: number) => ties?.find((t) => t.user_id === u && t.week === w)?.total_points ?? null;
-    const isDone = (m: Record<string, string>) => games.length > 0 && games.every((g) => m[g.id] || started(g));
+    // From Week 5 on, the Monday night total is required before you're "done".
+    const needsTie = (u: string) => week >= 5 && !!monday && !started(monday) && tieOf(u, week) == null;
+    const isDone = (m: Record<string, string>, u?: string) =>
+      games.length > 0 && games.every((g) => m[g.id] || started(g)) && !(u && needsTie(u));
 
     const myPicks = byUserWeek.get(`${context.userId}:${week}`) ?? {};
-    const iAmDone = isDone(myPicks);
+    const iAmDone = isDone(myPicks, context.userId);
 
     const users = [...new Set((picks ?? []).filter((p) => p.week === week).map((p) => p.user_id))];
     const family: FamilyRow[] = users.map((u) => {
@@ -177,7 +180,7 @@ export const getPicksBoard = createServerFn({ method: "GET" })
         picks: visible,
         tiebreaker: iAmDone || u === context.userId || (monday && started(monday)) ? tieOf(u, week) : null,
         correct: games.filter((g) => winnerOf(g) && m[g.id] === winnerOf(g)).length,
-        done: isDone(m),
+        done: isDone(m, u),
       };
     });
     const mt = mondayTotal(monday);
