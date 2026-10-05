@@ -13,6 +13,7 @@ import {
   headshotUrl,
   marketQueryOptions,
   scoreFor,
+
   teamLogoUrl,
   trendingQueryOptions,
   usePlayers,
@@ -23,6 +24,7 @@ import { InjuryBadge } from "./PlayerCell";
 import { AddDropButton } from "./AddDropButton";
 import { cn } from "@/lib/utils";
 import { depthLabel, usePractice } from "./ResearchTags";
+import { ScoringSummary } from "./ScoringSummary";
 
 function ordinal(n: number): string {
   return ["", "1st", "2nd", "3rd"][n] ?? `${n}th`;
@@ -248,6 +250,7 @@ export function PlayerSheet({
                 </p>
               </div>
             </div>
+            {started && league && <ScoringSummary playerId={player.id} week={week} league={league} />}
             {m?.grade && (
               <span
                 className={cn(

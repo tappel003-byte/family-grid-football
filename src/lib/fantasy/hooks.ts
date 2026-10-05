@@ -129,3 +129,8 @@ export function headshotUrl(id: string, pos: string, team: string) {
 export function teamLogoUrl(team: string) {
   return `https://sleepercdn.com/images/team_logos/nfl/${team.toLowerCase()}.png`;
 }
+
+/** Raw weekly stat line for a player (for the scoring summary). */
+export function statLineFor(playerId: string, week: number) {
+  return weekCache.get(week)?.stats[playerId];
+}

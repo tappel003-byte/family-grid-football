@@ -423,6 +423,10 @@ export function MatchupBoard({
         </div>
       )}
 
+      <p className="border-b py-1.5 text-center text-xs italic text-muted-foreground">
+        Tap any player for scoring summary
+      </p>
+
       <div className="divide-y md:hidden">
         {SLOTS.map((slot, i) => {
           const hp = home.starters[i] ? byId.get(home.starters[i]!) : undefined;
