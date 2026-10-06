@@ -121,6 +121,9 @@ function TrendingList({
 const SORTS = [
   ["PROJ", "Projection"],
   ["PTS", "Total points"],
+  ["W0", "Week A"],
+  ["W1", "Week B"],
+  ["W2", "Week C"],
   ["HOT", "Last 3 avg"],
   ["AVG", "Season avg"],
   ["OWNED", "Rostered %"],
@@ -133,28 +136,91 @@ const SORTS = [
 ] as const;
 
 type SortKey = (typeof SORTS)[number][0];
+const WEEK_SORT_KEYS = ["W0", "W1", "W2"] as const;
+type WeekSortKey = (typeof WEEK_SORT_KEYS)[number];
 
-const SORT_LABEL: Record<SortKey, string> = Object.fromEntries(SORTS) as Record<SortKey, string>;
+/** Last three finished NFL weeks before `currentWeek`, oldest first (e.g. 2,3,4). */
+function recentCompletedWeeks(currentWeek: number): number[] {
+  const weeks: number[] = [];
+  for (let w = currentWeek - 1; w >= 1 && weeks.length < 3; w--) weeks.push(w);
+  return weeks.reverse();
+}
 
-/** The 10 sorts, grouped the way you'd talk about them. */
-const SORT_GROUPS: { label: string; keys: SortKey[] }[] = [
-  { label: "Production", keys: ["PROJ", "PTS", "AVG", "HOT", "RANK"] },
-  { label: "Ownership", keys: ["OWNED", "STARTED", "RISING"] },
-  { label: "Hype", keys: ["ADDS", "DROPS", "PICKUP"] },
+function weekSortKeys(recentWeeks: number[]): SortKey[] {
+  return WEEK_SORT_KEYS.slice(0, recentWeeks.length) as SortKey[];
+}
+
+/** Production keeps L3; week-by-week lives in its own dropdown. */
+function productionKeys(): SortKey[] {
+  return ["PROJ", "PTS", "AVG", "HOT", "RANK"];
+}
+
+/** Own menu: Wk2 · Wk3 · Wk4 · L3 (rolling). L3 also stays under Production. */
+function lastThreeKeys(recentWeeks: number[]): SortKey[] {
+  return [...weekSortKeys(recentWeeks), "HOT"];
+}
+
+function sortLabel(key: SortKey, recentWeeks: number[]): string {
+  const weekIndex = WEEK_SORT_KEYS.indexOf(key as WeekSortKey);
+  if (weekIndex >= 0) {
+    const weekNum = recentWeeks[weekIndex];
+    return weekNum ? `Week ${weekNum}` : "Week";
+  }
+  return Object.fromEntries(SORTS)[key] ?? key;
+}
+
+function sortShort(key: SortKey, recentWeeks: number[]): string {
+  const weekIndex = WEEK_SORT_KEYS.indexOf(key as WeekSortKey);
+  if (weekIndex >= 0) {
+    const weekNum = recentWeeks[weekIndex];
+    return weekNum ? `Wk${weekNum}` : "Wk";
+  }
+  return COLUMNS_BASE[key as Exclude<SortKey, WeekSortKey>]?.short ?? key;
+}
+
+const LAST_THREE_LABEL = "Last three weeks";
+
+const SORT_GROUP_DEFS: { label: string; keys: (recentWeeks: number[]) => SortKey[] }[] = [
+  { label: "Production", keys: () => productionKeys() },
+  { label: LAST_THREE_LABEL, keys: lastThreeKeys },
+  { label: "Ownership", keys: () => ["OWNED", "STARTED", "RISING"] },
+  { label: "Hype", keys: () => ["ADDS", "DROPS", "PICKUP"] },
   {
     label: "All",
-    keys: ["PROJ", "PTS", "AVG", "HOT", "RANK", "OWNED", "STARTED", "RISING", "ADDS", "DROPS", "PICKUP"],
+    keys: (recentWeeks) => [
+      ...productionKeys(),
+      ...weekSortKeys(recentWeeks),
+      "OWNED",
+      "STARTED",
+      "RISING",
+      "ADDS",
+      "DROPS",
+      "PICKUP",
+    ],
   },
 ];
 
-const GROUP_HELP: Record<string, ReadonlyArray<{ short: string; text: string }>> = {
-  Production: [
+function productionHelp(): ReadonlyArray<{ short: string; text: string }> {
+  return [
     { short: "Proj", text: "Projected fantasy points for this week." },
     { short: "Pts", text: "Total fantasy points scored this season." },
     { short: "Avg", text: "Average fantasy points per game this season." },
-    { short: "L3", text: "Average fantasy points over the player's last 3 games." },
+    { short: "L3", text: "Average fantasy points over the last 3 finished weeks." },
     { short: "Rnk", text: "Rank by total points: overall for All players, or within the selected position." },
-  ],
+  ];
+}
+
+function lastThreeHelp(recentWeeks: number[]): ReadonlyArray<{ short: string; text: string }> {
+  return [
+    ...recentWeeks.map((w) => ({
+      short: `Wk${w}`,
+      text: `Fantasy points scored in week ${w}.`,
+    })),
+    { short: "L3", text: "Average fantasy points over those same last 3 finished weeks." },
+  ];
+}
+
+const GROUP_HELP_BASE: Record<string, ReadonlyArray<{ short: string; text: string }>> = {
   Ownership: [
     { short: "Rst%", text: "Percentage of Sleeper leagues where the player is rostered." },
     { short: "Str%", text: "Percentage of Sleeper leagues where the player is starting." },
@@ -163,27 +229,43 @@ const GROUP_HELP: Record<string, ReadonlyArray<{ short: string; text: string }>>
   Hype: [
     { short: "Adds", text: "How many Sleeper teams added the player recently." },
     { short: "Drops", text: "How many Sleeper teams dropped the player recently." },
-    { short: "Pickup", text: "La Familia's waiver recommendation based on form, opportunity and matchup." },
+    {
+      short: "Pickup",
+      text: "La Familia's waiver recommendation based on form, opportunity and matchup.",
+    },
   ],
 };
 
-GROUP_HELP["All"] = [
-  ...(GROUP_HELP["Production"] ?? []),
-  ...(GROUP_HELP["Ownership"] ?? []),
-  ...(GROUP_HELP["Hype"] ?? []),
-];
-
-function StatLegend({ group }: { group: string }) {
-  const rows = GROUP_HELP[group] ?? GROUP_HELP["Production"] ?? [];
+function StatLegend({ group, recentWeeks }: { group: string; recentWeeks: number[] }) {
+  const rows =
+    group === "Production"
+      ? productionHelp()
+      : group === LAST_THREE_LABEL
+        ? lastThreeHelp(recentWeeks)
+        : group === "All"
+          ? [
+              ...productionHelp(),
+              ...lastThreeHelp(recentWeeks).filter((row) => row.short !== "L3"),
+              ...(GROUP_HELP_BASE["Ownership"] ?? []),
+              ...(GROUP_HELP_BASE["Hype"] ?? []),
+            ]
+          : (GROUP_HELP_BASE[group] ?? productionHelp());
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full" aria-label={`What do the ${group} abbreviations mean?`}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 shrink-0 rounded-full"
+          aria-label={`What do the ${group} abbreviations mean?`}
+        >
           <HelpCircle className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="max-h-[70vh] w-72 overflow-y-auto">
-        <p className="mb-2 font-display text-base font-bold">{group === "All" ? "All stats" : `${group} stats`}</p>
+        <p className="mb-2 font-display text-base font-bold">
+          {group === "All" ? "All stats" : `${group} stats`}
+        </p>
         <ul className="space-y-2.5">
           {rows.map((row) => (
             <li key={row.short} className="grid grid-cols-[3.25rem_1fr] gap-2">
@@ -199,15 +281,14 @@ function StatLegend({ group }: { group: string }) {
 
 const PICKUP_ORDER: Record<string, number> = { must: 4, good: 3, stream: 2, pass: 1 };
 
-/** Compact number formatting for hype counts (511,590 -> 512K). */
 const COMPACT = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 
-/** Shape of the row data each stat column reads from. */
 type PlayerRow = {
   rank: number;
   proj: number;
   own: { owned: number; started: number; change: number } | null;
   last3Avg: number;
+  weekPts: number[];
   seasonPts: number;
   seasonAvg: number;
   adds: number;
@@ -215,8 +296,10 @@ type PlayerRow = {
   rec: { label: string } | null;
 };
 
-/** One scrolling stat column: short heading, width, and how to print the value. */
-const COLUMNS: Record<SortKey, { short: string; w: string; value: (r: PlayerRow) => string }> = {
+const COLUMNS_BASE: Record<
+  Exclude<SortKey, WeekSortKey>,
+  { short: string; w: string; value: (r: PlayerRow) => string }
+> = {
   PROJ: { short: "Proj", w: "w-14", value: (r) => r.proj.toFixed(1) },
   PTS: { short: "Pts", w: "w-14", value: (r) => r.seasonPts.toFixed(1) },
   AVG: { short: "Avg", w: "w-14", value: (r) => r.seasonAvg.toFixed(1) },
@@ -234,6 +317,24 @@ const COLUMNS: Record<SortKey, { short: string; w: string; value: (r: PlayerRow)
   PICKUP: { short: "Pickup", w: "w-24", value: (r) => r.rec?.label ?? "—" },
 };
 
+function columnDef(
+  key: SortKey,
+  recentWeeks: number[],
+): { short: string; w: string; value: (r: PlayerRow) => string } {
+  const weekIndex = WEEK_SORT_KEYS.indexOf(key as WeekSortKey);
+  if (weekIndex >= 0) {
+    return {
+      short: sortShort(key, recentWeeks),
+      w: "w-14",
+      value: (r) => {
+        const pts = r.weekPts[weekIndex];
+        if (pts == null) return "—";
+        return pts.toFixed(1);
+      },
+    };
+  }
+  return COLUMNS_BASE[key as Exclude<SortKey, WeekSortKey>];
+}
 
 function PlayersPage() {
   const { league, players, byId } = useLeague();
@@ -242,15 +343,30 @@ function PlayersPage() {
   const [pos, setPos] = useState("ALL");
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
   const [watchedOnly, setWatchedOnly] = useState(false);
-  const [group, setGroup] = useState(SORT_GROUPS[0]!.label);
+  const [group, setGroup] = useState(SORT_GROUP_DEFS[0]!.label);
   const [sort, setSort] = useState<SortKey>("PROJ");
   const [dir, setDir] = useState<"desc" | "asc">("desc");
   const [cardId, setCardId] = useState<string | null>(null);
   const [sortOpen, setSortOpen] = useState(false);
 
-  const columns = SORT_GROUPS.find((g) => g.label === group)?.keys ?? SORT_GROUPS[0]!.keys;
+  const week = league?.currentWeek ?? 1;
+  const recentWeeks = useMemo(() => recentCompletedWeeks(week), [week]);
+  const sortGroups = useMemo(
+    () =>
+      SORT_GROUP_DEFS.map((g) => ({ label: g.label, keys: g.keys(recentWeeks) })).filter(
+        (g) => g.keys.length > 0,
+      ),
+    [recentWeeks],
+  );
+  const columns = sortGroups.find((g) => g.label === group)?.keys ?? sortGroups[0]!.keys;
 
-  /** Tap a heading: sort by it, tap again to flip the direction. */
+  useEffect(() => {
+    if (!columns.includes(sort)) {
+      setSort(columns[0] ?? "PROJ");
+      setDir("desc");
+    }
+  }, [columns, sort]);
+
   const headingTap = (key: SortKey) => {
     if (key === sort) setDir((d) => (d === "desc" ? "asc" : "desc"));
     else {
@@ -261,16 +377,13 @@ function PlayersPage() {
 
   const pickGroup = (label: string) => {
     setGroup(label);
-    const first = SORT_GROUPS.find((g) => g.label === label)?.keys[0];
+    const first = sortGroups.find((g) => g.label === label)?.keys[0];
     if (first) {
       setSort(first);
       setDir("desc");
     }
   };
 
-
-
-  // Close the sort menu as soon as the user starts scrolling the list.
   useEffect(() => {
     if (!sortOpen) return;
     const close = () => setSortOpen(false);
@@ -282,7 +395,6 @@ function PlayersPage() {
     };
   }, [sortOpen]);
 
-  const week = league?.currentWeek ?? 1;
   useWeekData(week);
   const { data: insights } = useQuery({
     ...insightsQueryOptions(week, league?.scoring ?? STANDARD_SCORING),
@@ -298,19 +410,19 @@ function PlayersPage() {
   const addsById = useMemo(() => new Map((adds ?? []).map((a) => [a.id, a.count])), [adds]);
   const dropsById = useMemo(() => new Map((drops ?? []).map((a) => [a.id, a.count])), [drops]);
 
-  /** Overall and position ranks use season points in this league's scoring. */
   const ranks = useMemo(() => {
     const overall = new Map<string, number>();
     const byPosition = new Map<string, Map<string, number>>();
-    const rankedPlayers = players.map(
-      (p) => ({ id: p.id, pos: p.pos, points: insights?.players[p.id]?.seasonPts ?? 0, name: p.name }),
-    );
+    const rankedPlayers = players.map((p) => ({
+      id: p.id,
+      pos: p.pos,
+      points: insights?.players[p.id]?.seasonPts ?? 0,
+      name: p.name,
+    }));
     const compare = (a: (typeof rankedPlayers)[number], b: (typeof rankedPlayers)[number]) =>
       b.points - a.points || a.name.localeCompare(b.name);
 
-    [...rankedPlayers]
-      .sort(compare)
-      .forEach((player, index) => overall.set(player.id, index + 1));
+    [...rankedPlayers].sort(compare).forEach((player, index) => overall.set(player.id, index + 1));
 
     for (const position of new Set(rankedPlayers.map((player) => player.pos))) {
       const positionRanks = new Map<string, number>();
@@ -345,6 +457,10 @@ function PlayersPage() {
         const own = market?.ownership[p.id] ?? null;
         const proj = league ? scoreFor(p, week, league).projected : 0;
         const free = !ownerByPlayer.has(p.id);
+        const weekPts = recentWeeks.map((w) => {
+          const entry = info?.gameLog.find((g) => g.week === w);
+          return entry?.pts ?? 0;
+        });
         return {
           player: p,
           rank: (pos === "ALL" ? ranks.overall : ranks.byPosition.get(pos))?.get(p.id) ?? 9999,
@@ -353,6 +469,7 @@ function PlayersPage() {
           own,
           news: market?.news[p.id] ?? null,
           last3Avg: info?.last3Avg ?? 0,
+          weekPts,
           seasonPts: info?.seasonPts ?? 0,
           seasonAvg: info?.seasonAvg ?? 0,
           hot: info?.last3Avg ?? 0,
@@ -372,12 +489,17 @@ function PlayersPage() {
         };
       });
     type Row = (typeof list)[number];
+    const weekSortIndex = WEEK_SORT_KEYS.indexOf(sort as WeekSortKey);
     const desc = (a: Row, b: Row) => {
       switch (sort) {
         case "PROJ":
           return b.proj - a.proj;
         case "PTS":
           return b.seasonPts - a.seasonPts || b.proj - a.proj;
+        case "W0":
+        case "W1":
+        case "W2":
+          return (b.weekPts[weekSortIndex] ?? 0) - (a.weekPts[weekSortIndex] ?? 0) || b.proj - a.proj;
         case "HOT":
           return b.hot - a.hot;
         case "AVG":
@@ -416,6 +538,7 @@ function PlayersPage() {
     ownerByPlayer,
     league,
     week,
+    recentWeeks,
     insights,
     market,
     addsById,
@@ -431,8 +554,6 @@ function PlayersPage() {
   };
 
   const cardRow = cardId ? (results.find((r) => r.player.id === cardId) ?? null) : null;
-
-
 
   return (
     <InsightsProvider week={week} scoring={league?.scoring ?? STANDARD_SCORING}>
@@ -456,7 +577,6 @@ function PlayersPage() {
         </TabsList>
 
         <TabsContent value="search" className="mt-4">
-          {/* One slim control band: search + position chips, then availability */}
           <div className="mb-3 flex flex-col gap-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative min-w-[9rem] flex-1 sm:w-52 sm:flex-none">
@@ -508,31 +628,38 @@ function PlayersPage() {
                 </button>
               ))}
             </div>
-            <Button variant={watchedOnly ? "default" : "outline"} className="h-10 justify-start sm:w-fit" onClick={() => setWatchedOnly((value) => !value)}>
+            <Button
+              variant={watchedOnly ? "default" : "outline"}
+              className="h-10 justify-start sm:w-fit"
+              onClick={() => setWatchedOnly((value) => !value)}
+            >
               <Bookmark className="mr-2 h-4 w-4" /> Watchlist ({watched.size})
             </Button>
           </div>
 
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-            {/* List header: count + grouped sort dropdown (ESPN-style) */}
             <div className="flex items-center justify-between gap-2 border-b bg-secondary/60 px-3 py-2 sm:px-4">
               <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 {results.length} players
               </span>
               <div className="flex items-center gap-1">
-                <StatLegend group={group} />
+                <StatLegend group={group} recentWeeks={recentWeeks} />
                 <DropdownMenu modal={false} open={sortOpen} onOpenChange={setSortOpen}>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 gap-1.5 rounded-full px-3 text-sm font-semibold"
+                    >
                       {group === "All" ? "All stats" : group}
                       <ChevronDown className="h-4 w-4 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Stats shown
                     </DropdownMenuLabel>
-                    {SORT_GROUPS.map((g) => (
+                    {sortGroups.map((g) => (
                       <DropdownMenuItem
                         key={g.label}
                         onClick={() => pickGroup(g.label)}
@@ -545,10 +672,8 @@ function PlayersPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-
             </div>
 
-            {/* Locked player column on the left, stat columns scroll sideways. */}
             <div className="overflow-x-auto">
               <div className="min-w-max">
                 <div className="flex items-stretch border-b bg-secondary/40">
@@ -556,20 +681,23 @@ function PlayersPage() {
                     Players
                   </div>
                   {columns.map((key) => {
+                    const col = columnDef(key, recentWeeks);
                     const active = sort === key;
                     return (
                       <button
                         key={key}
                         type="button"
                         onClick={() => headingTap(key)}
-                        aria-label={`Sort by ${SORT_LABEL[key]}`}
+                        aria-label={`Sort by ${sortLabel(key, recentWeeks)}`}
                         className={cn(
                           "flex shrink-0 items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors",
-                          COLUMNS[key].w,
-                          active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground",
+                          col.w,
+                          active
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        {COLUMNS[key].short}
+                        {col.short}
                         {active &&
                           (dir === "desc" ? (
                             <ChevronDown className="h-3 w-3" />
@@ -592,7 +720,13 @@ function PlayersPage() {
                           onClick={() => setCardId(player.id)}
                           aria-label={`Open ${player.name}'s full player card`}
                         >
-                          <PlayerCell player={player} week={week} photo="desktop" showGame={false} research={!owner} />
+                          <PlayerCell
+                            player={player}
+                            week={week}
+                            photo="desktop"
+                            showGame={false}
+                            research={!owner}
+                          />
                         </button>
                         {!owner && (
                           <div className="mt-1 text-xs font-semibold text-accent-foreground">
@@ -619,18 +753,21 @@ function PlayersPage() {
                           {league && <AddDropButton player={player} league={league} byId={byId} />}
                         </div>
                       </div>
-                      {columns.map((key) => (
-                        <div
-                          key={key}
-                          className={cn(
-                            "flex shrink-0 items-center justify-center px-1 text-sm font-bold tabular-nums",
-                            COLUMNS[key].w,
-                            sort === key ? "bg-primary/5 text-primary" : "text-foreground",
-                          )}
-                        >
-                          {COLUMNS[key].value(row)}
-                        </div>
-                      ))}
+                      {columns.map((key) => {
+                        const col = columnDef(key, recentWeeks);
+                        return (
+                          <div
+                            key={key}
+                            className={cn(
+                              "flex shrink-0 items-center justify-center px-1 text-sm font-bold tabular-nums",
+                              col.w,
+                              sort === key ? "bg-primary/5 text-primary" : "text-foreground",
+                            )}
+                          >
+                            {col.value(row)}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
@@ -642,7 +779,6 @@ function PlayersPage() {
                 )}
               </div>
             </div>
-
           </div>
         </TabsContent>
 
@@ -689,4 +825,3 @@ function PlayersPage() {
     </InsightsProvider>
   );
 }
-
