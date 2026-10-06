@@ -3,6 +3,7 @@ import { Suspense, useState } from "react";
 import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { RosterTable } from "@/components/fantasy/RosterTable";
 import { PositionSummary } from "@/components/fantasy/PositionSummary";
+import { TeamWatchlist } from "@/components/fantasy/TeamWatchlist";
 import { TeamCrest, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
@@ -100,6 +101,7 @@ function MyTeamPage() {
           players={players}
           week={activeWeek}
         />
+        <TeamWatchlist league={league} byId={byId} week={activeWeek} />
       </InsightsProvider>
     </>
   );
