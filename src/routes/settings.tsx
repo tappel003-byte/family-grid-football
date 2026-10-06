@@ -235,21 +235,35 @@ function SettingsPage() {
             <h2 className="font-display text-xl font-bold">Teams &amp; contacts</h2>
             {(() => {
               const emails = league.teams.map((t) => (t.email ?? "").trim()).filter((e) => e.includes("@"));
+              const phones = league.teams
+                .map((t) => (t.phone ?? "").replace(/[^\d+]/g, ""))
+                .filter((p) => p.replace(/\D/g, "").length >= 7);
               return (
-                <Button asChild={emails.length > 0} disabled={emails.length === 0}>
-                  {emails.length > 0 ? (
-                    <a href={`mailto:?bcc=${emails.map(encodeURIComponent).join(",")}&subject=${encodeURIComponent(league.name)}`}>
-                      Email league ({emails.length})
-                    </a>
-                  ) : (
-                    <span>Email league</span>
-                  )}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild={emails.length > 0} disabled={emails.length === 0} variant="outline">
+                    {emails.length > 0 ? (
+                      <a href={`mailto:?bcc=${emails.map(encodeURIComponent).join(",")}&subject=${encodeURIComponent(league.name)}`}>
+                        Email league ({emails.length})
+                      </a>
+                    ) : (
+                      <span>Email league</span>
+                    )}
+                  </Button>
+                  <Button asChild={phones.length > 0} disabled={phones.length === 0}>
+                    {phones.length > 0 ? (
+                      <a href={`sms:/open?addresses=${phones.map(encodeURIComponent).join(",")}`}>
+                        Text league ({phones.length})
+                      </a>
+                    ) : (
+                      <span>Text league</span>
+                    )}
+                  </Button>
+                </div>
               );
             })()}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Tap a team to edit its info or reset sign-in. Changes save automatically.
+            Tap a team to edit its info or reset sign-in. Changes save automatically. Text league opens Messages with every cell number — works best on iPhone.
           </p>
           <ul className="mt-3 min-w-0 divide-y overflow-x-clip rounded-xl border">
             {league.teams.map((team) => {
