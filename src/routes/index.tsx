@@ -127,9 +127,12 @@ function MatchupsPage() {
               )}
             >
               {[
-                { team: h, total: ht.actual },
-                { team: a, total: at.actual },
-              ].map(({ team, total }) => (
+                { team: h, total: ht },
+                { team: a, total: at },
+              ].map(({ team, total }) => {
+                const pregame = activeWeek >= league.currentWeek && total.actual < 0.05;
+                const shown = pregame ? total.projected : total.actual;
+                return (
                 <div key={team.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-1">
                   <TeamCrest team={team} />
                   <span className="truncate text-base font-semibold">
@@ -138,11 +141,19 @@ function MatchupsPage() {
                       ({teamRecord(team, league, byId)})
                     </span>
                   </span>
-                  <span className="font-display text-xl font-bold tabular-nums">
-                    {total.toFixed(1)}
+                  <span className="text-right">
+                    <span className="font-display text-xl font-bold tabular-nums">
+                      {shown.toFixed(1)}
+                    </span>
+                    {pregame && (
+                      <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                        proj
+                      </span>
+                    )}
                   </span>
                 </div>
-              ))}
+                );
+              })}
             </button>
           );
         })}
