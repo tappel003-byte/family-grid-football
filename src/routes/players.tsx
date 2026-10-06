@@ -742,6 +742,7 @@ function PlayersPage() {
                         )}
 
                         <div className="mt-1.5 flex items-center gap-1.5 [&_button]:h-7 [&_button]:px-2 [&_button]:text-xs">
+                          {league && <AddDropButton player={player} league={league} byId={byId} />}
                           <Button
                             size="sm"
                             variant={watched.has(player.id) ? "default" : "outline"}
@@ -761,7 +762,6 @@ function PlayersPage() {
                               {watched.has(player.id) ? "Watching" : "Watch"}
                             </span>
                           </Button>
-                          {league && <AddDropButton player={player} league={league} byId={byId} />}
                         </div>
                       </div>
                       {columns.map((key) => {
