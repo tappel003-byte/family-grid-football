@@ -492,7 +492,9 @@ export function AddDropButton({
                 <PlayerCardHeader player={candidate} label="Drop" />
               </div>
               <ComparisonRows left={compareStats(player)} right={compareStats(candidate)} />
-              {dropLocked(candidate) ? (
+              {/* Instant adds can't drop a live/final player (points would vanish).
+                  Claims wait until Wednesday, so a locked drop is fine to name now. */}
+              {dropLocked(candidate) && !claimMode ? (
                 <p className="text-center text-sm font-semibold text-destructive">
                   {candidate.name} is locked because his game has started.
                 </p>
@@ -508,6 +510,11 @@ export function AddDropButton({
                       ? `Drop ${candidate.name} & Submit claim for ${player.name}`
                       : `Drop ${candidate.name} & Add ${player.name} now`}
                 </Button>
+              )}
+              {claimMode && dropLocked(candidate) && (
+                <p className="text-center text-xs text-muted-foreground">
+                  {candidate.name}&apos;s game is on now — that&apos;s fine. The drop only happens if your claim wins Wednesday.
+                </p>
               )}
               <Button variant="outline" className="w-full" onClick={() => setCompareId(null)}>
                 <ArrowLeft className="mr-1 h-4 w-4" /> Back to my roster
