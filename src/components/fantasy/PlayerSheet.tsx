@@ -1,11 +1,13 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { getPlayerNews } from "@/lib/player-news.functions";
 import { getTeamResearch } from "@/lib/team-research.functions";
 import { ordinal } from "@/lib/injury-outlook";
-import { ChevronDown, Newspaper } from "lucide-react";
+import { Bookmark, ChevronDown, Newspaper } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import type { League } from "@/lib/fantasy/league";
 import { ownedIds } from "@/lib/fantasy/league";
 import type { PlayerNews } from "@/lib/market.functions";
@@ -21,6 +23,7 @@ import {
   usePlayers,
 } from "@/lib/fantasy/hooks";
 import { formatGameTime, useTimeZone } from "@/lib/timezone";
+import { listMyWatchlist, setWatched } from "@/lib/fantasy/community";
 import { ByeBadge, isOnBye, matchupFor, useInsights } from "./PlayerInsights";
 import { InjuryBadge } from "./PlayerCell";
 import { AddDropButton } from "./AddDropButton";
@@ -103,11 +106,18 @@ export function PlayerSheet({
 }) {
   const { player } = row;
   const insights = useInsights();
+  const queryClient = useQueryClient();
   const { players: allPlayers } = usePlayers();
   const byIdMap = useMemo(
     () => new Map(allPlayers.map((p) => [p.id, p])),
     [allPlayers],
   );
+  const { data: watchedIds = [] } = useQuery({
+    queryKey: ["my-watchlist"],
+    queryFn: listMyWatchlist,
+    enabled: open,
+  });
+  const isWatched = watchedIds.includes(player.id);
   const timeZone = useTimeZone();
   const game = gameInfoFor(player.team, week);
   const kickoff = formatGameTime(game?.startsAt, timeZone);
@@ -236,6 +246,29 @@ export function PlayerSheet({
             </p>
           </div>
         </div>
+
+        <Button
+          variant={isWatched ? "default" : "outline"}
+          className="w-full font-semibold"
+          onClick={() => {
+            void (async () => {
+              try {
+                await setWatched(player.id, !isWatched);
+                await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
+                toast.success(
+                  isWatched
+                    ? `Removed ${player.name} from your watchlist`
+                    : `Added ${player.name} to your watchlist`,
+                );
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Could not update your watchlist.");
+              }
+            })();
+          }}
+        >
+          <Bookmark className="mr-2 h-4 w-4" fill={isWatched ? "currentColor" : "none"} />
+          {isWatched ? "On your watchlist" : "Add to watchlist"}
+        </Button>
 
         {/* This week */}
         <Section title={`Week ${week}`}>
