@@ -225,7 +225,7 @@ function Shell({ children }: { children: ReactNode }) {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen overflow-x-clip bg-background">
       <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
           {/* Top row: brand on the left, profile on the right */}
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-2.5 sm:py-3">
@@ -299,7 +299,7 @@ function Shell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <TimeZoneProvider value={account?.timeZone}>
-        <main className="mx-auto max-w-[1400px] px-4 py-6 sm:py-8">{children}</main>
+        <main className="mx-auto w-full min-w-0 max-w-[1400px] px-4 py-6 sm:py-8">{children}</main>
       </TimeZoneProvider>
       <footer className="mx-auto max-w-[1400px] px-4 pb-10 pt-4 text-sm text-muted-foreground">
         Private family league · Player data from the free Sleeper NFL API

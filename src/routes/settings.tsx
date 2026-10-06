@@ -163,7 +163,7 @@ function SettingsPage() {
         subtitle="Only the commissioner should change these — they affect everyone's scores."
       />
 
-      <div className="grid max-w-4xl gap-4">
+      <div className="mx-auto grid w-full min-w-0 max-w-4xl gap-4">
         <section className="rounded-lg border bg-card p-5 shadow-sm">
           <h2 className="font-display text-2xl font-bold">Weekly controls</h2>
           <div className="mt-4 grid gap-4">
@@ -230,7 +230,7 @@ function SettingsPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border bg-card px-5 pb-5 shadow-sm">
+        <section className="min-w-0 overflow-x-clip rounded-lg border bg-card px-5 pb-5 shadow-sm">
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-display text-xl font-bold">Teams &amp; contacts</h2>
             {(() => {
@@ -251,7 +251,7 @@ function SettingsPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             Tap a team to edit its info or reset sign-in. Changes save automatically.
           </p>
-          <ul className="mt-3 divide-y rounded-xl border">
+          <ul className="mt-3 min-w-0 divide-y overflow-x-clip rounded-xl border">
             {league.teams.map((team) => {
               const setField = (field: "name" | "owner" | "email" | "phone", value: string) =>
                 updateLeague((l) => ({
@@ -262,7 +262,7 @@ function SettingsPage() {
               return (
               <li key={team.id}>
                 <details className="group/team">
-                  <summary className="flex cursor-pointer list-none items-center gap-3 p-3">
+                  <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 p-3 sm:gap-3">
                     <TeamCrest team={team} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{team.name}</p>
@@ -368,8 +368,9 @@ function SettingsPage() {
 
 
         <details className="group rounded-lg border bg-card shadow-sm">
-          <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
-            Scoring &amp; roster rules <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-display text-xl font-bold">
+            <span>Scoring &amp; roster rules</span>
+            <span className="shrink-0 text-muted-foreground group-open:rotate-180">⌄</span>
           </summary>
           <div className="border-t px-5 pb-5">
           <h2 className="mt-5 font-display text-xl font-bold">Scoring rules</h2>
@@ -589,8 +590,9 @@ function SettingsPage() {
         </section>
 
         <details className="group rounded-lg border bg-card shadow-sm">
-          <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
-            Fix a team <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-display text-xl font-bold">
+            <span>Fix a team</span>
+            <span className="shrink-0 text-muted-foreground group-open:rotate-180">⌄</span>
           </summary>
           <div className="border-t px-5 pb-5">
             <p className="mt-5 text-base text-muted-foreground">
@@ -619,8 +621,9 @@ function SettingsPage() {
         </details>
 
         <details className="group rounded-lg border bg-card shadow-sm">
-          <summary className="cursor-pointer list-none px-5 py-4 font-display text-xl font-bold">
-            Season tools <span className="float-right text-muted-foreground group-open:rotate-180">⌄</span>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-display text-xl font-bold">
+            <span>Season tools</span>
+            <span className="shrink-0 text-muted-foreground group-open:rotate-180">⌄</span>
           </summary>
           <div className="border-t px-5 pb-5">
           <Button asChild variant="outline" className="mt-5 text-base font-semibold">
