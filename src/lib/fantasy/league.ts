@@ -36,7 +36,19 @@ export type League = {
   teams: FantasyTeam[];
   /** schedule[week-1] = array of [homeTeamIndex, awayTeamIndex] */
   schedule: Array<Array<[number, number]>>;
+  /** Frozen starters [week][teamSlot] — who actually started that week. */
+  weeklyLineups?: Record<number, Record<number, Array<string | null>>>;
 };
+
+/** Past weeks use the frozen scoring lineup so next week's swaps don't rewrite history. */
+export function lineupForWeek(team: FantasyTeam, league: League, week: number): FantasyTeam {
+  if (week === league.currentWeek) return team;
+  const slot = league.teams.findIndex((t) => t.id === team.id);
+  if (slot < 0) return team;
+  const frozen = league.weeklyLineups?.[week]?.[slot];
+  if (!frozen) return team;
+  return { ...team, starters: frozen };
+}
 
 export const LEAGUE_VERSION = 3;
 

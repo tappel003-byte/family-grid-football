@@ -68,11 +68,14 @@ async function fetchLeague(): Promise<League | null> {
 
   await fetchOverrides(row.id);
 
-  const { data: teamRows } = await supabase
-    .from("teams")
-    .select("slot, name, owner, color, starters, bench, ir, user_id, division, email, phone")
-    .eq("league_id", row.id)
-    .order("slot", { ascending: true });
+  const [{ data: teamRows }, { data: lineupRows }] = await Promise.all([
+    supabase
+      .from("teams")
+      .select("slot, name, owner, color, starters, bench, ir, user_id, division, email, phone")
+      .eq("league_id", row.id)
+      .order("slot", { ascending: true }),
+    supabase.from("weekly_lineups").select("week, team_slot, starters").eq("league_id", row.id),
+  ]);
 
   const teams: FantasyTeam[] = (teamRows ?? []).map((t, i) => ({
     id: `team-${(t.slot ?? i) + 1}`,
@@ -90,6 +93,13 @@ async function fetchLeague(): Promise<League | null> {
 
   if (!teams.length) return null;
 
+  const weeklyLineups: Record<number, Record<number, Array<string | null>>> = {};
+  for (const row of lineupRows ?? []) {
+    const week = Number(row.week);
+    const slot = Number(row.team_slot);
+    (weeklyLineups[week] ??= {})[slot] = (row.starters as Array<string | null>) ?? [];
+  }
+
   return {
     version: LEAGUE_VERSION,
     name: row.name,
@@ -98,6 +108,7 @@ async function fetchLeague(): Promise<League | null> {
     rules: normalizeRules(row.rules),
     teams,
     schedule: (row.schedule as Array<Array<[number, number]>>) ?? [],
+    weeklyLineups,
   };
 }
 

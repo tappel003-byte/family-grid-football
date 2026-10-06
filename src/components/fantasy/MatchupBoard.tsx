@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { League, FantasyTeam } from "@/lib/fantasy/league";
-import { SLOTS } from "@/lib/fantasy/league";
+import { SLOTS, lineupForWeek } from "@/lib/fantasy/league";
 import { gameInfoFor, scoreFor } from "@/lib/fantasy/hooks";
 import { savedFinal, scoreOverride } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
@@ -15,12 +15,13 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 
 export function teamTotals(team: FantasyTeam, week: number, league: League, byId: Map<string, SlimPlayer>) {
+  const viewed = lineupForWeek(team, league, week);
   let actual = 0;
   let projected = 0;
   /** Projected points still to come from players whose games aren't over. */
   let remaining = 0;
   const past = week < league.currentWeek;
-  for (const id of team.starters) {
+  for (const id of viewed.starters) {
     const p = id ? byId.get(id) : undefined;
     if (!p) continue;
     const s = scoreFor(p, week, league);
@@ -330,10 +331,12 @@ export function MatchupBoard({
   home: FantasyTeam;
   away: FantasyTeam;
 }) {
-  const h = teamTotals(home, week, league, byId);
-  const a = teamTotals(away, week, league, byId);
+  const homeView = lineupForWeek(home, league, week);
+  const awayView = lineupForWeek(away, league, week);
+  const h = teamTotals(homeView, week, league, byId);
+  const a = teamTotals(awayView, week, league, byId);
 
-  const inactivePlayers = [home, away].flatMap((team) =>
+  const inactivePlayers = [homeView, awayView].flatMap((team) =>
     team.starters
       .map((id) => (id ? byId.get(id) : undefined))
       .filter((p): p is SlimPlayer => !!p && isInactive(p.injury))
@@ -435,8 +438,8 @@ export function MatchupBoard({
 
       <div className="divide-y md:hidden">
         {SLOTS.map((slot, i) => {
-          const hp = home.starters[i] ? byId.get(home.starters[i]!) : undefined;
-          const ap = away.starters[i] ? byId.get(away.starters[i]!) : undefined;
+          const hp = homeView.starters[i] ? byId.get(homeView.starters[i]!) : undefined;
+          const ap = awayView.starters[i] ? byId.get(awayView.starters[i]!) : undefined;
           const hpOut = !!hp && isInactive(hp.injury);
           const apOut = !!ap && isInactive(ap.injury);
           return (
@@ -453,8 +456,8 @@ export function MatchupBoard({
 
       <div className="hidden divide-y md:block">
         {SLOTS.map((slot, i) => {
-          const hp = home.starters[i] ? byId.get(home.starters[i]!) : undefined;
-          const ap = away.starters[i] ? byId.get(away.starters[i]!) : undefined;
+          const hp = homeView.starters[i] ? byId.get(homeView.starters[i]!) : undefined;
+          const ap = awayView.starters[i] ? byId.get(awayView.starters[i]!) : undefined;
           const hpOut = !!hp && isInactive(hp.injury);
           const apOut = !!ap && isInactive(ap.injury);
           return (

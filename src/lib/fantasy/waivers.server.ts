@@ -257,5 +257,8 @@ async function processWaiversLocked(
     won++;
   }
 
+  const { snapshotWeekLineups } = await import("./results.server");
+  await snapshotWeekLineups(admin, leagueRow.id, leagueRow.current_week);
+
   return { won, lost };
 }

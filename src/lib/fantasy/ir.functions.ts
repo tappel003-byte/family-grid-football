@@ -101,6 +101,9 @@ export const setInjuredReserve = createServerFn({ method: "POST" })
       .eq("id", target.id);
     if (updateError) throw new Error(updateError.message);
 
+    const { snapshotWeekLineups } = await import("./results.server");
+    await snapshotWeekLineups(supabaseAdmin, leagueRow.id, leagueRow.current_week);
+
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("display_name, email")

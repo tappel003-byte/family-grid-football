@@ -290,6 +290,9 @@ export const respondToTrade = createServerFn({ method: "POST" })
       if (a.error) throw new Error(a.error.message);
       if (b.error) throw new Error(b.error.message);
 
+      const { snapshotWeekLineups } = await import("./results.server");
+      await snapshotWeekLineups(supabaseAdmin, leagueRow.id, leagueRow.current_week);
+
       const names = (list: string[]) => (list.length ? list.join(", ") : "nobody");
       await supabaseAdmin.from("transactions").insert([
         {
