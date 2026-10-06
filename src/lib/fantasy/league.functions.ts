@@ -134,6 +134,8 @@ export const saveLeague = createServerFn({ method: "POST" })
         })
         .eq("id", myTeam.id);
       if (error) throw new Error(error.message);
+      const { snapshotWeekLineups } = await import("./results.server");
+      await snapshotWeekLineups(supabaseAdmin, leagueId, Number(existing!.current_week));
       return { ok: true, scope: "team" as const };
     }
 
@@ -268,6 +270,9 @@ export const saveLeague = createServerFn({ method: "POST" })
       .eq("league_id", leagueId)
       .gte("slot", data.teams.length);
     if (pruneError) throw new Error(pruneError.message);
+
+    const { snapshotWeekLineups } = await import("./results.server");
+    await snapshotWeekLineups(supabaseAdmin, leagueId, data.currentWeek);
 
     return { ok: true, scope: "league" as const };
   });

@@ -63,15 +63,11 @@ export async function seasonOf(): Promise<string> {
   return state?.season ?? String(new Date().getUTCFullYear());
 }
 
-/**
- * Freeze each team's starters for a finished week. First freeze wins —
- * later roster moves (waivers, next-week sets) cannot rewrite the scoring lineup.
- * No-op if the weekly_lineups table isn't migrated yet.
- */
-export async function freezeWeekLineups(
+async function writeWeekLineups(
   supabaseAdmin: any,
   leagueId: string,
   week: number,
+  firstWins: boolean,
 ): Promise<void> {
   if (!leagueId || week < 1) return;
   const { data: teamRows } = await supabaseAdmin
@@ -92,12 +88,33 @@ export async function freezeWeekLineups(
 
   const { error } = await supabaseAdmin.from("weekly_lineups").upsert(rows, {
     onConflict: "league_id,week,team_slot",
-    ignoreDuplicates: true,
+    ignoreDuplicates: firstWins,
   });
-  // Table missing → ignore; archive still uses live starters.
   if (error && !/weekly_lineups|schema cache|does not exist/i.test(error.message ?? "")) {
     throw new Error(error.message);
   }
+}
+
+/**
+ * Freeze each team's starters for a finished week. First freeze wins —
+ * later roster moves (waivers, next-week sets) cannot rewrite the scoring lineup.
+ * No-op if the weekly_lineups table isn't migrated yet.
+ */
+export async function freezeWeekLineups(
+  supabaseAdmin: any,
+  leagueId: string,
+  week: number,
+): Promise<void> {
+  await writeWeekLineups(supabaseAdmin, leagueId, week, true);
+}
+
+/** Last-write snapshot of the live lineup for the week still in progress. */
+export async function snapshotWeekLineups(
+  supabaseAdmin: any,
+  leagueId: string,
+  week: number,
+): Promise<void> {
+  await writeWeekLineups(supabaseAdmin, leagueId, week, false);
 }
 
 export async function archiveFinishedWeeks(

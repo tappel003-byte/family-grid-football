@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { FantasyTeam, League } from "@/lib/fantasy/league";
-import { SLOTS, rosterIds, slotAccepts } from "@/lib/fantasy/league";
+import { SLOTS, rosterIds, slotAccepts, lineupForWeek } from "@/lib/fantasy/league";
 import { scoreFor } from "@/lib/fantasy/hooks";
 import { isPlayable } from "@/lib/fantasy/projections";
 import { makeRosterMove } from "@/lib/fantasy/transactions.functions";
@@ -138,6 +138,8 @@ export function RosterTable({
 
   const teamSlot = league.teams.indexOf(team);
   const onBlock = useTeamTradeBlock(teamSlot);
+  const viewed = lineupForWeek(team, league, week);
+  const frozen = week < league.currentWeek && !!league.weeklyLineups?.[week]?.[teamSlot];
 
   const swapIn = (slotIndex: number, benchId: string) => {
     updateLeague((l) =>
@@ -220,12 +222,13 @@ export function RosterTable({
   const rows = SLOTS.map((slot, i) => ({
     slot,
     index: i,
-    player: team.starters[i] ? byId.get(team.starters[i]!) : undefined,
+    player: viewed.starters[i] ? byId.get(viewed.starters[i]!) : undefined,
   }));
 
+  const starterIds = new Set((viewed.starters.filter(Boolean) as string[]) ?? []);
   const benchPlayers = team.bench
     .map((id) => byId.get(id))
-    .filter((p): p is SlimPlayer => !!p);
+    .filter((p): p is SlimPlayer => !!p && !(otherWeek && starterIds.has(p.id)));
 
   const eligibleBench = (slot: string) => benchPlayers.filter((p) => slotAccepts(slot, p.pos));
 
@@ -241,7 +244,11 @@ export function RosterTable({
     <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       {otherWeek && editableProp && (
         <div className="border-b bg-secondary/40 px-4 py-2 text-sm text-muted-foreground">
-          Viewing Week {week} · lineup changes open when Week {week} begins (Tuesday 6 AM ET).
+          {week < league.currentWeek
+            ? frozen
+              ? `This is who started Week ${week}. That lineup is locked.`
+              : `No saved lineup for Week ${week} yet — showing your current roster.`
+            : `Viewing Week ${week} · lineup changes open when Week ${week} begins (Tuesday 6 AM ET).`}
         </div>
       )}
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b bg-secondary/60 px-4 py-3 sm:flex sm:justify-between">
