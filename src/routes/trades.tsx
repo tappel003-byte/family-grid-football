@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -25,6 +25,14 @@ import { listTradeBlock } from "@/lib/fantasy/community";
 import { Handshake } from "lucide-react";
 
 export const Route = createFileRoute("/trades")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    with: typeof search["with"] === "number"
+      ? search["with"]
+      : typeof search["with"] === "string" && search["with"] !== "" && Number.isFinite(Number(search["with"]))
+        ? Number(search["with"])
+        : undefined,
+    want: typeof search["want"] === "string" ? search["want"] : undefined,
+  }),
   loader: ({ context }) => context.queryClient.ensureQueryData(playersQueryOptions),
   head: () => ({
     meta: [
@@ -114,24 +122,36 @@ function PlayerPicker({
 function TradesPage() {
   const { league, byId } = useLeague();
   const { user, isCommissioner } = useAuth();
+  const search = Route.useSearch();
   const propose = useServerFn(proposeTrade);
   const respond = useServerFn(respondToTrade);
   const trades = useQuery({ queryKey: ["trades"], queryFn: () => listTrades() });
   const tradeBlock = useQuery({ queryKey: ["trade-block"], queryFn: listTradeBlock });
 
-  const [partnerSlot, setPartnerSlot] = useState<number | null>(null);
+  const [partnerSlot, setPartnerSlot] = useState<number | null>(search.with ?? null);
   const [mine, setMine] = useState<Set<string>>(new Set());
-  const [theirs, setTheirs] = useState<Set<string>>(new Set());
+  const [theirs, setTheirs] = useState<Set<string>>(
+    () => (search.want ? new Set([search.want]) : new Set()),
+  );
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   /** Light confirm before accepting — trades move players immediately. */
   const [confirmAcceptId, setConfirmAcceptId] = useState<string | null>(null);
 
+  // Deep-link from watchlist: pre-pick the other team and the player you want.
+  useEffect(() => {
+    if (typeof search.with === "number") setPartnerSlot(search.with);
+    if (search.want) setTheirs(new Set([search.want]));
+  }, [search.with, search.want]);
+
   if (!league) return <LoadingScreen label="Setting up your league…" />;
 
   const myIndex = league.teams.findIndex((t) => !!user && t.userId === user.id);
   const myTeam = myIndex >= 0 ? league.teams[myIndex]! : null;
-  const partner = partnerSlot != null ? league.teams[partnerSlot] ?? null : null;
+  // Don't treat your own slot as a trade partner (bad deep-link).
+  const activePartnerSlot =
+    partnerSlot != null && partnerSlot !== myIndex ? partnerSlot : null;
+  const partner = activePartnerSlot != null ? league.teams[activePartnerSlot] ?? null : null;
   const deadline = league.rules.tradeDeadlineWeek;
   const closed = deadline > 0 && league.currentWeek > deadline;
 
@@ -146,11 +166,11 @@ function TradesPage() {
     [...ids].map((id) => byId.get(id)?.name ?? "Unknown player");
 
   const send = () => {
-    if (!myTeam || partnerSlot == null) return;
+    if (!myTeam || activePartnerSlot == null) return;
     setBusy(true);
     void propose({
       data: {
-        toSlot: partnerSlot,
+        toSlot: activePartnerSlot,
         fromPlayerIds: [...mine],
         toPlayerIds: [...theirs],
         fromPlayerNames: names(mine),
@@ -230,7 +250,7 @@ function TradesPage() {
             <select
               id="trade-partner"
               className="mt-1 h-11 w-full rounded-md border bg-background px-3 text-base sm:max-w-sm"
-              value={partnerSlot ?? ""}
+              value={activePartnerSlot ?? ""}
               onChange={(e) => {
                 setPartnerSlot(e.target.value === "" ? null : Number(e.target.value));
                 setTheirs(new Set());
