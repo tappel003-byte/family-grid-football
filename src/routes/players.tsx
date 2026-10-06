@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bookmark, Check, ChevronDown, ChevronUp, HelpCircle, History, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { PlayerCell } from "@/components/fantasy/PlayerCell";
@@ -548,9 +549,15 @@ function PlayersPage() {
     watched,
   ]);
 
-  const toggleWatch = async (playerId: string) => {
-    await setWatched(playerId, !watched.has(playerId));
-    await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
+  const toggleWatch = async (playerId: string, playerName: string) => {
+    const adding = !watched.has(playerId);
+    try {
+      await setWatched(playerId, adding);
+      await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
+      toast.success(adding ? `Added ${playerName} to your watchlist` : `Removed ${playerName} from your watchlist`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update your watchlist.");
+    }
   };
 
   const cardRow = cardId ? (results.find((r) => r.player.id === cardId) ?? null) : null;
@@ -736,19 +743,23 @@ function PlayersPage() {
 
                         <div className="mt-1.5 flex items-center gap-1.5 [&_button]:h-7 [&_button]:px-2 [&_button]:text-xs">
                           <Button
-                            size="icon"
+                            size="sm"
                             variant={watched.has(player.id) ? "default" : "outline"}
+                            className="gap-1.5"
                             aria-label={
                               watched.has(player.id)
                                 ? `Remove ${player.name} from watchlist`
-                                : `Watch ${player.name}`
+                                : `Add ${player.name} to watchlist`
                             }
-                            onClick={() => void toggleWatch(player.id)}
+                            onClick={() => void toggleWatch(player.id, player.name)}
                           >
                             <Bookmark
                               className="h-4 w-4"
                               fill={watched.has(player.id) ? "currentColor" : "none"}
                             />
+                            <span className="hidden sm:inline">
+                              {watched.has(player.id) ? "Watching" : "Watch"}
+                            </span>
                           </Button>
                           {league && <AddDropButton player={player} league={league} byId={byId} />}
                         </div>

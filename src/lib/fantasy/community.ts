@@ -20,10 +20,23 @@ export async function setWatched(playerId: string, watched: boolean) {
   if (!user) throw new Error("Sign in to use your watchlist.");
   const { data: league } = await supabase.from("league").select("id").eq("slug", "main").single();
   if (!league) throw new Error("The league is not ready yet.");
-  const action = watched
-    ? supabase.from("player_watchlist").upsert({ user_id: user.id, league_id: league.id, player_id: playerId })
-    : supabase.from("player_watchlist").delete().eq("user_id", user.id).eq("league_id", league.id).eq("player_id", playerId);
-  const { error } = await action;
+  if (watched) {
+    // Insert only — no UPDATE grant on this table, so upsert would fail.
+    const { error } = await supabase.from("player_watchlist").insert({
+      user_id: user.id,
+      league_id: league.id,
+      player_id: playerId,
+    });
+    // Already watched is fine (double-tap / stale UI).
+    if (error && !/duplicate|unique/i.test(error.message)) throw new Error(error.message);
+    return;
+  }
+  const { error } = await supabase
+    .from("player_watchlist")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("league_id", league.id)
+    .eq("player_id", playerId);
   if (error) throw new Error(error.message);
 }
 
