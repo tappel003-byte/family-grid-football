@@ -28,8 +28,12 @@ export function teamTotals(team: FantasyTeam, week: number, league: League, byId
     projected += s.projected;
     if (past) continue;
     const g = gameInfoFor(p.team, week);
-    if (!g || g.status === "final" || g.status === "none") continue;
-    const share = g.status === "scheduled" ? 1 : Math.max(0, Math.min(1, (g.secondsLeft ?? 1800) / 3600));
+    if (g?.status === "final") continue;
+    // No game row yet (bye feed gap / week just rolled) still counts as "hasn't played".
+    const share =
+      !g || g.status === "none" || g.status === "scheduled"
+        ? 1
+        : Math.max(0, Math.min(1, (g.secondsLeft ?? 1800) / 3600));
     remaining += Math.max(0, s.projected) * share;
   }
   const slot = league.teams.findIndex((t) => t.id === team.id);
