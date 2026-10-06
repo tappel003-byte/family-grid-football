@@ -230,8 +230,8 @@ function SettingsPage() {
           </div>
         </section>
 
-        <section className="min-w-0 overflow-x-clip rounded-lg border bg-card px-5 pb-5 shadow-sm">
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <section className="min-w-0 overflow-x-clip rounded-lg border bg-card px-3 pb-5 shadow-sm sm:px-5">
+          <div className="mt-5 grid min-w-0 gap-3">
             <h2 className="font-display text-xl font-bold">Teams &amp; contacts</h2>
             {(() => {
               const emails = league.teams.map((t) => (t.email ?? "").trim()).filter((e) => e.includes("@"));
@@ -239,8 +239,13 @@ function SettingsPage() {
                 .map((t) => (t.phone ?? "").replace(/[^\d+]/g, ""))
                 .filter((p) => p.replace(/\D/g, "").length >= 7);
               return (
-                <div className="flex flex-wrap gap-2">
-                  <Button asChild={emails.length > 0} disabled={emails.length === 0} variant="outline">
+                <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+                  <Button
+                    asChild={emails.length > 0}
+                    disabled={emails.length === 0}
+                    variant="outline"
+                    className="w-full"
+                  >
                     {emails.length > 0 ? (
                       <a href={`mailto:?bcc=${emails.map(encodeURIComponent).join(",")}&subject=${encodeURIComponent(league.name)}`}>
                         Email league ({emails.length})
@@ -249,7 +254,7 @@ function SettingsPage() {
                       <span>Email league</span>
                     )}
                   </Button>
-                  <Button asChild={phones.length > 0} disabled={phones.length === 0}>
+                  <Button asChild={phones.length > 0} disabled={phones.length === 0} className="w-full">
                     {phones.length > 0 ? (
                       <a href={`sms:/open?addresses=${phones.map(encodeURIComponent).join(",")}`}>
                         Text league ({phones.length})
@@ -262,8 +267,8 @@ function SettingsPage() {
               );
             })()}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Tap a team to edit its info or reset sign-in. Changes save automatically. Text league opens Messages with every cell number — works best on iPhone.
+          <p className="mt-2 break-words text-sm text-muted-foreground">
+            Tap a team to edit. Text league opens Messages with every cell number (best on iPhone).
           </p>
           <ul className="mt-3 min-w-0 divide-y overflow-x-clip rounded-xl border">
             {league.teams.map((team) => {
@@ -274,9 +279,9 @@ function SettingsPage() {
                 }));
               const phoneDigits = (team.phone ?? "").replace(/[^\d+]/g, "");
               return (
-              <li key={team.id}>
-                <details className="group/team">
-                  <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 p-3 sm:gap-3">
+              <li key={team.id} className="min-w-0">
+                <details className="group/team min-w-0">
+                  <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 p-3">
                     <TeamCrest team={team} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{team.name}</p>
@@ -284,12 +289,6 @@ function SettingsPage() {
                         {team.owner}{team.phone ? ` · ${team.phone}` : ""}
                       </p>
                     </div>
-                    {phoneDigits.length >= 7 && (
-                      <div className="flex shrink-0 gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button asChild variant="outline" size="sm"><a href={`tel:${phoneDigits}`}>Call</a></Button>
-                        <Button asChild variant="outline" size="sm"><a href={`sms:${phoneDigits}`}>Text</a></Button>
-                      </div>
-                    )}
                     <span className="shrink-0 text-muted-foreground group-open/team:rotate-180">⌄</span>
                   </summary>
                 <div className="grid gap-3 px-3 pb-4 sm:grid-cols-2">
