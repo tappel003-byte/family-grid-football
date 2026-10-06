@@ -36,6 +36,8 @@ import type { SlimPlayer } from "@/lib/sleeper.functions";
 import type { PlayerInsight } from "@/lib/insights.functions";
 import type { Ownership } from "@/lib/market.functions";
 import { availabilityFromGames } from "@/lib/fantasy/player-availability";
+import { dropBlockedForMove } from "@/lib/fantasy/claim-drop";
+import { isPlayerLocked } from "@/lib/fantasy/locks";
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
@@ -295,7 +297,8 @@ export function AddDropButton({
           variant="outline"
           disabled={pending}
           onClick={() => {
-            if (locked) {
+            // Instant drops freeze at kickoff (same as lineup lock), regardless of waiver mode.
+            if (isPlayerLocked(player, league.currentWeek, league)) {
               toast.error(`${player.name}'s game has already started — he's locked this week.`);
               return;
             }
@@ -336,10 +339,7 @@ export function AddDropButton({
   const rosterFull = myIds.length >= rules.rosterLimit;
   const verb = claimMode ? "Claim" : "Add";
   const blocked = locked ? `${player.name}'s game has already started — he's locked this week.` : "";
-  const dropLocked = (p: SlimPlayer) => {
-    const currentGame = gameInfoFor(p.team, league.currentWeek);
-    return rules.lockAtKickoff && (currentGame?.status === "live" || currentGame?.status === "final");
-  };
+  const dropLocked = (p: SlimPlayer) => isPlayerLocked(p, league.currentWeek, league);
 
   function choose(drop: SlimPlayer | null) {
     if (atCap && drop?.pos !== player.pos) {
@@ -492,9 +492,7 @@ export function AddDropButton({
                 <PlayerCardHeader player={candidate} label="Drop" />
               </div>
               <ComparisonRows left={compareStats(player)} right={compareStats(candidate)} />
-              {/* Instant adds can't drop a live/final player (points would vanish).
-                  Claims wait until Wednesday, so a locked drop is fine to name now. */}
-              {dropLocked(candidate) && !claimMode ? (
+              {dropBlockedForMove({ claimMode, dropGameLocked: dropLocked(candidate) }) ? (
                 <p className="text-center text-sm font-semibold text-destructive">
                   {candidate.name} is locked because his game has started.
                 </p>
