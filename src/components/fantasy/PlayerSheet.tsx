@@ -247,29 +247,6 @@ export function PlayerSheet({
           </div>
         </div>
 
-        <Button
-          variant={isWatched ? "default" : "outline"}
-          className="w-full font-semibold"
-          onClick={() => {
-            void (async () => {
-              try {
-                await setWatched(player.id, !isWatched);
-                await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
-                toast.success(
-                  isWatched
-                    ? `Removed ${player.name} from your watchlist`
-                    : `Added ${player.name} to your watchlist`,
-                );
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Could not update your watchlist.");
-              }
-            })();
-          }}
-        >
-          <Bookmark className="mr-2 h-4 w-4" fill={isWatched ? "currentColor" : "none"} />
-          {isWatched ? "On your watchlist" : "Add to watchlist"}
-        </Button>
-
         {/* This week */}
         <Section title={`Week ${week}`}>
           <div className="rounded-xl border bg-secondary/40 p-3">
@@ -317,12 +294,34 @@ export function PlayerSheet({
           </div>
         </Section>
 
-        {/* Add / claim straight from the card */}
+        {/* Claim/Add first; watchlist sits under it as the secondary action */}
         {league && !row.owner && (
           <div className="[&_button]:h-10 [&_button]:w-full [&_button]:text-base">
             <AddDropButton player={player} league={league} byId={byIdMap} />
           </div>
         )}
+        <Button
+          variant={isWatched ? "default" : "outline"}
+          className="w-full font-semibold"
+          onClick={() => {
+            void (async () => {
+              try {
+                await setWatched(player.id, !isWatched);
+                await queryClient.invalidateQueries({ queryKey: ["my-watchlist"] });
+                toast.success(
+                  isWatched
+                    ? `Removed ${player.name} from your watchlist`
+                    : `Added ${player.name} to your watchlist`,
+                );
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Could not update your watchlist.");
+              }
+            })();
+          }}
+        >
+          <Bookmark className="mr-2 h-4 w-4" fill={isWatched ? "currentColor" : "none"} />
+          {isWatched ? "On your watchlist" : "Add to watchlist"}
+        </Button>
 
         {/* Waiver recommendation */}
         {row.rec && (
