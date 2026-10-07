@@ -72,8 +72,6 @@ export type Database = {
         Row: {
           current_week: number
           id: string
-          job_lock: string | null
-          job_lock_until: string | null
           name: string
           rules: Json
           schedule: Json
@@ -84,8 +82,6 @@ export type Database = {
         Insert: {
           current_week?: number
           id?: string
-          job_lock?: string | null
-          job_lock_until?: string | null
           name?: string
           rules?: Json
           schedule?: Json
@@ -96,8 +92,6 @@ export type Database = {
         Update: {
           current_week?: number
           id?: string
-          job_lock?: string | null
-          job_lock_until?: string | null
           name?: string
           rules?: Json
           schedule?: Json
@@ -527,7 +521,6 @@ export type Database = {
           drop_player_name: string
           id: string
           league_id: string
-          loss_reason: string
           player_id: string
           player_name: string
           player_pos: string
@@ -546,7 +539,6 @@ export type Database = {
           drop_player_name?: string
           id?: string
           league_id: string
-          loss_reason?: string
           player_id: string
           player_name?: string
           player_pos?: string
@@ -565,7 +557,6 @@ export type Database = {
           drop_player_name?: string
           id?: string
           league_id?: string
-          loss_reason?: string
           player_id?: string
           player_name?: string
           player_pos?: string
@@ -600,38 +591,6 @@ export type Database = {
           token?: string
         }
         Relationships: []
-      }
-      weekly_lineups: {
-        Row: {
-          frozen_at: string
-          league_id: string
-          starters: Json
-          team_slot: number
-          week: number
-        }
-        Insert: {
-          frozen_at?: string
-          league_id: string
-          starters?: Json
-          team_slot: number
-          week: number
-        }
-        Update: {
-          frozen_at?: string
-          league_id?: string
-          starters?: Json
-          team_slot?: number
-          week?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "weekly_lineups_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "league"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       weekly_results: {
         Row: {
