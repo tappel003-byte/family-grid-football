@@ -290,23 +290,23 @@ function SettingsPage() {
                 };
                 setPostingAnnouncement(true);
                 void (async () => {
-                  try {
-                    await supabase.from("chat_messages").insert({
-                      user_id: user.id,
-                      author_name: authorName,
-                      body: `📢 ${body}`,
-                    });
-                    updateLeague((l) => ({
-                      ...l,
-                      rules: { ...l.rules, announcement },
-                    }));
-                    setAnnouncementDraft("");
-                    toast.success("Announcement posted — banner + Chat");
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Could not post announcement");
-                  } finally {
+                  const { error } = await supabase.from("chat_messages").insert({
+                    user_id: user.id,
+                    author_name: authorName,
+                    body: `📢 ${body}`,
+                  });
+                  if (error) {
                     setPostingAnnouncement(false);
+                    toast.error(error.message || "Could not post to Chat");
+                    return;
                   }
+                  updateLeague((l) => ({
+                    ...l,
+                    rules: { ...l.rules, announcement },
+                  }));
+                  setAnnouncementDraft("");
+                  setPostingAnnouncement(false);
+                  toast.success("Announcement posted — banner + Chat");
                 })();
               }}
             >
