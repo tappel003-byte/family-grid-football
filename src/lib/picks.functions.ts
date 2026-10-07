@@ -2,11 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type PickTeam = { abbr: string; name: string; record: string; score: number | null; winner: boolean };
+export type PickTeam = { abbr: string; name: string; record: string; score: number | null; winner: boolean; spread?: string | undefined };
 export type PickGame = {
   id: string;
   startsAt: string;
   network?: string | undefined;
+  overUnder?: number | undefined;
   status: "scheduled" | "live" | "final";
   /** Live only: top line (Q2, OT, HALF) and clock (4:15). */
   liveTop?: string | undefined;
@@ -45,6 +46,7 @@ type Espn = {
     status?: { period?: number; displayClock?: string; type?: { state?: string; completed?: boolean; name?: string; shortDetail?: string } };
     competitions?: Array<{
       broadcasts?: Array<{ names?: string[] }>;
+      odds?: Array<{ details?: string; overUnder?: number }>;
       competitors?: Array<{
         homeAway?: string;
         score?: string;
@@ -99,6 +101,14 @@ async function loadGames(season: string, week: number, current: number): Promise
     const home = side("home");
     const away = side("away");
     if (!ev.id || !ev.date || !home || !away) continue;
+    const odds = comp?.odds?.[0];
+    const m = /^([A-Z]{2,4})\s+(-[\d.]+)$/.exec(odds?.details?.trim() ?? "");
+    if (m) {
+      const fav = m[1] === "WSH" ? "WAS" : m[1];
+      const line = Number(m[2]);
+      if (fav === home.abbr) { home.spread = `${line}`; away.spread = `+${-line}`; }
+      else if (fav === away.abbr) { away.spread = `${line}`; home.spread = `+${-line}`; }
+    } else if (/even|pk|pick/i.test(odds?.details ?? "")) { home.spread = "PK"; away.spread = "PK"; }
     const t = ev.status?.type;
     const status = t?.completed ? "final" : t?.state === "in" ? "live" : "scheduled";
     const period = Number(ev.status?.period ?? 0);
@@ -110,6 +120,7 @@ async function loadGames(season: string, week: number, current: number): Promise
       id: ev.id,
       startsAt: ev.date,
       network: comp?.broadcasts?.[0]?.names?.[0],
+      overUnder: typeof odds?.overUnder === "number" ? odds.overUnder : undefined,
       status,
       liveTop,
       liveClock,

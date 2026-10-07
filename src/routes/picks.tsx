@@ -127,6 +127,7 @@ function PicksPage() {
                 <span>
                   {g.status === "final" ? "Final" : g.status === "live" ? "Live" : time}
                   {g.network && g.status === "scheduled" ? ` · ${g.network}` : ""}
+                  {g.overUnder != null && g.status === "scheduled" ? ` · O/U ${g.overUnder}` : ""}
                 </span>
                 {locked && <Lock className="h-4 w-4" aria-label="Locked" />}
               </div>
@@ -167,7 +168,9 @@ function PicksPage() {
                       )}
                       <img src={teamLogoUrl(t.abbr)} alt="" className="h-16 w-16 object-contain" />
                       <span className="mt-1 text-center text-sm font-bold leading-tight">{t.name}</span>
-                      <span className="text-xs text-muted-foreground">{t.record}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {[t.record, g.status === "scheduled" ? t.spread : undefined].filter(Boolean).join(" · ")}
+                      </span>
                       {picked && (
                         <span
                           className={cn(
