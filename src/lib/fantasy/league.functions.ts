@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { League, FantasyTeam } from "./league";
+import { normalizeScoring } from "./scoring";
 
 type TeamRow = {
   slot: number;
@@ -29,7 +30,7 @@ export function toPayload(league: League): LeaguePayload {
   return {
     name: league.name,
     currentWeek: league.currentWeek,
-    scoring: league.scoring as unknown as Record<string, number>,
+    scoring: normalizeScoring(league.scoring) as unknown as Record<string, number>,
     rules: league.rules as unknown as Record<string, unknown>,
     schedule: league.schedule,
     teams: league.teams.map((t: FantasyTeam, i) => ({

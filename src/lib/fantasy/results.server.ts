@@ -1,4 +1,5 @@
 /** Shared scoring archive + automatic week rollover (server only). */
+import { normalizeScoring } from "./scoring";
 import { pointsAllowedTier } from "./stat-line";
 type StatLine = Record<string, number>;
 
@@ -33,6 +34,7 @@ export function toLine(raw: Record<string, number> | undefined): StatLine {
     defSafety: n("safe"),
     defTd: n("def_td") + n("def_st_td") + n("st_td"),
     defBlockKick: n("blk_kick"),
+    def2ptReturn: n("def_2pt") + n("st_2pt") + n("def_st_2pt"),
     ...pointsAllowedTier(raw),
   };
   return line;
@@ -127,7 +129,10 @@ export async function archiveFinishedWeeks(
     .eq("slug", "main")
     .maybeSingle();
   if (!leagueRow) return { archived: 0 };
-  const scoring = (leagueRow.scoring ?? {}) as Record<string, number>;
+  const scoring = normalizeScoring(leagueRow.scoring as Record<string, number> | null) as unknown as Record<
+    string,
+    number
+  >;
 
   const { data: teamRows } = await supabaseAdmin
     .from("teams")
