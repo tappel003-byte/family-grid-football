@@ -299,7 +299,7 @@ function Shell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <TimeZoneProvider value={account?.timeZone}>
-        <main className="mx-auto w-full min-w-0 max-w-[1400px] px-4 py-6 sm:py-8">{children}</main>
+        <main className="mx-auto w-full min-w-0 max-w-[1400px] overflow-x-clip px-3 py-6 sm:px-4 sm:py-8">{children}</main>
       </TimeZoneProvider>
       <footer className="mx-auto max-w-[1400px] px-4 pb-10 pt-4 text-sm text-muted-foreground">
         Private family league · Player data from the free Sleeper NFL API
@@ -318,9 +318,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 export function PageTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="mb-5">
-      <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
-      {subtitle && <p className="mt-1 text-base text-muted-foreground sm:text-lg">{subtitle}</p>}
+    <div className="mb-5 min-w-0">
+      <h1 className="break-words font-display text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+      {subtitle && (
+        <p className="mt-1 break-words text-base text-muted-foreground sm:text-lg">{subtitle}</p>
+      )}
     </div>
   );
 }
