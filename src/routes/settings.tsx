@@ -16,7 +16,7 @@ import {
   cancelClaim,
   listClaims,
   runWaivers,
-  type ClaimRow,
+  type ClaimsPayload,
 } from "@/lib/fantasy/waivers.functions";
 import { saveSeasonToHistory } from "@/lib/fantasy/results.functions";
 import { weekDataQueryOptions } from "@/lib/fantasy/hooks";
@@ -86,10 +86,11 @@ function SettingsPage() {
   const pullClaim = useServerFn(cancelClaim);
   const closeSeason = useServerFn(saveSeasonToHistory);
   const queryClient = useQueryClient();
-  const { data: claims = [] } = useQuery<ClaimRow[]>({
+  const { data: claimsPayload } = useQuery<ClaimsPayload>({
     queryKey: ["waiver-claims"],
     queryFn: claimsFetch,
   });
+  const claims = claimsPayload?.claims ?? [];
 
   /** Worst record picks first: order teams by wins (fewest first), then points. */
   async function setOrderFromStandings() {
