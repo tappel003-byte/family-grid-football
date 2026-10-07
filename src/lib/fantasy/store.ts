@@ -74,7 +74,19 @@ async function fetchLeague(): Promise<League | null> {
       .select("slot, name, owner, color, starters, bench, ir, user_id, division, email, phone")
       .eq("league_id", row.id)
       .order("slot", { ascending: true }),
-    supabase.from("weekly_lineups").select("week, team_slot, starters").eq("league_id", row.id),
+    // weekly_lineups may not be in generated types yet; treat rows loosely.
+    (supabase as unknown as {
+      from: (t: string) => {
+        select: (c: string) => {
+          eq: (k: string, v: string) => PromiseLike<{
+            data: Array<{ week: number; team_slot: number; starters: unknown }> | null;
+          }>;
+        };
+      };
+    })
+      .from("weekly_lineups")
+      .select("week, team_slot, starters")
+      .eq("league_id", row.id),
   ]);
 
   const teams: FantasyTeam[] = (teamRows ?? []).map((t, i) => ({
