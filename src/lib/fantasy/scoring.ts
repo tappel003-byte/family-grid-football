@@ -22,17 +22,19 @@ export type Scoring = {
   defSafety: number;
   defTd: number;
   defBlockKick: number;
+  /** NFL.com: +2 for a defensive return on a 2-point attempt. */
+  def2ptReturn: number;
+  /** NFL.com old default points-allowed brackets (shutout starts at 10). */
   ptsAllow0: number;
   ptsAllow1_6: number;
   ptsAllow7_13: number;
-  ptsAllow14_17: number;
-  ptsAllow18_21: number;
-  ptsAllow22_27: number;
+  ptsAllow14_20: number;
+  ptsAllow21_27: number;
   ptsAllow28_34: number;
-  ptsAllow35_45: number;
-  ptsAllow46: number;
+  ptsAllow35: number;
 };
 
+/** NFL.com-style D/ST points allowed + standard offensive defaults. */
 export const STANDARD_SCORING: Scoring = {
   passYd: 0.04,
   passTd: 4,
@@ -57,21 +59,67 @@ export const STANDARD_SCORING: Scoring = {
   defSafety: 2,
   defTd: 6,
   defBlockKick: 2,
-  ptsAllow0: 5,
-  ptsAllow1_6: 4,
-  ptsAllow7_13: 3,
-  ptsAllow14_17: 1,
-  ptsAllow18_21: 0,
-  ptsAllow22_27: -1,
-  ptsAllow28_34: -3,
-  ptsAllow35_45: -5,
-  ptsAllow46: -5,
+  def2ptReturn: 2,
+  ptsAllow0: 10,
+  ptsAllow1_6: 7,
+  ptsAllow7_13: 4,
+  ptsAllow14_20: 1,
+  ptsAllow21_27: 0,
+  ptsAllow28_34: -1,
+  ptsAllow35: -4,
 };
 
 export const PPR_SCORING: Scoring = { ...STANDARD_SCORING, reception: 1 };
 export const HALF_PPR_SCORING: Scoring = { ...STANDARD_SCORING, reception: 0.5 };
-/** The league's real ESPN rules: no PPR, 4-point passing TDs, -2 interceptions. */
+/** Alias kept for older imports — same as Standard (NFL.com D/ST brackets). */
 export const ESPN_SCORING: Scoring = { ...STANDARD_SCORING };
+
+const NFL_PTS_ALLOW_KEYS = [
+  "ptsAllow0",
+  "ptsAllow1_6",
+  "ptsAllow7_13",
+  "ptsAllow14_20",
+  "ptsAllow21_27",
+  "ptsAllow28_34",
+  "ptsAllow35",
+] as const;
+
+/** Old ESPN-shaped keys from earlier seasons — drop them on load. */
+const LEGACY_PTS_ALLOW_KEYS = [
+  "ptsAllow14_17",
+  "ptsAllow18_21",
+  "ptsAllow22_27",
+  "ptsAllow35_45",
+  "ptsAllow46",
+] as const;
+
+/**
+ * Merge stored league scoring onto current defaults and migrate points-allowed
+ * to NFL.com brackets (0→10, 1–6→7, … 35+→−4). Legacy ESPN PA keys are removed
+ * so an old shutout of 5 cannot stick around.
+ */
+export function normalizeScoring(raw: Partial<Scoring> | Record<string, number> | null | undefined): Scoring {
+  const incoming = { ...(raw ?? {}) } as Record<string, number>;
+  for (const key of LEGACY_PTS_ALLOW_KEYS) delete incoming[key];
+
+  const hadLegacy =
+    raw != null &&
+    LEGACY_PTS_ALLOW_KEYS.some((k) => Object.prototype.hasOwnProperty.call(raw, k));
+  const shutout = Number(incoming["ptsAllow0"]);
+  // Old ESPN default shutout was 5; treat that (or missing new brackets) as needing NFL PA.
+  const needsNflPa =
+    hadLegacy ||
+    !Number.isFinite(shutout) ||
+    shutout === 5 ||
+    !NFL_PTS_ALLOW_KEYS.every((k) => Object.prototype.hasOwnProperty.call(incoming, k));
+
+  const merged: Scoring = { ...STANDARD_SCORING, ...(incoming as Partial<Scoring>) };
+  if (needsNflPa) {
+    for (const key of NFL_PTS_ALLOW_KEYS) merged[key] = STANDARD_SCORING[key];
+  }
+  if (!Number.isFinite(Number(merged.def2ptReturn))) merged.def2ptReturn = STANDARD_SCORING.def2ptReturn;
+  return merged;
+}
 
 export const SCORING_FIELDS: Array<{ key: keyof Scoring; label: string; step: number }> = [
   { key: "passYd", label: "Passing yards (per yard)", step: 0.01 },
@@ -96,15 +144,14 @@ export const SCORING_FIELDS: Array<{ key: keyof Scoring; label: string; step: nu
   { key: "defSafety", label: "Defense safety", step: 1 },
   { key: "defBlockKick", label: "Blocked kick", step: 1 },
   { key: "defTd", label: "Defense / return touchdown", step: 1 },
+  { key: "def2ptReturn", label: "Defense 2-pt return", step: 1 },
   { key: "ptsAllow0", label: "Shutout (0 points allowed)", step: 1 },
   { key: "ptsAllow1_6", label: "1–6 points allowed", step: 1 },
   { key: "ptsAllow7_13", label: "7–13 points allowed", step: 1 },
-  { key: "ptsAllow14_17", label: "14–17 points allowed", step: 1 },
-  { key: "ptsAllow18_21", label: "18–21 points allowed", step: 1 },
-  { key: "ptsAllow22_27", label: "22–27 points allowed", step: 1 },
+  { key: "ptsAllow14_20", label: "14–20 points allowed", step: 1 },
+  { key: "ptsAllow21_27", label: "21–27 points allowed", step: 1 },
   { key: "ptsAllow28_34", label: "28–34 points allowed", step: 1 },
-  { key: "ptsAllow35_45", label: "35–45 points allowed", step: 1 },
-  { key: "ptsAllow46", label: "46+ points allowed", step: 1 },
+  { key: "ptsAllow35", label: "35+ points allowed", step: 1 },
 ];
 
 export type StatLine = Record<keyof Scoring, number>;

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { FantasyTeam, League } from "./league";
 import { LEAGUE_VERSION } from "./league";
 import { saveLeague, toPayload } from "./league.functions";
-import { PPR_SCORING, type Scoring } from "./scoring";
+import { normalizeScoring, PPR_SCORING, type Scoring } from "./scoring";
 import { normalizeRules } from "./rules";
 import { archiveWeeks } from "./results.functions";
 
@@ -116,7 +116,7 @@ async function fetchLeague(): Promise<League | null> {
     version: LEAGUE_VERSION,
     name: row.name,
     currentWeek: row.current_week,
-    scoring: { ...PPR_SCORING, ...((row.scoring ?? {}) as Partial<Scoring>) },
+    scoring: normalizeScoring({ ...PPR_SCORING, ...((row.scoring ?? {}) as Partial<Scoring>) }),
     rules: normalizeRules(row.rules),
     teams,
     schedule: (row.schedule as Array<Array<[number, number]>>) ?? [],

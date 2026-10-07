@@ -26,15 +26,14 @@ const FIELDS: Array<{ key: keyof Scoring; label: (n: number) => string }> = [
   { key: "defSafety", label: (n) => `${n} safety` },
   { key: "defTd", label: (n) => `${n} def/ST TD` },
   { key: "defBlockKick", label: (n) => `${n} blocked kick` },
+  { key: "def2ptReturn", label: (n) => `${n} def 2-pt return` },
   { key: "ptsAllow0", label: () => "Shutout" },
   { key: "ptsAllow1_6", label: () => "1-6 pts allowed" },
   { key: "ptsAllow7_13", label: () => "7-13 pts allowed" },
-  { key: "ptsAllow14_17", label: () => "14-17 pts allowed" },
-  { key: "ptsAllow18_21", label: () => "18-21 pts allowed" },
-  { key: "ptsAllow22_27", label: () => "22-27 pts allowed" },
+  { key: "ptsAllow14_20", label: () => "14-20 pts allowed" },
+  { key: "ptsAllow21_27", label: () => "21-27 pts allowed" },
   { key: "ptsAllow28_34", label: () => "28-34 pts allowed" },
-  { key: "ptsAllow35_45", label: () => "35-45 pts allowed" },
-  { key: "ptsAllow46", label: () => "46+ pts allowed" },
+  { key: "ptsAllow35", label: () => "35+ pts allowed" },
 ];
 
 /** Display-only breakdown of how a player's weekly points add up. */
