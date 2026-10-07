@@ -163,8 +163,8 @@ function SettingsPage() {
         subtitle="Only the commissioner should change these — they affect everyone's scores."
       />
 
-      <div className="mx-auto grid w-full min-w-0 max-w-4xl gap-4">
-        <section className="rounded-lg border bg-card p-5 shadow-sm">
+      <div className="mx-auto grid w-full min-w-0 max-w-4xl gap-4 overflow-x-clip">
+        <section className="min-w-0 rounded-lg border bg-card px-3 py-5 shadow-sm sm:px-5">
           <h2 className="font-display text-2xl font-bold">Weekly controls</h2>
           <div className="mt-4 grid gap-4">
             <div>
@@ -208,10 +208,10 @@ function SettingsPage() {
               </Label>
             </div>
             {league.rules.waiverMode === "waivers" && (
-              <div className="rounded-lg border bg-secondary/30 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0 rounded-lg border bg-secondary/30 p-3 sm:p-4">
+                <div className="grid min-w-0 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
                   <h3 className="font-display text-lg font-bold">Waiver order</h3>
-                  <Button variant="outline" onClick={() => void setOrderFromStandings()}>
+                  <Button variant="outline" className="w-full sm:w-auto" onClick={() => void setOrderFromStandings()}>
                     Update from standings
                   </Button>
                 </div>
@@ -380,19 +380,19 @@ function SettingsPage() {
         </section>
 
 
-        <details className="group rounded-lg border bg-card shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-display text-xl font-bold">
-            <span>Scoring &amp; roster rules</span>
+        <details className="group min-w-0 overflow-x-clip rounded-lg border bg-card shadow-sm">
+          <summary className="flex min-w-0 cursor-pointer list-none items-center justify-between gap-3 px-3 py-4 font-display text-xl font-bold sm:px-5">
+            <span className="min-w-0">Scoring &amp; roster rules</span>
             <span className="shrink-0 text-muted-foreground group-open:rotate-180">⌄</span>
           </summary>
-          <div className="border-t px-5 pb-5">
+          <div className="min-w-0 border-t px-3 pb-5 sm:px-5">
           <h2 className="mt-5 font-display text-xl font-bold">Scoring rules</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button onClick={() => applyPreset(STANDARD_SCORING, "Standard")}>Standard</Button>
-            <Button onClick={() => applyPreset(HALF_PPR_SCORING, "Half PPR")} variant="outline">
+          <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+            <Button className="w-full sm:w-auto" onClick={() => applyPreset(STANDARD_SCORING, "Standard")}>Standard</Button>
+            <Button className="w-full sm:w-auto" onClick={() => applyPreset(HALF_PPR_SCORING, "Half PPR")} variant="outline">
               Half PPR
             </Button>
-            <Button onClick={() => applyPreset(PPR_SCORING, "PPR")} variant="outline">
+            <Button className="w-full sm:w-auto" onClick={() => applyPreset(PPR_SCORING, "PPR")} variant="outline">
               PPR
             </Button>
           </div>
@@ -541,20 +541,20 @@ function SettingsPage() {
           </div>
         </details>
 
-        <section className="rounded-lg border bg-card p-5 shadow-sm">
+        <section className="min-w-0 overflow-x-clip rounded-lg border bg-card px-3 py-5 shadow-sm sm:px-5">
           <h2 className="font-display text-2xl font-bold">Waiver claims</h2>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-1 break-words text-muted-foreground">
             Only players whose game has started wait here. Unstarted free agents are immediate pickups.
           </p>
           {claims.filter((c) => c.status === "pending").length === 0 ? (
             <p className="mt-3 text-muted-foreground">No claims waiting.</p>
           ) : (
-            <ul className="mt-3 divide-y rounded-xl border">
+            <ul className="mt-3 min-w-0 divide-y overflow-x-clip rounded-xl border">
               {claims
                 .filter((c) => c.status === "pending")
                 .map((c) => (
-                  <li key={c.id} className="flex items-center justify-between gap-3 p-3">
-                    <span className="min-w-0">
+                  <li key={c.id} className="grid min-w-0 gap-2 p-3 sm:flex sm:items-center sm:justify-between sm:gap-3">
+                    <span className="min-w-0 flex-1 overflow-hidden">
                       <span className="block truncate text-base font-semibold">
                         {c.team_name} → {c.player_name} ({c.player_pos})
                       </span>
@@ -567,6 +567,8 @@ function SettingsPage() {
                     </span>
                     <Button
                       variant="outline"
+                      size="sm"
+                      className="w-full shrink-0 sm:w-auto"
                       onClick={() =>
                         void pullClaim({ data: { claimId: c.id } })
                           .then(() => queryClient.invalidateQueries({ queryKey: ["waiver-claims"] }))
@@ -581,7 +583,7 @@ function SettingsPage() {
             </ul>
           )}
           <Button
-            className="mt-4"
+            className="mt-4 w-full sm:w-auto"
             onClick={() =>
               void runClaimList({ data: { force: true } })
                 .then((res) => {
@@ -602,27 +604,27 @@ function SettingsPage() {
           </Button>
         </section>
 
-        <details className="group rounded-lg border bg-card shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-display text-xl font-bold">
-            <span>Fix a team</span>
+        <details className="group min-w-0 overflow-x-clip rounded-lg border bg-card shadow-sm">
+          <summary className="flex min-w-0 cursor-pointer list-none items-center justify-between gap-3 px-3 py-4 font-display text-xl font-bold sm:px-5">
+            <span className="min-w-0">Fix a team</span>
             <span className="shrink-0 text-muted-foreground group-open:rotate-180">⌄</span>
           </summary>
-          <div className="border-t px-5 pb-5">
-            <p className="mt-5 text-base text-muted-foreground">
+          <div className="min-w-0 border-t px-3 pb-5 sm:px-5">
+            <p className="mt-5 break-words text-base text-muted-foreground">
               Open a family member's team to rearrange their lineup, bench or IR players for them.
               Changes you make show up in the League Activity feed.
             </p>
-            <ul className="mt-3 divide-y rounded-xl border">
+            <ul className="mt-3 min-w-0 divide-y overflow-x-clip rounded-xl border">
               {league.teams.map((team) => (
-                <li key={team.id} className="flex items-center gap-3 p-3">
+                <li key={team.id} className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 p-3 sm:flex">
                   <TeamCrest team={team} />
-                  <span className="min-w-0 flex-1">
+                  <span className="min-w-0 flex-1 overflow-hidden">
                     <span className="block truncate text-base font-semibold">{team.name}</span>
                     <span className="block truncate text-sm text-muted-foreground">
                       {team.owner || "Nobody yet"}
                     </span>
                   </span>
-                  <Button asChild variant="outline" size="sm">
+                  <Button asChild variant="outline" size="sm" className="col-span-2 w-full shrink-0 sm:col-auto sm:w-auto">
                     <Link to="/team/$teamId" params={{ teamId: team.id }} search={{ commish: true }}>
                       Open team
                     </Link>
@@ -633,13 +635,13 @@ function SettingsPage() {
           </div>
         </details>
 
-        <details className="group rounded-lg border bg-card shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-display text-xl font-bold">
-            <span>Season tools</span>
+        <details className="group min-w-0 overflow-x-clip rounded-lg border bg-card shadow-sm">
+          <summary className="flex min-w-0 cursor-pointer list-none items-center justify-between gap-3 px-3 py-4 font-display text-xl font-bold sm:px-5">
+            <span className="min-w-0">Season tools</span>
             <span className="shrink-0 text-muted-foreground group-open:rotate-180">⌄</span>
           </summary>
-          <div className="border-t px-5 pb-5">
-          <Button asChild variant="outline" className="mt-5 text-base font-semibold">
+          <div className="min-w-0 border-t px-3 pb-5 sm:px-5">
+          <Button asChild variant="outline" className="mt-5 w-full text-base font-semibold sm:w-auto">
             <Link to="/import">Import rosters</Link>
           </Button>
           <h2 className="mt-7 font-display text-xl font-bold">Close out the season</h2>
@@ -650,7 +652,7 @@ function SettingsPage() {
             the History page once playoffs end.
           </p>
           <Button
-            className="mt-4"
+            className="mt-4 w-full sm:w-auto"
             variant="outline"
             onClick={() =>
               void closeSeason({ data: {} })
