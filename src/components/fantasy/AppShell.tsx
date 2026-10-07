@@ -24,6 +24,7 @@ function Football({ className }: { className?: string }) {
 }
 import type { ReactNode } from "react";
 import { AuthGate } from "./AuthGate";
+import { CommissionerAnnouncementBanner } from "./CommissionerAnnouncement";
 import { signOut, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { getMyAccount } from "@/lib/fantasy/account.functions";
@@ -298,6 +299,7 @@ function Shell({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </header>
+      <CommissionerAnnouncementBanner />
       <TimeZoneProvider value={account?.timeZone}>
         <main className="mx-auto w-full min-w-0 max-w-[1400px] overflow-x-clip px-3 py-6 sm:px-4 sm:py-8">{children}</main>
       </TimeZoneProvider>
