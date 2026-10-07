@@ -9,7 +9,13 @@ import { useAuth } from "@/lib/auth";
 import { useLeague, usePlayers } from "@/lib/fantasy/hooks";
 import { PlayerCardTrigger } from "@/components/fantasy/PlayerSheet";
 import { reloadLeague } from "@/lib/fantasy/store";
-import { cancelClaim, listClaims, runWaivers, type ClaimRow } from "@/lib/fantasy/waivers.functions";
+import {
+  cancelClaim,
+  listClaims,
+  runWaivers,
+  type ClaimRow,
+  type ClaimsPayload,
+} from "@/lib/fantasy/waivers.functions";
 import { formatRunTime, lastWaiverRun, nextWaiverRun } from "@/lib/fantasy/waiver-cycle";
 import { useTimeZone } from "@/lib/timezone";
 
@@ -17,22 +23,35 @@ export const Route = createFileRoute("/waivers")({
   head: () => ({
     meta: [
       { title: "Waivers — La Familia" },
-      { name: "description", content: "Pending waiver claims, pick order, and results for La Familia." },
+      {
+        name: "description",
+        content: "Your pending claims, waiver order, and results for La Familia.",
+      },
       { property: "og:title", content: "Waivers — La Familia" },
-      { property: "og:description", content: "See who's claimed whom and when waivers run." },
+      {
+        property: "og:description",
+        content: "See your claims, the pick order, and results after waivers run.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => (
     <AppShell>
-      <PageTitle title="Waivers" subtitle="Claims run Wednesday at 12:01 AM Eastern — lowest-ranked team picks first" />
+      <PageTitle
+        title="Waivers"
+        subtitle="Claims run Wednesday at 12:01 AM Eastern — lowest-ranked team picks first"
+      />
       <Suspense fallback={<LoadingScreen />}>
         <WaiversPage />
       </Suspense>
     </AppShell>
   ),
-  errorComponent: ({ error }) => <AppShell><p role="alert">{error instanceof Error ? error.message : String(error)}</p></AppShell>,
+  errorComponent: ({ error }) => (
+    <AppShell>
+      <p role="alert">{error instanceof Error ? error.message : String(error)}</p>
+    </AppShell>
+  ),
   notFoundComponent: () => <AppShell>Nothing here.</AppShell>,
 });
 
@@ -42,12 +61,13 @@ function ClaimLine({ c, action }: { c: ClaimRow; action?: React.ReactNode }) {
   const player = players.find((p) => p.id === c.player_id) ?? null;
   const nameLine = (
     <span className="block truncate font-semibold">
-      {c.team_name} → {c.player_name} <span className="text-muted-foreground">({c.player_pos})</span>
+      {c.team_name} → {c.player_name}{" "}
+      <span className="text-muted-foreground">({c.player_pos})</span>
     </span>
   );
   return (
-    <li className="flex items-center justify-between gap-3 p-3">
-      <span className="min-w-0">
+    <li className="grid min-w-0 gap-2 p-3 sm:flex sm:items-center sm:justify-between sm:gap-3">
+      <span className="min-w-0 flex-1 overflow-hidden">
         {player && league ? (
           <PlayerCardTrigger player={player} week={league.currentWeek} league={league}>
             {nameLine}
@@ -77,11 +97,15 @@ function ClaimLine({ c, action }: { c: ClaimRow; action?: React.ReactNode }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border bg-card p-4 shadow-sm">
+    <section className="min-w-0 overflow-x-clip rounded-lg border bg-card p-4 shadow-sm">
       <h2 className="font-display text-xl font-bold">{title}</h2>
       {children}
     </section>
   );
+}
+
+function claimLabel(count: number) {
+  return count === 1 ? "1 claim waiting" : `${count} claims waiting`;
 }
 
 function WaiversPage() {
@@ -92,7 +116,12 @@ function WaiversPage() {
   const fetchClaims = useServerFn(listClaims);
   const run = useServerFn(runWaivers);
   const cancel = useServerFn(cancelClaim);
-  const { data: claims = [] } = useQuery<ClaimRow[]>({ queryKey: ["waiver-claims"], queryFn: fetchClaims });
+  const { data } = useQuery<ClaimsPayload>({
+    queryKey: ["waiver-claims"],
+    queryFn: fetchClaims,
+  });
+  const claims = data?.claims ?? [];
+  const pendingByTeam = data?.pendingByTeam ?? [];
 
   const waiverMode = maybeLeague?.rules.waiverMode;
   // Backup to the automatic Wednesday run: process anything overdue on open.
@@ -112,14 +141,10 @@ function WaiversPage() {
   const league = maybeLeague;
 
   const mySlot = league.teams.findIndex((t) => t.userId === user?.id);
-  const order = league.rules.waiverOrder;
-  const rank = (slot: number) => {
-    const i = order.indexOf(slot);
-    return i === -1 ? 999 + slot : i;
-  };
-  const pending = claims
-    .filter((c) => c.status === "pending")
-    .sort((a, b) => rank(a.team_slot) - rank(b.team_slot) || a.created_at.localeCompare(b.created_at));
+  const order = league.rules.waiverOrder.length
+    ? league.rules.waiverOrder
+    : league.teams.map((_, i) => i);
+  const countBySlot = new Map(pendingByTeam.map((row) => [row.team_slot, row.count]));
   const mine = claims.filter((c) => c.team_slot === mySlot);
   const lastRun = lastWaiverRun();
   const results = claims
@@ -132,28 +157,41 @@ function WaiversPage() {
       .then(() => toast.success("Claim cancelled"))
       .catch((err: Error) => toast.error(err.message));
 
+  const totalPending = pendingByTeam.reduce((sum, row) => sum + row.count, 0);
+
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-primary/40 bg-primary/10 p-4">
+    <div className="min-w-0 space-y-4 overflow-x-clip">
+      <div className="min-w-0 rounded-lg border border-primary/40 bg-primary/10 p-4">
         <p className="font-semibold">Next waiver run: {formatRunTime(nextWaiverRun(), tz)}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 break-words text-sm text-muted-foreground">
           Wednesday opens free agency. Any unowned player is an instant Add until his game starts.
-          After kickoff, Claim stays available and waits for the next run. Last run: {formatRunTime(lastRun, tz)}.
+          After kickoff, Claim stays available and waits for the next run. Last run:{" "}
+          {formatRunTime(lastRun, tz)}.
         </p>
       </div>
 
       <Section title="Your claims">
+        <p className="mt-1 text-sm text-muted-foreground">
+          Only you see who you claimed. Other teams just see that you have claims waiting.
+        </p>
         {mine.length === 0 ? (
           <p className="mt-2 text-muted-foreground">No claims yet.</p>
         ) : (
-          <ul className="mt-2 divide-y rounded-md border">
+          <ul className="mt-2 min-w-0 divide-y overflow-x-clip rounded-md border">
             {mine.slice(0, 15).map((c) => (
               <ClaimLine
                 key={c.id}
                 c={c}
                 action={
                   c.status === "pending" ? (
-                    <Button variant="outline" size="sm" onClick={() => pullBack(c.id)}>Cancel</Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full shrink-0 sm:w-auto"
+                      onClick={() => pullBack(c.id)}
+                    >
+                      Cancel
+                    </Button>
                   ) : undefined
                 }
               />
@@ -162,23 +200,58 @@ function WaiversPage() {
         )}
       </Section>
 
-      <Section title="League claim list">
-        <p className="mt-1 text-sm text-muted-foreground">In pick order — top goes first.</p>
-        {pending.length === 0 ? (
-          <p className="mt-2 text-muted-foreground">No claims waiting.</p>
-        ) : (
-          <ol className="mt-2 divide-y rounded-md border">
-            {pending.map((c) => <ClaimLine key={c.id} c={c} />)}
-          </ol>
-        )}
+      <Section title="Waiver order">
+        <p className="mt-1 break-words text-sm text-muted-foreground">
+          Pick order for the next run — top goes first. Claim details stay private until results
+          post.
+          {totalPending > 0
+            ? ` ${totalPending} claim${totalPending === 1 ? "" : "s"} waiting league-wide.`
+            : ""}
+        </p>
+        <ol className="mt-2 min-w-0 divide-y overflow-x-clip rounded-md border">
+          {order.map((slot, i) => {
+            const team = league.teams[slot];
+            if (!team) return null;
+            const count = countBySlot.get(slot) ?? 0;
+            return (
+              <li
+                key={slot}
+                className="flex min-w-0 items-center justify-between gap-3 p-3"
+              >
+                <span className="min-w-0 flex-1 overflow-hidden">
+                  <span className="block truncate font-semibold">
+                    {i + 1}. {team.name}
+                  </span>
+                  <span className="block truncate text-sm text-muted-foreground">
+                    {team.owner || "Nobody yet"}
+                  </span>
+                </span>
+                <span
+                  className={
+                    count > 0
+                      ? "shrink-0 text-sm font-semibold text-foreground"
+                      : "shrink-0 text-sm text-muted-foreground"
+                  }
+                >
+                  {count > 0 ? claimLabel(count) : "No claims"}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
       </Section>
 
       <Section title="Recent results">
+        <p className="mt-1 text-sm text-muted-foreground">
+          Who got whom — posted after the Wednesday run.
+        </p>
         {results.length === 0 ? (
           <p className="mt-2 text-muted-foreground">Nothing processed yet.</p>
         ) : (
-          <ul className="mt-2 divide-y rounded-md border">
-            {results.map((c) => <ClaimLine key={c.id} c={c} />)}
+          <ul className="mt-2 min-w-0 divide-y overflow-x-clip rounded-md border">
+            {results.map((c) => (
+              <ClaimLine key={c.id} c={c} />
+            ))}
           </ul>
         )}
       </Section>

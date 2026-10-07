@@ -38,17 +38,80 @@ export type ClaimRow = {
   resolved_at: string | null;
 };
 
-/** Pending claims first, then recently resolved. */
+export type PendingClaimCount = {
+  team_slot: number;
+  team_name: string;
+  count: number;
+};
+
+/** What managers may see: own pending details, league-wide claim counts, and results. */
+export type ClaimsPayload = {
+  claims: ClaimRow[];
+  pendingByTeam: PendingClaimCount[];
+  isCommissioner: boolean;
+};
+
+/**
+ * Pending claim *details* (player add/drop) stay private — only your own team
+ * (or the commissioner) sees them. Everyone gets per-team pending counts and
+ * resolved results after Wednesday runs.
+ */
 export const listClaims = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async (): Promise<ClaimRow[]> => {
+  .handler(async ({ context }): Promise<ClaimsPayload> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: commishFlag } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "commissioner",
+    });
+    const isCommissioner = commishFlag === true;
+
+    const { data: leagueRow } = await supabaseAdmin
+      .from("league")
+      .select("id")
+      .eq("slug", "main")
+      .maybeSingle();
+
+    const { data: teamRows } = await supabaseAdmin
+      .from("teams")
+      .select("slot, user_id")
+      .eq("league_id", leagueRow?.id ?? "");
+    const mySlot = (teamRows ?? []).find(
+      (t: { slot: number; user_id: string | null }) => t.user_id === context.userId,
+    )?.slot;
+
     const { data } = await supabaseAdmin
       .from("waiver_claims")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(80);
-    return (data ?? []) as unknown as ClaimRow[];
+    const all = (data ?? []) as unknown as ClaimRow[];
+
+    const pendingByTeamMap = new Map<number, PendingClaimCount>();
+    for (const c of all) {
+      if (c.status !== "pending") continue;
+      const cur = pendingByTeamMap.get(c.team_slot);
+      if (cur) cur.count += 1;
+      else {
+        pendingByTeamMap.set(c.team_slot, {
+          team_slot: c.team_slot,
+          team_name: c.team_name,
+          count: 1,
+        });
+      }
+    }
+    const pendingByTeam = [...pendingByTeamMap.values()].sort(
+      (a, b) => a.team_slot - b.team_slot,
+    );
+
+    const claims = isCommissioner
+      ? all
+      : all.filter(
+          (c) => c.status !== "pending" || (mySlot !== undefined && c.team_slot === mySlot),
+        );
+
+    return { claims, pendingByTeam, isCommissioner };
   });
 
 export const placeClaim = createServerFn({ method: "POST" })
