@@ -4,8 +4,8 @@
   "description": "Private family fantasy football league",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#B0D8F0",
+  "theme_color": "#B0D8F0",
   "icons": [
     {
       "src": "/icon-512.png",
