@@ -1,6 +1,14 @@
 /** 9 starters + 6 bench, written out so this file imports nothing (avoids a circular import). */
 const DEFAULT_ROSTER_LIMIT = 15;
 
+/** Soft notice the commissioner posts for the family (shown as a banner → Chat). */
+export type CommissionerAnnouncement = {
+  id: string;
+  body: string;
+  createdAt: string;
+  authorName: string;
+};
+
 /** House rules the commissioner controls: roster size, position caps, waivers, trade deadline. */
 export type LeagueRules = {
   /** Total players a team may carry. */
@@ -24,6 +32,8 @@ export type LeagueRules = {
   waiverDay: number;
   /** Rebuild the claim order every week from the standings (worst record first). */
   autoWaiverOrder: boolean;
+  /** Latest commissioner note for everyone — dismissible banner that opens Chat. */
+  announcement: CommissionerAnnouncement | null;
 };
 
 export const DEFAULT_RULES: LeagueRules = {
@@ -36,6 +46,7 @@ export const DEFAULT_RULES: LeagueRules = {
   lockAtKickoff: true,
   waiverDay: 3,
   autoWaiverOrder: true,
+  announcement: null,
 };
 
 export const WEEKDAYS = [
@@ -81,6 +92,20 @@ export function normalizeRules(raw: unknown): LeagueRules {
       return Number.isInteger(day) && day >= 0 && day <= 6 ? day : DEFAULT_RULES.waiverDay;
     })(),
     autoWaiverOrder: r.autoWaiverOrder !== false,
+    announcement: normalizeAnnouncement(r.announcement),
+  };
+}
+
+function normalizeAnnouncement(raw: unknown): CommissionerAnnouncement | null {
+  if (!raw || typeof raw !== "object") return null;
+  const a = raw as Partial<CommissionerAnnouncement>;
+  const body = typeof a.body === "string" ? a.body.trim() : "";
+  if (!body) return null;
+  return {
+    id: typeof a.id === "string" && a.id ? a.id : `ann-${Date.now()}`,
+    body: body.slice(0, 280),
+    createdAt: typeof a.createdAt === "string" ? a.createdAt : new Date().toISOString(),
+    authorName: typeof a.authorName === "string" && a.authorName.trim() ? a.authorName.trim() : "Commissioner",
   };
 }
 

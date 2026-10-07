@@ -30,6 +30,7 @@ import { TeamCrest } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
 import { playersQueryOptions, useLeague } from "@/lib/fantasy/hooks";
 import { updateLeague } from "@/lib/fantasy/store";
+import { supabase } from "@/integrations/supabase/client";
 import {
   HALF_PPR_SCORING,
   PPR_SCORING,
@@ -77,7 +78,9 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const { league } = useLeague();
-  const { user } = useAuth();
+  const { user, displayName } = useAuth();
+  const [announcementDraft, setAnnouncementDraft] = useState("");
+  const [postingAnnouncement, setPostingAnnouncement] = useState(false);
   const { data: members = [], refetch: refetchMembers } = useMembers(true);
   const assign = useServerFn(assignTeam);
   const resetPassword = useServerFn(resetMemberPassword);
@@ -228,6 +231,88 @@ function SettingsPage() {
                 </ol>
               </div>
             )}
+          </div>
+        </section>
+
+        <section className="min-w-0 overflow-x-clip rounded-lg border bg-card px-3 py-5 shadow-sm sm:px-5">
+          <h2 className="font-display text-xl font-bold">Commissioner announcement</h2>
+          <p className="mt-1 break-words text-sm text-muted-foreground">
+            Soft banner for everyone — not a blocking nag. Posts to Chat too, so tapping the
+            banner takes them there. Good for “close and reopen the app” or weekly notes.
+          </p>
+          {league.rules.announcement ? (
+            <div className="mt-3 rounded-lg border bg-secondary/30 p-3 text-sm">
+              <p className="font-semibold">Live now</p>
+              <p className="mt-1 break-words">
+                From {league.rules.announcement.authorName}: {league.rules.announcement.body}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() =>
+                  updateLeague((l) => ({
+                    ...l,
+                    rules: { ...l.rules, announcement: null },
+                  }))
+                }
+              >
+                Clear announcement
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">No announcement posted.</p>
+          )}
+          <Label htmlFor="commish-announcement" className="mt-4 block text-sm">
+            New announcement
+          </Label>
+          <textarea
+            id="commish-announcement"
+            className="mt-1 min-h-24 w-full rounded-md border bg-background px-3 py-2 text-base"
+            maxLength={280}
+            placeholder="Example: New defense scoring is live — close and reopen the app if scores look off."
+            value={announcementDraft}
+            onChange={(e) => setAnnouncementDraft(e.target.value)}
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button
+              className="w-full sm:w-auto"
+              disabled={postingAnnouncement || !announcementDraft.trim()}
+              onClick={() => {
+                const body = announcementDraft.trim().slice(0, 280);
+                if (!body || !user) return;
+                const authorName = displayName.trim() || "Commissioner";
+                const announcement = {
+                  id: `ann-${Date.now()}`,
+                  body,
+                  createdAt: new Date().toISOString(),
+                  authorName,
+                };
+                setPostingAnnouncement(true);
+                void (async () => {
+                  try {
+                    await supabase.from("chat_messages").insert({
+                      user_id: user.id,
+                      author_name: authorName,
+                      body: `📢 ${body}`,
+                    });
+                    updateLeague((l) => ({
+                      ...l,
+                      rules: { ...l.rules, announcement },
+                    }));
+                    setAnnouncementDraft("");
+                    toast.success("Announcement posted — banner + Chat");
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Could not post announcement");
+                  } finally {
+                    setPostingAnnouncement(false);
+                  }
+                })();
+              }}
+            >
+              {postingAnnouncement ? "Posting…" : "Post announcement"}
+            </Button>
+            <span className="text-xs text-muted-foreground">{announcementDraft.length}/280</span>
           </div>
         </section>
 
