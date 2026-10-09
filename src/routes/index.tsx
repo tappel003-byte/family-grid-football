@@ -3,7 +3,13 @@ import { Suspense, useEffect, useState } from "react";
 import { AppShell, LoadingScreen } from "@/components/fantasy/AppShell";
 import { MatchupBoard, TeamCrest, teamRecord, teamTotals } from "@/components/fantasy/MatchupBoard";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
-import { playersQueryOptions, useLeague, useWeekData, useWeeksData } from "@/lib/fantasy/hooks";
+import {
+  isWeekPregame,
+  playersQueryOptions,
+  useLeague,
+  useWeekData,
+  useWeeksData,
+} from "@/lib/fantasy/hooks";
 import { InsightsProvider } from "@/components/fantasy/PlayerInsights";
 import { NeedsAttention } from "@/components/fantasy/NeedsAttention";
 import { useAuth } from "@/lib/auth";
@@ -111,52 +117,57 @@ function MatchupsPage() {
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {pairs.map((p, i) => {
-          const h = league.teams[p[0]];
-          const a = league.teams[p[1]];
-          if (!h || !a) return null;
-          const ht = teamTotals(h, activeWeek, league, byId);
-          const at = teamTotals(a, activeWeek, league, byId);
-          return (
-            <button
-              key={i}
-              onClick={() => setPicked(i)}
-              className={cn(
-                "rounded-2xl border bg-card p-3 text-left shadow-sm transition-colors hover:bg-secondary/50",
-                i === Math.min(selected, pairs.length - 1) && "ring-2 ring-primary",
-              )}
-            >
-              {[
-                { team: h, total: ht },
-                { team: a, total: at },
-              ].map(({ team, total }) => {
-                const pregame = activeWeek >= league.currentWeek && total.actual < 0.05;
-                const shown = pregame ? total.projected : total.actual;
-                return (
-                <div key={team.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-1">
-                  <TeamCrest team={team} />
-                  <span className="truncate text-base font-semibold">
-                    {team.name}{" "}
-                    <span className="text-sm font-medium tabular-nums text-muted-foreground">
-                      ({teamRecord(team, league, byId)})
-                    </span>
-                  </span>
-                  <span className="text-right">
-                    <span className="font-display text-xl font-bold tabular-nums">
-                      {shown.toFixed(1)}
-                    </span>
-                    {pregame && (
-                      <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                        proj
+        {(() => {
+          const pregame = isWeekPregame(activeWeek, league.currentWeek);
+          return pairs.map((p, i) => {
+            const h = league.teams[p[0]];
+            const a = league.teams[p[1]];
+            if (!h || !a) return null;
+            const ht = teamTotals(h, activeWeek, league, byId);
+            const at = teamTotals(a, activeWeek, league, byId);
+            return (
+              <button
+                key={i}
+                onClick={() => setPicked(i)}
+                className={cn(
+                  "rounded-2xl border bg-card p-3 text-left shadow-sm transition-colors hover:bg-secondary/50",
+                  i === Math.min(selected, pairs.length - 1) && "ring-2 ring-primary",
+                )}
+              >
+                {[
+                  { team: h, total: ht },
+                  { team: a, total: at },
+                ].map(({ team, total }) => {
+                  const shown = pregame ? total.projected : total.actual;
+                  return (
+                    <div
+                      key={team.id}
+                      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-1"
+                    >
+                      <TeamCrest team={team} />
+                      <span className="truncate text-base font-semibold">
+                        {team.name}{" "}
+                        <span className="text-sm font-medium tabular-nums text-muted-foreground">
+                          ({teamRecord(team, league, byId)})
+                        </span>
                       </span>
-                    )}
-                  </span>
-                </div>
-                );
-              })}
-            </button>
-          );
-        })}
+                      <span className="text-right">
+                        <span className="font-display text-xl font-bold tabular-nums">
+                          {shown.toFixed(1)}
+                        </span>
+                        {pregame && (
+                          <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                            proj
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </button>
+            );
+          });
+        })()}
       </div>
 
       {home && away && (
