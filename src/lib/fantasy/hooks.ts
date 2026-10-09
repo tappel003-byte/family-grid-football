@@ -120,6 +120,35 @@ export function gameInfoFor(teamAbbr: string, week: number) {
   return weekCache.get(week)?.games[teamAbbr];
 }
 
+/**
+ * True only before the first NFL kickoff of this fantasy week.
+ * Once any game is live/final (or its start time has passed), matchup cards
+ * should show live actuals — including 0.0 — not full-week projections.
+ */
+export function isPregameFromGames(
+  games: Array<{ status: string; startsAt?: string }>,
+  week: number,
+  currentWeek: number,
+  now = Date.now(),
+): boolean {
+  if (week < currentWeek) return false;
+  if (games.length === 0) return true;
+  for (const g of games) {
+    if (g.status === "live" || g.status === "final") return false;
+    if (g.startsAt) {
+      const start = Date.parse(g.startsAt);
+      if (Number.isFinite(start) && start <= now) return false;
+    }
+  }
+  return true;
+}
+
+export function isWeekPregame(week: number, currentWeek: number): boolean {
+  const data = weekCache.get(week);
+  if (!data) return week >= currentWeek;
+  return isPregameFromGames(Object.values(data.games), week, currentWeek);
+}
+
 export function headshotUrl(id: string, pos: string, team: string) {
   return pos === "DEF"
     ? `https://sleepercdn.com/images/team_logos/nfl/${team.toLowerCase()}.png`
