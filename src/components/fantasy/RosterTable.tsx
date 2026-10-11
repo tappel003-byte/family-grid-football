@@ -28,6 +28,7 @@ import { updateLeague, reloadLeague } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle, CalendarOff } from "lucide-react";
 import { isPlayerLocked } from "@/lib/fantasy/locks";
+import { optimizeMovedIds } from "@/lib/fantasy/optimize-moved";
 import { Lock } from "lucide-react";
 import { PlayerCell, injuryInfo, isInactive } from "./PlayerCell";
 import { PlayerCardTrigger } from "./PlayerSheet";
@@ -110,6 +111,8 @@ export function RosterTable({
   const otherWeek = week !== league.currentWeek;
   const editable = editableProp && !otherWeek;
   const [flash, setFlash] = useState<string | null>(null);
+  /** Players Optimize Lineup moved — boxed until you leave this screen. */
+  const [optimizeMoved, setOptimizeMoved] = useState<Set<string>>(() => new Set());
   const insights = useInsights();
   const move = useServerFn(makeRosterMove);
   const [pending, setPending] = useState(false);
@@ -201,23 +204,26 @@ export function RosterTable({
   };
 
   const optimize = () => {
-    const before = projectedTotal(team, byId, league, week);
-    const after = projectedTotal(
-      optimizeTeam(team, byId, league, week, insights, locked),
-      byId,
-      league,
-      week,
-    );
-    updateLeague((l) =>
-      setTeam(l, team.id, (t) => optimizeTeam(t, byId, l, week, insights, locked)),
-    );
-    const gain = after - before;
+    const next = optimizeTeam(team, byId, league, week, insights, locked);
+    const beforePts = projectedTotal(team, byId, league, week);
+    const afterPts = projectedTotal(next, byId, league, week);
+    const moved = optimizeMovedIds(team, next);
+    updateLeague((l) => setTeam(l, team.id, () => next));
+    setOptimizeMoved(new Set(moved));
+    const gain = afterPts - beforePts;
     toast.success(
       gain > 0.05
         ? `Lineup optimized · +${gain.toFixed(1)} projected points`
-        : "Your lineup was already the best projected one",
+        : moved.length > 0
+          ? "Lineup optimized · same projected points"
+          : "Your lineup was already the best projected one",
     );
   };
+
+  const optimizeBox = (playerId: string | undefined) =>
+    !!playerId &&
+    optimizeMoved.has(playerId) &&
+    "relative z-[1] bg-primary/10 ring-2 ring-inset ring-primary";
 
   const rows = SLOTS.map((slot, i) => ({
     slot,
@@ -294,6 +300,15 @@ export function RosterTable({
         </div>
       )}
 
+      {optimizeMoved.size > 0 && (
+        <div className="flex items-start gap-3 border-b border-primary/30 bg-primary/10 px-4 py-2.5">
+          <Wand2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+          <p className="text-sm font-semibold leading-snug text-foreground">
+            Boxed players were moved by Optimize Lineup. Highlight stays until you leave this
+            screen.
+          </p>
+        </div>
+      )}
 
       <table className="w-full">
         <thead className="hidden border-b text-left text-xs uppercase tracking-widest text-muted-foreground md:table-header-group">
@@ -316,6 +331,7 @@ export function RosterTable({
                   "block md:table-row",
                   player && isInactive(player.injury) && "bg-injury-out/10",
                   flash === player?.id && "bg-accent/40 transition-colors",
+                  optimizeBox(player?.id),
                 )}
               >
                 <td className="block px-4 pt-3 md:table-cell md:py-3">
@@ -466,7 +482,14 @@ export function RosterTable({
           {benchPlayers.map((p) => {
             const s = scoreFor(p, week, league);
             return (
-              <tr key={p.id} className={cn("block md:table-row", isInactive(p.injury) && "bg-injury-out/10")}>
+              <tr
+                key={p.id}
+                className={cn(
+                  "block md:table-row",
+                  isInactive(p.injury) && "bg-injury-out/10",
+                  optimizeBox(p.id),
+                )}
+              >
                 <td className="block px-4 pt-3 md:table-cell md:py-3">
                   <span className="rounded bg-secondary px-2 py-0.5 font-display text-sm font-bold uppercase tracking-widest">BN</span>
                 </td>
