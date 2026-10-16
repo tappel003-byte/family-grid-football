@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  TRENDING_MAX_HOURS,
-  earliestKickoffAt,
-  latestStartedAt,
-  trendingWindowsFor,
-} from "./trending-windows";
+import { latestStartedAt, trendingWindowsFor } from "./trending-windows";
 
 describe("trendingWindowsFor", () => {
   const now = Date.parse("2026-10-16T18:00:00.000Z");
@@ -38,21 +33,16 @@ describe("trendingWindowsFor", () => {
     expect(last!.hours).toBe(42);
   });
 
-  it("adds since current week when kickoffs exist", () => {
+  it("always offers since current week when kickoffs exist", () => {
     const windows = trendingWindowsFor({
       currentWeek: 6,
-      byWeek: new Map([
-        [
-          6,
-          [{ status: "final", startsAt: "2026-10-10T00:15:00.000Z" }],
-        ],
-      ]),
+      byWeek: new Map([[6, [{ status: "final", startsAt: "2026-10-10T00:15:00.000Z" }]]]),
       now,
     });
-    expect(windows.some((w) => w.id === "week_6")).toBe(true);
+    expect(windows.some((w) => w.id === "week_6" && w.label === "Since Week 6")).toBe(true);
   });
 
-  it("skips older weeks that fall outside the lookback cap", () => {
+  it("keeps prior weeks visible so you can try them", () => {
     const windows = trendingWindowsFor({
       currentWeek: 6,
       byWeek: new Map([
@@ -62,22 +52,24 @@ describe("trendingWindowsFor", () => {
       ]),
       now,
     });
-    expect(windows.some((w) => w.id === "week_5")).toBe(false);
-    expect(windows.some((w) => w.id === "week_4")).toBe(false);
+    expect(windows.map((w) => w.id)).toEqual([
+      "24h",
+      "since_last_game",
+      "week_6",
+      "week_5",
+      "week_4",
+    ]);
   });
 
-  it("clamps hours to the Sleeper max", () => {
-    const start = earliestKickoffAt(
-      [{ status: "final", startsAt: "2026-09-01T17:00:00.000Z" }],
-      now,
-    );
-    expect(start).not.toBeNull();
-    const hours = Math.ceil((now - start!) / 3_600_000);
-    expect(hours).toBeGreaterThan(TRENDING_MAX_HOURS);
+  it("finds the latest started kickoff", () => {
     const latest = latestStartedAt(
-      [{ status: "final", startsAt: "2026-09-01T17:00:00.000Z" }],
+      [
+        { status: "final", startsAt: "2026-10-12T17:00:00.000Z" },
+        { status: "final", startsAt: "2026-10-15T00:15:00.000Z" },
+        { status: "scheduled", startsAt: "2026-10-19T17:00:00.000Z" },
+      ],
       now,
     );
-    expect(latest).not.toBeNull();
+    expect(latest).toBe(Date.parse("2026-10-15T00:15:00.000Z"));
   });
 });

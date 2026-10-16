@@ -45,8 +45,9 @@ export function earliestKickoffAt(games: GameStamp[], now = Date.now()): number 
 }
 
 /**
- * Time windows for Adds/Drops. Only includes "since week N" when that week
- * started inside Sleeper's ~7-day lookback so the numbers stay meaningful.
+ * Time windows for Adds/Drops: 24 hours, since last game, and since Week N
+ * for the current week and the two before it (when kickoff times exist).
+ * Hours still clamp to Sleeper's ~7-day max under the hood.
  */
 export function trendingWindowsFor(args: {
   currentWeek: number;
@@ -66,20 +67,14 @@ export function trendingWindowsFor(args: {
     });
   }
 
-  const seenHours = new Set<number>([24]);
   for (let w = args.currentWeek; w >= 1 && w >= args.currentWeek - 2; w--) {
     const games = args.byWeek.get(w) ?? [];
-    const start = earliestKickoffAt(games, now);
+    const start = earliestKickoffAt(games, now) ?? latestStartedAt(games, now);
     if (start == null) continue;
-    const hours = hoursSince(start, now);
-    // Older weeks outside the API lookback would all show the same capped total.
-    if (hours >= TRENDING_MAX_HOURS && w < args.currentWeek) continue;
-    if (seenHours.has(hours) && w < args.currentWeek) continue;
-    seenHours.add(hours);
     windows.push({
       id: `week_${w}`,
       label: `Since Week ${w}`,
-      hours,
+      hours: hoursSince(start, now),
     });
   }
 
