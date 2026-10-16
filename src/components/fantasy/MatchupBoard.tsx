@@ -545,6 +545,8 @@ export function MatchupBoard({
         away={awayView}
         homePts={h.actual}
         awayPts={a.actual}
+        homeRem={h.remaining}
+        awayRem={a.remaining}
         week={week}
         league={league}
         byId={byId}
@@ -553,11 +555,17 @@ export function MatchupBoard({
   );
 }
 
-function playerSettled(player: SlimPlayer, week: number, currentWeek: number): boolean {
-  if (week < currentWeek) return true;
+/** Points still to come for one player (0 when final / bye). */
+function playerRemaining(player: SlimPlayer, week: number, league: League): number {
+  if (week < league.currentWeek) return 0;
   const game = gameInfoFor(player.team, week);
-  // Bye / missing game row counts as done so the slate can settle Mon night.
-  return !game || game.status === "none" || game.status === "final";
+  if (!game || game.status === "none" || game.status === "final") return 0;
+  const s = scoreFor(player, week, league);
+  const share =
+    game.status === "scheduled"
+      ? 1
+      : Math.max(0, Math.min(1, (game.secondsLeft ?? 1800) / 3600));
+  return Math.max(0, s.projected) * share;
 }
 
 /** Under Bench: one category with two verdicts for the losing side. */
@@ -566,6 +574,8 @@ function WhatCouldveBeenSection({
   away,
   homePts,
   awayPts,
+  homeRem,
+  awayRem,
   week,
   league,
   byId,
@@ -574,25 +584,29 @@ function WhatCouldveBeenSection({
   away: FantasyTeam;
   homePts: number;
   awayPts: number;
+  homeRem: number;
+  awayRem: number;
   week: number;
   league: League;
   byId: Map<string, SlimPlayer>;
 }) {
   const scoreFn = (player: SlimPlayer) => scoreFor(player, week, league).actual;
-  const settled = (player: SlimPlayer) => playerSettled(player, week, league.currentWeek);
+  const remainingFn = (player: SlimPlayer) => playerRemaining(player, week, league);
   const homeResult = whatCouldveBeen({
     team: home,
     opponentPts: awayPts,
+    opponentRemaining: awayRem,
     byId,
     scoreFn,
-    settled,
+    remainingFn,
   });
   const awayResult = whatCouldveBeen({
     team: away,
     opponentPts: homePts,
+    opponentRemaining: homeRem,
     byId,
     scoreFn,
-    settled,
+    remainingFn,
   });
   if (!homeResult.verdict && !awayResult.verdict) return null;
 

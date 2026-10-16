@@ -1,11 +1,11 @@
-import type { FantasyTeam, League } from "./league";
+import type { FantasyTeam } from "./league";
 import { SLOTS, rosterIds, slotAccepts } from "./league";
 import type { SlimPlayer } from "../sleeper.functions";
 
 export type WhatCouldveBeenVerdict = "would_have_won" | "lost_anyway";
 
 export type WhatCouldveBeen = {
-  /** Enough games are final to trust the counterfactual. */
+  /** Verdict is locked — safe to show (no remaining ambiguity). */
   ready: boolean;
   actualPts: number;
   bestPts: number;
@@ -16,9 +16,23 @@ export type WhatCouldveBeen = {
 };
 
 type ScoreFn = (player: SlimPlayer) => number;
-type SettledFn = (player: SlimPlayer) => boolean;
 
-/** Best legal starters ranked by actual (or whatever scoreFn returns). */
+const EPS = 0.05;
+
+function round1(n: number) {
+  return Math.round(n * 10) / 10;
+}
+
+function totalFor(ids: string[], byId: Map<string, SlimPlayer>, scoreFn: ScoreFn): number {
+  let sum = 0;
+  for (const id of ids) {
+    const p = byId.get(id);
+    if (p) sum += scoreFn(p);
+  }
+  return round1(sum);
+}
+
+/** Best legal starters ranked by whatever scoreFn returns. */
 export function bestStartersByScore(
   team: FantasyTeam,
   byId: Map<string, SlimPlayer>,
@@ -41,52 +55,68 @@ export function bestStartersByScore(
   }).filter((id): id is string => !!id);
 }
 
-function totalFor(ids: string[], byId: Map<string, SlimPlayer>, scoreFn: ScoreFn): number {
-  let sum = 0;
-  for (const id of ids) {
-    const p = byId.get(id);
-    if (p) sum += scoreFn(p);
-  }
-  return Math.round(sum * 10) / 10;
-}
-
 /**
- * After the slate settles: if this team lost, would the best-by-actual lineup
- * have beaten the opponent — or would they have lost anyway?
+ * As soon as it's obvious: if this team is clearly losing, would the
+ * best-by-actual lineup have beaten the opponent — or lost anyway?
+ * Stays quiet while remaining games could still flip the answer.
  */
 export function whatCouldveBeen(args: {
   team: FantasyTeam;
   opponentPts: number;
+  /** Points the opponent can still add (yet-to-play / in-progress). */
+  opponentRemaining?: number;
   byId: Map<string, SlimPlayer>;
   scoreFn: ScoreFn;
-  settled: SettledFn;
-  /** Minimum fraction of roster players whose games must be settled (0–1). */
-  settledRatio?: number;
+  /** Points this player can still add; 0 when their game is done. */
+  remainingFn?: ScoreFn;
 }): WhatCouldveBeen {
-  const { team, opponentPts, byId, scoreFn, settled } = args;
-  const ratio = args.settledRatio ?? 0.75;
-  const roster = rosterIds(team)
-    .map((id) => byId.get(id))
-    .filter((p): p is SlimPlayer => !!p);
-  const settledCount = roster.filter((p) => settled(p)).length;
-  const ready = roster.length > 0 && settledCount / roster.length >= ratio;
+  const { team, opponentPts, byId, scoreFn } = args;
+  const remainingFn = args.remainingFn ?? (() => 0);
+  const oppRem = Math.max(0, args.opponentRemaining ?? 0);
 
   const actualIds = (team.starters.filter(Boolean) as string[]) ?? [];
   const actualPts = totalFor(actualIds, byId, scoreFn);
-  const bestIds = bestStartersByScore(team, byId, scoreFn);
-  const bestPts = totalFor(bestIds, byId, scoreFn);
+  const actualRem = totalFor(actualIds, byId, remainingFn);
+
+  // Floor lineup: banked actuals. Ceiling lineup: optimistic (actual + left).
+  const bestByActual = bestStartersByScore(team, byId, scoreFn);
+  const bestByOptimistic = bestStartersByScore(
+    team,
+    byId,
+    (p) => scoreFn(p) + remainingFn(p),
+  );
+  const bestMin = totalFor(bestByActual, byId, scoreFn);
+  const bestMax = totalFor(bestByOptimistic, byId, (p) => scoreFn(p) + remainingFn(p));
+  const bestPts = bestMin;
+
   const actualSet = new Set(actualIds);
-  const startThese = bestIds
+  const startThese = bestByActual
     .filter((id) => !actualSet.has(id))
     .map((id) => byId.get(id)?.name)
     .filter((n): n is string => !!n);
 
+  const myMax = actualPts + actualRem;
+  const oppMin = opponentPts;
+  const oppMax = opponentPts + oppRem;
+
+  // Even at our best remaining finish, we still lose to their current score.
+  const clearlyLost = myMax + EPS < oppMin;
+
   let verdict: WhatCouldveBeenVerdict | null = null;
-  if (ready && actualPts + 0.05 < opponentPts) {
-    // They lost (or are losing) on the lineup they started.
-    if (bestPts > opponentPts + 0.05) verdict = "would_have_won";
-    else verdict = "lost_anyway";
+  if (clearlyLost) {
+    // Already-banked best lineup beats anything the opponent can still reach.
+    if (bestMin > oppMax + EPS) verdict = "would_have_won";
+    // Even the optimistic best lineup can't catch their current score.
+    else if (bestMax + EPS < oppMin) verdict = "lost_anyway";
+    // Otherwise still a question — leave null.
   }
 
-  return { ready, actualPts, bestPts, oppPts: opponentPts, startThese, verdict };
+  return {
+    ready: verdict != null,
+    actualPts,
+    bestPts,
+    oppPts: opponentPts,
+    startThese,
+    verdict,
+  };
 }

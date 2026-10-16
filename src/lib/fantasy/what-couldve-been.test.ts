@@ -51,13 +51,14 @@ describe("whatCouldveBeen", () => {
     ["qb2", "rb3"],
   );
 
+  const scoreFn = (player: SlimPlayer) => scores[player.id] ?? 0;
+
   it("says would_have_won when best lineup beats the opponent", () => {
     const result = whatCouldveBeen({
       team: t,
       opponentPts: 70,
       byId,
-      scoreFn: (player) => scores[player.id] ?? 0,
-      settled: () => true,
+      scoreFn,
     });
     expect(result.ready).toBe(true);
     expect(result.verdict).toBe("would_have_won");
@@ -69,8 +70,7 @@ describe("whatCouldveBeen", () => {
       team: t,
       opponentPts: 200,
       byId,
-      scoreFn: (player) => scores[player.id] ?? 0,
-      settled: () => true,
+      scoreFn,
     });
     expect(result.verdict).toBe("lost_anyway");
   });
@@ -80,26 +80,49 @@ describe("whatCouldveBeen", () => {
       team: t,
       opponentPts: 10,
       byId,
-      scoreFn: (player) => scores[player.id] ?? 0,
-      settled: () => true,
+      scoreFn,
     });
     expect(result.verdict).toBeNull();
   });
 
-  it("waits until enough games are settled", () => {
+  it("stays quiet when remaining games could still flip the verdict", () => {
+    // Best is ~91 vs opp 70, but opponent has 30 left — could reach 100.
     const result = whatCouldveBeen({
       team: t,
       opponentPts: 70,
+      opponentRemaining: 30,
       byId,
-      scoreFn: (player) => scores[player.id] ?? 0,
-      settled: () => false,
+      scoreFn,
     });
     expect(result.ready).toBe(false);
     expect(result.verdict).toBeNull();
   });
 
+  it("shows lost_anyway as soon as optimistic best still can't catch up", () => {
+    const left: Record<string, number> = { qb2: 5, rb3: 5 };
+    const result = whatCouldveBeen({
+      team: t,
+      opponentPts: 200,
+      byId,
+      scoreFn,
+      remainingFn: (player) => left[player.id] ?? 0,
+    });
+    expect(result.verdict).toBe("lost_anyway");
+  });
+
+  it("shows would_have_won once banked best beats opponent ceiling", () => {
+    const result = whatCouldveBeen({
+      team: t,
+      opponentPts: 70,
+      opponentRemaining: 5, // opp ceiling 75; best banked ~91
+      byId,
+      scoreFn,
+    });
+    expect(result.verdict).toBe("would_have_won");
+  });
+
   it("fills legal starter slots by score", () => {
-    const starters = bestStartersByScore(t, byId, (player) => scores[player.id] ?? 0);
+    const starters = bestStartersByScore(t, byId, scoreFn);
     expect(starters).toContain("qb2");
     expect(starters).toContain("rb3");
     expect(starters).not.toContain("qb1");
