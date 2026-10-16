@@ -487,7 +487,7 @@ export function MatchupBoard({
         })}
       </div>
 
-      {/* NFL Fantasy-style: show who each side left on the bench under the starters. */}
+      {/* Slimmer than starters: name · pos · total — obvious it's the bench. */}
       {(() => {
         const homeStarterIds = new Set(homeView.starters.filter(Boolean) as string[]);
         const awayStarterIds = new Set(awayView.starters.filter(Boolean) as string[]);
@@ -503,80 +503,67 @@ export function MatchupBoard({
         if (rows === 0) return null;
         return (
           <>
-            <div className="border-t bg-secondary/50 px-4 py-2.5">
-              <h3 className="text-center font-display text-sm font-bold uppercase tracking-widest text-muted-foreground">
+            <div className="border-t bg-secondary/50 px-4 py-2">
+              <h3 className="text-center font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 Bench
               </h3>
-              <p className="mt-0.5 text-center text-xs text-muted-foreground">
-                Who each team left sitting — same idea as the old NFL Fantasy matchup.
-              </p>
             </div>
-            <div className="divide-y bg-secondary/25 md:hidden">
-              {Array.from({ length: rows }, (_, i) => {
-                const hp = homeBench[i];
-                const ap = awayBench[i];
-                return (
-                  <div
-                    key={`mobile-bn-${i}`}
-                    className="grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-stretch gap-1 px-2 py-3"
-                  >
-                    <MobileSide
-                      player={hp}
-                      align="left"
-                      week={week}
-                      league={league}
-                      flagged={!!hp && isInactive(hp.injury)}
-                    />
-                    <div className="flex items-center justify-center border-x border-border/70 bg-secondary/45 px-1">
-                      <span className="text-center font-display text-xs font-bold uppercase text-muted-foreground">
-                        BN
-                      </span>
-                    </div>
-                    <MobileSide
-                      player={ap}
-                      align="right"
-                      week={week}
-                      league={league}
-                      flagged={!!ap && isInactive(ap.injury)}
-                    />
+            <div className="divide-y bg-secondary/20">
+              {Array.from({ length: rows }, (_, i) => (
+                <div
+                  key={`bn-${i}`}
+                  className="grid grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)] items-center gap-1 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_3.5rem_minmax(0,1fr)] sm:gap-3 sm:px-4"
+                >
+                  <BenchSide player={homeBench[i]} align="left" week={week} league={league} />
+                  <div className="text-center font-display text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:text-xs">
+                    BN
                   </div>
-                );
-              })}
-            </div>
-            <div className="hidden divide-y bg-secondary/25 md:block">
-              {Array.from({ length: rows }, (_, i) => {
-                const hp = homeBench[i];
-                const ap = awayBench[i];
-                return (
-                  <div
-                    key={`bn-${i}`}
-                    className="grid grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)] items-center gap-4 p-4"
-                  >
-                    <Side
-                      player={hp}
-                      align="left"
-                      week={week}
-                      league={league}
-                      flagged={!!hp && isInactive(hp.injury)}
-                    />
-                    <div className="text-center font-display text-sm font-bold uppercase tracking-widest text-muted-foreground">
-                      BN
-                    </div>
-                    <Side
-                      player={ap}
-                      align="right"
-                      week={week}
-                      league={league}
-                      flagged={!!ap && isInactive(ap.injury)}
-                    />
-                  </div>
-                );
-              })}
+                  <BenchSide player={awayBench[i]} align="right" week={week} league={league} />
+                </div>
+              ))}
             </div>
           </>
         );
       })()}
     </section>
+  );
+}
+
+/** Compact bench cell: player, position, points — not the full starter card. */
+function BenchSide({
+  player,
+  align,
+  week,
+  league,
+}: {
+  player: SlimPlayer | undefined;
+  align: "left" | "right";
+  week: number;
+  league: League;
+}) {
+  if (!player) {
+    return <div className={cn("min-h-8", align === "right" && "text-right")} />;
+  }
+  const s = scoreFor(player, week, league);
+  return (
+    <PlayerCardTrigger player={player} week={week} league={league} className="min-w-0">
+      <div
+        className={cn(
+          "flex min-w-0 items-baseline gap-2",
+          align === "right" && "flex-row-reverse text-right",
+        )}
+      >
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold leading-tight">{player.name}</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {player.team} · {player.pos}
+          </span>
+        </div>
+        <span className="shrink-0 font-display text-base font-bold tabular-nums text-muted-foreground">
+          {s.actual.toFixed(1)}
+        </span>
+      </div>
+    </PlayerCardTrigger>
   );
 }
 
