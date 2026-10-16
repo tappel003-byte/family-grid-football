@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  isWeekPregame,
   marketQueryOptions,
   playersQueryOptions,
   trendingQueryOptions,
@@ -122,6 +123,7 @@ function TrendingList({
 const SORTS = [
   ["PROJ", "Projection"],
   ["PTS", "Total points"],
+  ["CUR", "Current week"],
   ["W0", "Week A"],
   ["W1", "Week B"],
   ["W2", "Week C"],
@@ -161,7 +163,8 @@ function lastThreeKeys(recentWeeks: number[]): SortKey[] {
   return [...weekSortKeys(recentWeeks), "HOT"];
 }
 
-function sortLabel(key: SortKey, recentWeeks: number[]): string {
+function sortLabel(key: SortKey, recentWeeks: number[], currentWeek: number): string {
+  if (key === "CUR") return `Week ${currentWeek}`;
   const weekIndex = WEEK_SORT_KEYS.indexOf(key as WeekSortKey);
   if (weekIndex >= 0) {
     const weekNum = recentWeeks[weekIndex];
@@ -170,36 +173,50 @@ function sortLabel(key: SortKey, recentWeeks: number[]): string {
   return Object.fromEntries(SORTS)[key] ?? key;
 }
 
-function sortShort(key: SortKey, recentWeeks: number[]): string {
+function sortShort(key: SortKey, recentWeeks: number[], currentWeek: number): string {
+  if (key === "CUR") return `Wk${currentWeek}`;
   const weekIndex = WEEK_SORT_KEYS.indexOf(key as WeekSortKey);
   if (weekIndex >= 0) {
     const weekNum = recentWeeks[weekIndex];
     return weekNum ? `Wk${weekNum}` : "Wk";
   }
-  return COLUMNS_BASE[key as Exclude<SortKey, WeekSortKey>]?.short ?? key;
+  return COLUMNS_BASE[key as Exclude<SortKey, WeekSortKey | "CUR">]?.short ?? key;
 }
 
 const LAST_THREE_LABEL = "Last three weeks";
+const CURRENT_WEEK_LABEL = "Current week";
 
-const SORT_GROUP_DEFS: { label: string; keys: (recentWeeks: number[]) => SortKey[] }[] = [
-  { label: "Production", keys: () => productionKeys() },
-  { label: LAST_THREE_LABEL, keys: lastThreeKeys },
-  { label: "Ownership", keys: () => ["OWNED", "STARTED", "RISING"] },
-  { label: "Hype", keys: () => ["ADDS", "DROPS", "PICKUP"] },
-  {
-    label: "All",
-    keys: (recentWeeks) => [
-      ...productionKeys(),
-      ...weekSortKeys(recentWeeks),
-      "OWNED",
-      "STARTED",
-      "RISING",
-      "ADDS",
-      "DROPS",
-      "PICKUP",
-    ],
-  },
-];
+function buildSortGroups(
+  recentWeeks: number[],
+  showCurrentWeek: boolean,
+): { label: string; keys: SortKey[] }[] {
+  const groups: { label: string; keys: SortKey[] }[] = [
+    { label: "Production", keys: productionKeys() },
+  ];
+  if (showCurrentWeek) {
+    groups.push({ label: CURRENT_WEEK_LABEL, keys: ["CUR"] });
+  }
+  groups.push(
+    { label: LAST_THREE_LABEL, keys: lastThreeKeys(recentWeeks) },
+    { label: "Ownership", keys: ["OWNED", "STARTED", "RISING"] },
+    { label: "Hype", keys: ["ADDS", "DROPS", "PICKUP"] },
+    {
+      label: "All",
+      keys: [
+        ...productionKeys(),
+        ...(showCurrentWeek ? (["CUR"] as SortKey[]) : []),
+        ...weekSortKeys(recentWeeks),
+        "OWNED",
+        "STARTED",
+        "RISING",
+        "ADDS",
+        "DROPS",
+        "PICKUP",
+      ],
+    },
+  );
+  return groups.filter((g) => g.keys.length > 0);
+}
 
 function productionHelp(): ReadonlyArray<{ short: string; text: string }> {
   return [
@@ -208,6 +225,15 @@ function productionHelp(): ReadonlyArray<{ short: string; text: string }> {
     { short: "Avg", text: "Average fantasy points per game this season." },
     { short: "L3", text: "Average fantasy points over the last 3 finished weeks." },
     { short: "Rnk", text: "Rank by total points: overall for All players, or within the selected position." },
+  ];
+}
+
+function currentWeekHelp(currentWeek: number): ReadonlyArray<{ short: string; text: string }> {
+  return [
+    {
+      short: `Wk${currentWeek}`,
+      text: `Fantasy points scored so far in week ${currentWeek}. Updates as games finish.`,
+    },
   ];
 }
 
@@ -237,20 +263,33 @@ const GROUP_HELP_BASE: Record<string, ReadonlyArray<{ short: string; text: strin
   ],
 };
 
-function StatLegend({ group, recentWeeks }: { group: string; recentWeeks: number[] }) {
+function StatLegend({
+  group,
+  recentWeeks,
+  currentWeek,
+  showCurrentWeek,
+}: {
+  group: string;
+  recentWeeks: number[];
+  currentWeek: number;
+  showCurrentWeek: boolean;
+}) {
   const rows =
     group === "Production"
       ? productionHelp()
-      : group === LAST_THREE_LABEL
-        ? lastThreeHelp(recentWeeks)
-        : group === "All"
-          ? [
-              ...productionHelp(),
-              ...lastThreeHelp(recentWeeks).filter((row) => row.short !== "L3"),
-              ...(GROUP_HELP_BASE["Ownership"] ?? []),
-              ...(GROUP_HELP_BASE["Hype"] ?? []),
-            ]
-          : (GROUP_HELP_BASE[group] ?? productionHelp());
+      : group === CURRENT_WEEK_LABEL
+        ? currentWeekHelp(currentWeek)
+        : group === LAST_THREE_LABEL
+          ? lastThreeHelp(recentWeeks)
+          : group === "All"
+            ? [
+                ...productionHelp(),
+                ...(showCurrentWeek ? currentWeekHelp(currentWeek) : []),
+                ...lastThreeHelp(recentWeeks).filter((row) => row.short !== "L3"),
+                ...(GROUP_HELP_BASE["Ownership"] ?? []),
+                ...(GROUP_HELP_BASE["Hype"] ?? []),
+              ]
+            : (GROUP_HELP_BASE[group] ?? productionHelp());
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -290,6 +329,8 @@ type PlayerRow = {
   own: { owned: number; started: number; change: number } | null;
   last3Avg: number;
   weekPts: number[];
+  /** Live / final points for the league's current NFL week. */
+  currentPts: number;
   seasonPts: number;
   seasonAvg: number;
   adds: number;
@@ -298,7 +339,7 @@ type PlayerRow = {
 };
 
 const COLUMNS_BASE: Record<
-  Exclude<SortKey, WeekSortKey>,
+  Exclude<SortKey, WeekSortKey | "CUR">,
   { short: string; w: string; value: (r: PlayerRow) => string }
 > = {
   PROJ: { short: "Proj", w: "w-14", value: (r) => r.proj.toFixed(1) },
@@ -321,11 +362,19 @@ const COLUMNS_BASE: Record<
 function columnDef(
   key: SortKey,
   recentWeeks: number[],
+  currentWeek: number,
 ): { short: string; w: string; value: (r: PlayerRow) => string } {
+  if (key === "CUR") {
+    return {
+      short: sortShort(key, recentWeeks, currentWeek),
+      w: "w-14",
+      value: (r) => r.currentPts.toFixed(1),
+    };
+  }
   const weekIndex = WEEK_SORT_KEYS.indexOf(key as WeekSortKey);
   if (weekIndex >= 0) {
     return {
-      short: sortShort(key, recentWeeks),
+      short: sortShort(key, recentWeeks, currentWeek),
       w: "w-14",
       value: (r) => {
         const pts = r.weekPts[weekIndex];
@@ -334,7 +383,7 @@ function columnDef(
       },
     };
   }
-  return COLUMNS_BASE[key as Exclude<SortKey, WeekSortKey>];
+  return COLUMNS_BASE[key as Exclude<SortKey, WeekSortKey | "CUR">];
 }
 
 function PlayersPage() {
@@ -344,20 +393,20 @@ function PlayersPage() {
   const [pos, setPos] = useState("ALL");
   const [avail, setAvail] = useState<"ALL" | "FA" | "ROSTERED">(f === "FA" ? "FA" : "ALL");
   const [watchedOnly, setWatchedOnly] = useState(false);
-  const [group, setGroup] = useState(SORT_GROUP_DEFS[0]!.label);
+  const [group, setGroup] = useState("Production");
   const [sort, setSort] = useState<SortKey>("PROJ");
   const [dir, setDir] = useState<"desc" | "asc">("desc");
   const [cardId, setCardId] = useState<string | null>(null);
   const [sortOpen, setSortOpen] = useState(false);
 
   const week = league?.currentWeek ?? 1;
+  useWeekData(week);
+  // Once any game this week is live/final, Current week appears in the dropdown.
+  const showCurrentWeek = !isWeekPregame(week, week);
   const recentWeeks = useMemo(() => recentCompletedWeeks(week), [week]);
   const sortGroups = useMemo(
-    () =>
-      SORT_GROUP_DEFS.map((g) => ({ label: g.label, keys: g.keys(recentWeeks) })).filter(
-        (g) => g.keys.length > 0,
-      ),
-    [recentWeeks],
+    () => buildSortGroups(recentWeeks, showCurrentWeek),
+    [recentWeeks, showCurrentWeek],
   );
   const columns = sortGroups.find((g) => g.label === group)?.keys ?? sortGroups[0]!.keys;
 
@@ -367,6 +416,12 @@ function PlayersPage() {
       setDir("desc");
     }
   }, [columns, sort]);
+
+  useEffect(() => {
+    if (!sortGroups.some((g) => g.label === group)) {
+      setGroup(sortGroups[0]?.label ?? "Production");
+    }
+  }, [group, sortGroups]);
 
   const headingTap = (key: SortKey) => {
     if (key === sort) setDir((d) => (d === "desc" ? "asc" : "desc"));
@@ -396,7 +451,6 @@ function PlayersPage() {
     };
   }, [sortOpen]);
 
-  useWeekData(week);
   const { data: insights } = useQuery({
     ...insightsQueryOptions(week, league?.scoring ?? STANDARD_SCORING),
     enabled: !!league,
@@ -456,7 +510,8 @@ function PlayersPage() {
       .map((p) => {
         const info = insights?.players[p.id];
         const own = market?.ownership[p.id] ?? null;
-        const proj = league ? scoreFor(p, week, league).projected : 0;
+        const scored = league ? scoreFor(p, week, league) : { projected: 0, actual: 0 };
+        const proj = scored.projected;
         const free = !ownerByPlayer.has(p.id);
         const weekPts = recentWeeks.map((w) => {
           const entry = info?.gameLog.find((g) => g.week === w);
@@ -471,6 +526,7 @@ function PlayersPage() {
           news: market?.news[p.id] ?? null,
           last3Avg: info?.last3Avg ?? 0,
           weekPts,
+          currentPts: scored.actual,
           seasonPts: info?.seasonPts ?? 0,
           seasonAvg: info?.seasonAvg ?? 0,
           hot: info?.last3Avg ?? 0,
@@ -497,6 +553,8 @@ function PlayersPage() {
           return b.proj - a.proj;
         case "PTS":
           return b.seasonPts - a.seasonPts || b.proj - a.proj;
+        case "CUR":
+          return b.currentPts - a.currentPts || b.proj - a.proj;
         case "W0":
         case "W1":
         case "W2":
@@ -650,7 +708,12 @@ function PlayersPage() {
                 {results.length} players
               </span>
               <div className="flex items-center gap-1">
-                <StatLegend group={group} recentWeeks={recentWeeks} />
+                <StatLegend
+                  group={group}
+                  recentWeeks={recentWeeks}
+                  currentWeek={week}
+                  showCurrentWeek={showCurrentWeek}
+                />
                 <DropdownMenu modal={false} open={sortOpen} onOpenChange={setSortOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -688,14 +751,14 @@ function PlayersPage() {
                     Players
                   </div>
                   {columns.map((key) => {
-                    const col = columnDef(key, recentWeeks);
+                    const col = columnDef(key, recentWeeks, week);
                     const active = sort === key;
                     return (
                       <button
                         key={key}
                         type="button"
                         onClick={() => headingTap(key)}
-                        aria-label={`Sort by ${sortLabel(key, recentWeeks)}`}
+                        aria-label={`Sort by ${sortLabel(key, recentWeeks, week)}`}
                         className={cn(
                           "flex shrink-0 items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors",
                           col.w,
@@ -765,7 +828,7 @@ function PlayersPage() {
                         </div>
                       </div>
                       {columns.map((key) => {
-                        const col = columnDef(key, recentWeeks);
+                        const col = columnDef(key, recentWeeks, week);
                         return (
                           <div
                             key={key}
