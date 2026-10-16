@@ -4,6 +4,10 @@ import type { League, FantasyTeam } from "@/lib/fantasy/league";
 import { SLOTS, lineupForWeek } from "@/lib/fantasy/league";
 import { gameInfoFor, headshotUrl, scoreFor, teamLogoUrl } from "@/lib/fantasy/hooks";
 import { savedFinal, scoreOverride } from "@/lib/fantasy/store";
+import {
+  whatCouldveBeen,
+  type WhatCouldveBeen,
+} from "@/lib/fantasy/what-couldve-been";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle } from "lucide-react";
 import { PlayerCell, isInactive, isOnField } from "./PlayerCell";
@@ -487,16 +491,10 @@ export function MatchupBoard({
         })}
       </div>
 
-      {/* Slimmer than starters: face · name (2 lines) · pos · total · optional Oops. */}
+      {/* Slimmer than starters: face · name (2 lines) · pos · total. */}
       {(() => {
         const homeStarterIds = new Set(homeView.starters.filter(Boolean) as string[]);
         const awayStarterIds = new Set(awayView.starters.filter(Boolean) as string[]);
-        const homeStarters = homeView.starters
-          .map((id) => (id ? byId.get(id) : undefined))
-          .filter((p): p is SlimPlayer => !!p);
-        const awayStarters = awayView.starters
-          .map((id) => (id ? byId.get(id) : undefined))
-          .filter((p): p is SlimPlayer => !!p);
         const homeBench = homeView.bench
           .filter((id) => !homeStarterIds.has(id))
           .map((id) => byId.get(id))
@@ -525,7 +523,6 @@ export function MatchupBoard({
                     align="left"
                     week={week}
                     league={league}
-                    starters={homeStarters}
                   />
                   <div className="text-center font-display text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:text-xs">
                     BN
@@ -535,7 +532,6 @@ export function MatchupBoard({
                     align="right"
                     week={week}
                     league={league}
-                    starters={awayStarters}
                   />
                 </div>
               ))}
@@ -543,40 +539,131 @@ export function MatchupBoard({
           </>
         );
       })()}
+
+      <WhatCouldveBeenSection
+        home={homeView}
+        away={awayView}
+        homePts={h.actual}
+        awayPts={a.actual}
+        week={week}
+        league={league}
+        byId={byId}
+      />
     </section>
   );
 }
 
-/** Bench outscored at least one starter on that team (skip all-zero pregame). */
-function benchLeftPointsOnTable(
-  benchPts: number,
-  starters: SlimPlayer[],
-  week: number,
-  league: League,
-): boolean {
-  if (benchPts < 0.05) return false;
-  return starters.some((s) => scoreFor(s, week, league).actual + 0.05 < benchPts);
+function playerSettled(player: SlimPlayer, week: number, currentWeek: number): boolean {
+  if (week < currentWeek) return true;
+  const game = gameInfoFor(player.team, week);
+  // Bye / missing game row counts as done so the slate can settle Mon night.
+  return !game || game.status === "none" || game.status === "final";
 }
 
-/** Bench cell: face + 2-line name + position + total (+ Oops when they beat a starter). */
+/** Under Bench: one category with two verdicts for the losing side. */
+function WhatCouldveBeenSection({
+  home,
+  away,
+  homePts,
+  awayPts,
+  week,
+  league,
+  byId,
+}: {
+  home: FantasyTeam;
+  away: FantasyTeam;
+  homePts: number;
+  awayPts: number;
+  week: number;
+  league: League;
+  byId: Map<string, SlimPlayer>;
+}) {
+  const scoreFn = (player: SlimPlayer) => scoreFor(player, week, league).actual;
+  const settled = (player: SlimPlayer) => playerSettled(player, week, league.currentWeek);
+  const homeResult = whatCouldveBeen({
+    team: home,
+    opponentPts: awayPts,
+    byId,
+    scoreFn,
+    settled,
+  });
+  const awayResult = whatCouldveBeen({
+    team: away,
+    opponentPts: homePts,
+    byId,
+    scoreFn,
+    settled,
+  });
+  if (!homeResult.verdict && !awayResult.verdict) return null;
+
+  return (
+    <>
+      <div className="border-t bg-secondary/50 px-4 py-2">
+        <h3 className="text-center font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          What could&apos;ve been
+        </h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 bg-secondary/20 px-3 py-3 sm:gap-6 sm:px-4 sm:py-4">
+        <WhatCouldveBeenSide result={homeResult} align="left" />
+        <WhatCouldveBeenSide result={awayResult} align="right" />
+      </div>
+    </>
+  );
+}
+
+function WhatCouldveBeenSide({
+  result,
+  align,
+}: {
+  result: WhatCouldveBeen;
+  align: "left" | "right";
+}) {
+  if (!result.verdict) {
+    return <div className={cn(align === "right" && "text-right")} />;
+  }
+  const won = result.verdict === "would_have_won";
+  return (
+    <div className={cn("min-w-0", align === "right" && "text-right")}>
+      <div
+        className={cn(
+          "font-display text-sm font-bold leading-snug sm:text-base",
+          won ? "text-primary" : "text-muted-foreground",
+        )}
+      >
+        {won ? "You would've won" : "You would've lost anyway"}
+      </div>
+      {won && result.startThese.length > 0 && (
+        <p className="mt-1 text-sm leading-snug text-foreground">
+          Start {result.startThese.join(", ")}
+        </p>
+      )}
+      <p className="mt-1 text-xs tabular-nums text-muted-foreground sm:text-sm">
+        {result.actualPts.toFixed(1)}
+        <span className="mx-1">→</span>
+        {result.bestPts.toFixed(1)}
+        <span className="mx-1 text-muted-foreground/70">vs</span>
+        {result.oppPts.toFixed(1)}
+      </p>
+    </div>
+  );
+}
+
+/** Bench cell: face + 2-line name + position + total. */
 function BenchSide({
   player,
   align,
   week,
   league,
-  starters,
 }: {
   player: SlimPlayer | undefined;
   align: "left" | "right";
   week: number;
   league: League;
-  starters: SlimPlayer[];
 }) {
   if (!player) {
     return <div className={cn("min-h-14", align === "right" && "text-right")} />;
   }
   const s = scoreFor(player, week, league);
-  const oops = benchLeftPointsOnTable(s.actual, starters, week, league);
   return (
     <PlayerCardTrigger player={player} week={week} league={league} className="min-w-0">
       <div
@@ -610,19 +697,9 @@ function BenchSide({
             {player.team} · {player.pos}
           </span>
         </div>
-        <div
-          className={cn(
-            "flex shrink-0 flex-col items-end gap-0.5",
-            align === "right" && "items-start",
-          )}
-        >
-          <span className="font-display text-lg font-bold tabular-nums leading-none">{s.actual.toFixed(1)}</span>
-          {oops && (
-            <span className="rounded bg-injury-out/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-injury-out">
-              Oops
-            </span>
-          )}
-        </div>
+        <span className="shrink-0 font-display text-lg font-bold tabular-nums leading-none">
+          {s.actual.toFixed(1)}
+        </span>
       </div>
     </PlayerCardTrigger>
   );
