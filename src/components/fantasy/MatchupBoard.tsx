@@ -487,10 +487,16 @@ export function MatchupBoard({
         })}
       </div>
 
-      {/* Slimmer than starters: name · pos · total — obvious it's the bench. */}
+      {/* Slimmer than starters: face · name (2 lines) · pos · total · optional Oops. */}
       {(() => {
         const homeStarterIds = new Set(homeView.starters.filter(Boolean) as string[]);
         const awayStarterIds = new Set(awayView.starters.filter(Boolean) as string[]);
+        const homeStarters = homeView.starters
+          .map((id) => (id ? byId.get(id) : undefined))
+          .filter((p): p is SlimPlayer => !!p);
+        const awayStarters = awayView.starters
+          .map((id) => (id ? byId.get(id) : undefined))
+          .filter((p): p is SlimPlayer => !!p);
         const homeBench = homeView.bench
           .filter((id) => !homeStarterIds.has(id))
           .map((id) => byId.get(id))
@@ -512,13 +518,25 @@ export function MatchupBoard({
               {Array.from({ length: rows }, (_, i) => (
                 <div
                   key={`bn-${i}`}
-                  className="grid grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)] items-center gap-1 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_3.5rem_minmax(0,1fr)] sm:gap-3 sm:px-4"
+                  className="grid grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)] items-center gap-1 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_3.5rem_minmax(0,1fr)] sm:gap-3 sm:px-4 sm:py-3"
                 >
-                  <BenchSide player={homeBench[i]} align="left" week={week} league={league} />
+                  <BenchSide
+                    player={homeBench[i]}
+                    align="left"
+                    week={week}
+                    league={league}
+                    starters={homeStarters}
+                  />
                   <div className="text-center font-display text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:text-xs">
                     BN
                   </div>
-                  <BenchSide player={awayBench[i]} align="right" week={week} league={league} />
+                  <BenchSide
+                    player={awayBench[i]}
+                    align="right"
+                    week={week}
+                    league={league}
+                    starters={awayStarters}
+                  />
                 </div>
               ))}
             </div>
@@ -529,27 +547,41 @@ export function MatchupBoard({
   );
 }
 
-/** Bench cell: face + name + position + total — snazzier than text-only, lighter than starters. */
+/** Bench outscored at least one starter on that team (skip all-zero pregame). */
+function benchLeftPointsOnTable(
+  benchPts: number,
+  starters: SlimPlayer[],
+  week: number,
+  league: League,
+): boolean {
+  if (benchPts < 0.05) return false;
+  return starters.some((s) => scoreFor(s, week, league).actual + 0.05 < benchPts);
+}
+
+/** Bench cell: face + 2-line name + position + total (+ Oops when they beat a starter). */
 function BenchSide({
   player,
   align,
   week,
   league,
+  starters,
 }: {
   player: SlimPlayer | undefined;
   align: "left" | "right";
   week: number;
   league: League;
+  starters: SlimPlayer[];
 }) {
   if (!player) {
-    return <div className={cn("min-h-11", align === "right" && "text-right")} />;
+    return <div className={cn("min-h-14", align === "right" && "text-right")} />;
   }
   const s = scoreFor(player, week, league);
+  const oops = benchLeftPointsOnTable(s.actual, starters, week, league);
   return (
     <PlayerCardTrigger player={player} week={week} league={league} className="min-w-0">
       <div
         className={cn(
-          "flex min-w-0 items-center gap-2",
+          "flex min-w-0 items-center gap-2.5",
           align === "right" && "flex-row-reverse text-right",
         )}
       >
@@ -558,7 +590,7 @@ function BenchSide({
             src={headshotUrl(player.id, player.pos, player.team)}
             alt=""
             loading="lazy"
-            className="h-10 w-10 rounded-full bg-muted object-cover ring-1 ring-border"
+            className="h-11 w-11 rounded-full bg-muted object-cover ring-1 ring-border"
             onError={(e) => {
               e.currentTarget.src = teamLogoUrl(player.team);
             }}
@@ -573,12 +605,24 @@ function BenchSide({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold leading-tight">{player.name}</span>
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="line-clamp-2 text-sm font-semibold leading-snug">{player.name}</span>
+          <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {player.team} · {player.pos}
           </span>
         </div>
-        <span className="shrink-0 font-display text-lg font-bold tabular-nums">{s.actual.toFixed(1)}</span>
+        <div
+          className={cn(
+            "flex shrink-0 flex-col items-end gap-0.5",
+            align === "right" && "items-start",
+          )}
+        >
+          <span className="font-display text-lg font-bold tabular-nums leading-none">{s.actual.toFixed(1)}</span>
+          {oops && (
+            <span className="rounded bg-injury-out/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-injury-out">
+              Oops
+            </span>
+          )}
+        </div>
       </div>
     </PlayerCardTrigger>
   );
