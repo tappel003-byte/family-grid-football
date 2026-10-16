@@ -41,6 +41,10 @@ import {
   scoreFor,
 } from "@/lib/fantasy/hooks";
 import { ownedIds, type League } from "@/lib/fantasy/league";
+import {
+  trendingWindowsFor,
+  type TrendingWindow,
+} from "@/lib/fantasy/trending-windows";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { listMyWatchlist, setWatched } from "@/lib/fantasy/community";
 import { useQueryClient } from "@tanstack/react-query";
@@ -90,13 +94,15 @@ function TrendingList({
   byId,
   week,
   league,
+  lookbackHours,
 }: {
   type: "add" | "drop";
   byId: Map<string, SlimPlayer>;
   week: number;
   league: League | null;
+  lookbackHours: number;
 }) {
-  const { data, isPending } = useQuery(trendingQueryOptions(type));
+  const { data, isPending } = useQuery(trendingQueryOptions(type, lookbackHours));
   if (isPending) return <p className="p-4 text-muted-foreground">Loading trends…</p>;
   const rows = (data ?? [])
     .map((e) => ({ ...e, player: byId.get(e.id) }))
@@ -117,6 +123,55 @@ function TrendingList({
         </li>
       ))}
     </ul>
+  );
+}
+
+function trendingTitle(type: "add" | "drop", window: TrendingWindow): string {
+  const verb = type === "add" ? "added" : "dropped";
+  if (window.id === "24h") return `Most ${verb} in the last 24 hours`;
+  if (window.id === "since_last_game") return `Most ${verb} since last game`;
+  return `Most ${verb} ${window.label.toLowerCase()}`;
+}
+
+function TrendingWindowPicker({
+  windows,
+  selectedId,
+  onSelect,
+}: {
+  windows: TrendingWindow[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  const selected = windows.find((w) => w.id === selectedId) ?? windows[0];
+  if (windows.length <= 1) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 shrink-0 gap-1.5 rounded-full px-3 text-sm font-semibold"
+        >
+          {selected?.label ?? "Last 24 hours"}
+          <ChevronDown className="h-4 w-4 shrink-0" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          Time window
+        </DropdownMenuLabel>
+        {windows.map((w) => (
+          <DropdownMenuItem
+            key={w.id}
+            onClick={() => onSelect(w.id)}
+            className="h-9 justify-between text-sm font-medium"
+          >
+            {w.label}
+            {selectedId === w.id && <Check className="h-4 w-4" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -398,11 +453,30 @@ function PlayersPage() {
   const [dir, setDir] = useState<"desc" | "asc">("desc");
   const [cardId, setCardId] = useState<string | null>(null);
   const [sortOpen, setSortOpen] = useState(false);
+  const [trendWindowId, setTrendWindowId] = useState("24h");
 
   const week = league?.currentWeek ?? 1;
-  useWeekData(week);
+  const weekData = useWeekData(week);
+  const prevWeekData = useWeekData(Math.max(1, week - 1));
+  const prev2WeekData = useWeekData(Math.max(1, week - 2));
   // Once any game this week is live/final, Current week appears in the dropdown.
   const showCurrentWeek = !isWeekPregame(week, week);
+  const trendWindows = useMemo(() => {
+    const byWeek = new Map([
+      [week, Object.values(weekData.games)],
+      [Math.max(1, week - 1), Object.values(prevWeekData.games)],
+      [Math.max(1, week - 2), Object.values(prev2WeekData.games)],
+    ]);
+    return trendingWindowsFor({ currentWeek: week, byWeek });
+  }, [week, weekData, prevWeekData, prev2WeekData]);
+  const trendWindow = trendWindows.find((w) => w.id === trendWindowId) ?? trendWindows[0]!;
+
+  useEffect(() => {
+    if (!trendWindows.some((w) => w.id === trendWindowId)) {
+      setTrendWindowId(trendWindows[0]?.id ?? "24h");
+    }
+  }, [trendWindows, trendWindowId]);
+
   const recentWeeks = useMemo(() => recentCompletedWeeks(week), [week]);
   const sortGroups = useMemo(
     () => buildSortGroups(recentWeeks, showCurrentWeek),
@@ -858,19 +932,47 @@ function PlayersPage() {
 
         <TabsContent value="adds" className="mt-4">
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <div className="flex items-center gap-2 border-b bg-secondary/60 px-4 py-3 font-display text-lg font-bold">
-              <TrendingUp className="h-5 w-5" /> Most added in the last 24 hours
+            <div className="flex items-center justify-between gap-2 border-b bg-secondary/60 px-3 py-3 sm:px-4">
+              <div className="flex min-w-0 items-center gap-2 font-display text-base font-bold sm:text-lg">
+                <TrendingUp className="h-5 w-5 shrink-0" />
+                <span className="truncate">{trendingTitle("add", trendWindow)}</span>
+              </div>
+              <TrendingWindowPicker
+                windows={trendWindows}
+                selectedId={trendWindow.id}
+                onSelect={setTrendWindowId}
+              />
             </div>
-            <TrendingList type="add" byId={byId} week={week} league={league} />
+            <TrendingList
+              type="add"
+              byId={byId}
+              week={week}
+              league={league}
+              lookbackHours={trendWindow.hours}
+            />
           </div>
         </TabsContent>
 
         <TabsContent value="drops" className="mt-4">
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <div className="flex items-center gap-2 border-b bg-secondary/60 px-4 py-3 font-display text-lg font-bold">
-              <TrendingDown className="h-5 w-5" /> Most dropped in the last 24 hours
+            <div className="flex items-center justify-between gap-2 border-b bg-secondary/60 px-3 py-3 sm:px-4">
+              <div className="flex min-w-0 items-center gap-2 font-display text-base font-bold sm:text-lg">
+                <TrendingDown className="h-5 w-5 shrink-0" />
+                <span className="truncate">{trendingTitle("drop", trendWindow)}</span>
+              </div>
+              <TrendingWindowPicker
+                windows={trendWindows}
+                selectedId={trendWindow.id}
+                onSelect={setTrendWindowId}
+              />
             </div>
-            <TrendingList type="drop" byId={byId} week={week} league={league} />
+            <TrendingList
+              type="drop"
+              byId={byId}
+              week={week}
+              league={league}
+              lookbackHours={trendWindow.hours}
+            />
           </div>
         </TabsContent>
 

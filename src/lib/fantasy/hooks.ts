@@ -55,10 +55,10 @@ export const marketQueryOptions = queryOptions({
   staleTime: 1000 * 60 * 30,
 });
 
-export const trendingQueryOptions = (type: "add" | "drop") =>
+export const trendingQueryOptions = (type: "add" | "drop", lookbackHours = 24) =>
   queryOptions({
-    queryKey: ["nfl-trending", type],
-    queryFn: () => getTrending({ data: { type } }),
+    queryKey: ["nfl-trending", type, lookbackHours],
+    queryFn: () => getTrending({ data: { type, lookbackHours } }),
     staleTime: 1000 * 60 * 15,
   });
 

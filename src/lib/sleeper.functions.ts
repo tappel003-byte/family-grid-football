@@ -84,13 +84,21 @@ export const getPlayers = createServerFn({ method: "GET" }).handler(
 
 export type TrendingEntry = { id: string; count: number };
 
+/** Sleeper caps lookback around a week; keep callers honest. */
+const TRENDING_MAX_HOURS = 168;
+
 export const getTrending = createServerFn({ method: "GET" })
-  .inputValidator((data: { type: "add" | "drop" }) => ({
-    type: data.type === "drop" ? ("drop" as const) : ("add" as const),
-  }))
+  .inputValidator((data: { type: "add" | "drop"; lookbackHours?: number }) => {
+    const raw = data.lookbackHours ?? 24;
+    const hours = Math.max(1, Math.min(TRENDING_MAX_HOURS, Math.round(Number(raw) || 24)));
+    return {
+      type: data.type === "drop" ? ("drop" as const) : ("add" as const),
+      lookbackHours: hours,
+    };
+  })
   .handler(async ({ data }): Promise<TrendingEntry[]> => {
     const res = await fetch(
-      `https://api.sleeper.app/v1/players/nfl/trending/${data.type}?lookback_hours=24&limit=200`,
+      `https://api.sleeper.app/v1/players/nfl/trending/${data.type}?lookback_hours=${data.lookbackHours}&limit=200`,
     );
     if (!res.ok) return [];
     const json = (await res.json()) as Array<{ player_id: string; count: number }>;
