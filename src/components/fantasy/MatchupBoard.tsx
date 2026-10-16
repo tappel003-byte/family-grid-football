@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { League, FantasyTeam } from "@/lib/fantasy/league";
 import { SLOTS, lineupForWeek } from "@/lib/fantasy/league";
-import { gameInfoFor, scoreFor } from "@/lib/fantasy/hooks";
+import { gameInfoFor, headshotUrl, scoreFor, teamLogoUrl } from "@/lib/fantasy/hooks";
 import { savedFinal, scoreOverride } from "@/lib/fantasy/store";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
 import { AlertTriangle } from "lucide-react";
@@ -529,7 +529,7 @@ export function MatchupBoard({
   );
 }
 
-/** Compact bench cell: player, position, points — not the full starter card. */
+/** Bench cell: face + name + position + total — snazzier than text-only, lighter than starters. */
 function BenchSide({
   player,
   align,
@@ -542,26 +542,43 @@ function BenchSide({
   league: League;
 }) {
   if (!player) {
-    return <div className={cn("min-h-8", align === "right" && "text-right")} />;
+    return <div className={cn("min-h-11", align === "right" && "text-right")} />;
   }
   const s = scoreFor(player, week, league);
   return (
     <PlayerCardTrigger player={player} week={week} league={league} className="min-w-0">
       <div
         className={cn(
-          "flex min-w-0 items-baseline gap-2",
+          "flex min-w-0 items-center gap-2",
           align === "right" && "flex-row-reverse text-right",
         )}
       >
+        <div className="relative shrink-0">
+          <img
+            src={headshotUrl(player.id, player.pos, player.team)}
+            alt=""
+            loading="lazy"
+            className="h-10 w-10 rounded-full bg-muted object-cover ring-1 ring-border"
+            onError={(e) => {
+              e.currentTarget.src = teamLogoUrl(player.team);
+            }}
+          />
+          {player.pos !== "DEF" && (
+            <img
+              src={teamLogoUrl(player.team)}
+              alt=""
+              loading="lazy"
+              className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-background p-px ring-1 ring-border"
+            />
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold leading-tight">{player.name}</span>
           <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {player.team} · {player.pos}
           </span>
         </div>
-        <span className="shrink-0 font-display text-base font-bold tabular-nums text-muted-foreground">
-          {s.actual.toFixed(1)}
-        </span>
+        <span className="shrink-0 font-display text-lg font-bold tabular-nums">{s.actual.toFixed(1)}</span>
       </div>
     </PlayerCardTrigger>
   );
