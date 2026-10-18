@@ -5,8 +5,17 @@ import { useEffect, useState } from "react";
 import { Check, Lock, X } from "lucide-react";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { WeekSelector } from "@/components/fantasy/WeekSelector";
-import { getPicksBoard, savePick, saveTiebreaker, type PickGame, type PicksBoard } from "@/lib/picks.functions";
+import {
+  getPickGameSummary,
+  getPicksBoard,
+  savePick,
+  saveTiebreaker,
+  type PickGame,
+  type PickGameSummary,
+  type PicksBoard,
+} from "@/lib/picks.functions";
 import { teamLogoUrl } from "@/lib/fantasy/hooks";
 import { formatGameTime, useTimeZone } from "@/lib/timezone";
 import { useAuth } from "@/lib/auth";
@@ -54,6 +63,7 @@ function PicksPage() {
   });
   const [err, setErr] = useState("");
   const [tieText, setTieText] = useState("");
+  const [summaryGame, setSummaryGame] = useState<PickGame | null>(null);
   useEffect(() => {
     setTieText(data?.myTiebreaker != null ? String(data.myTiebreaker) : "");
   }, [data?.myTiebreaker, data?.week]);
@@ -121,13 +131,39 @@ function PicksPage() {
           const locked = started(g);
           const mine = data.myPicks[g.id];
           const time = formatGameTime(g.startsAt, tz);
+          const openSummary = () => {
+            if (locked) setSummaryGame(g);
+          };
           return (
-            <div key={g.id} className="rounded-2xl border bg-card p-3 shadow-sm">
+            <div
+              key={g.id}
+              role={locked ? "button" : undefined}
+              tabIndex={locked ? 0 : undefined}
+              onClick={openSummary}
+              onKeyDown={
+                locked
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openSummary();
+                      }
+                    }
+                  : undefined
+              }
+              className={cn(
+                "rounded-2xl border bg-card p-3 shadow-sm",
+                locked && "cursor-pointer transition-colors hover:bg-secondary/40",
+              )}
+              aria-label={
+                locked ? `Open game summary: ${g.away.name} at ${g.home.name}` : undefined
+              }
+            >
               <div className="mb-2 flex items-center justify-between text-sm text-muted-foreground">
                 <span>
                   {g.status === "final" ? "Final" : g.status === "live" ? "Live" : time}
                   {g.network && g.status === "scheduled" ? ` · ${g.network}` : ""}
                   {g.overUnder != null && g.status === "scheduled" ? ` · O/U ${g.overUnder}` : ""}
+                  {locked ? " · Tap for summary" : ""}
                 </span>
                 {locked && <Lock className="h-4 w-4" aria-label="Locked" />}
               </div>
@@ -144,7 +180,10 @@ function PicksPage() {
                       key={t.abbr}
                       type="button"
                       disabled={locked}
-                      onClick={() => void choose(g, t.abbr)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void choose(g, t.abbr);
+                      }}
                       className={cn(
                         "relative flex flex-col items-center rounded-xl border-2 p-2 transition-colors",
                         final
@@ -199,7 +238,10 @@ function PicksPage() {
                 )}
               </div>
               {monday?.id === g.id && (
-                <div className="mt-3 flex items-center gap-2 border-t pt-3">
+                <div
+                  className="mt-3 flex items-center gap-2 border-t pt-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <label htmlFor="tiebreak" className="text-sm font-semibold">Tiebreaker: total points</label>
                   <Input
                     id="tiebreak"
@@ -221,8 +263,175 @@ function PicksPage() {
         })}
       </div>
 
+      <GameSummaryDialog
+        game={summaryGame}
+        myPick={summaryGame ? data.myPicks[summaryGame.id] ?? null : null}
+        open={!!summaryGame}
+        onOpenChange={(open) => {
+          if (!open) setSummaryGame(null);
+        }}
+      />
+
       <Notebook data={data} meId={user?.id} />
     </>
+  );
+}
+
+function GameSummaryDialog({
+  game,
+  myPick,
+  open,
+  onOpenChange,
+}: {
+  game: PickGame | null;
+  myPick: string | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const fetchSummary = useServerFn(getPickGameSummary);
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["pick-game-summary", game?.id],
+    enabled: open && !!game?.id,
+    queryFn: () => fetchSummary({ data: { eventId: game!.id } }),
+    staleTime: 60_000,
+  });
+
+  const pickHit =
+    game?.status === "final" &&
+    myPick &&
+    ((game.home.winner && myPick === game.home.abbr) || (game.away.winner && myPick === game.away.abbr));
+  const pickMiss = game?.status === "final" && myPick && !pickHit;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] w-[calc(100vw-2rem)] max-w-lg overflow-y-auto rounded-2xl p-0">
+        <DialogTitle className="sr-only">
+          {game ? `${game.away.name} at ${game.home.name} summary` : "Game summary"}
+        </DialogTitle>
+        {!game ? null : isPending ? (
+          <p className="p-6 text-muted-foreground">Loading game summary…</p>
+        ) : isError || !data ? (
+          <p className="p-6 text-muted-foreground">Couldn&apos;t load that summary right now.</p>
+        ) : (
+          <GameSummaryBody summary={data} myPick={myPick} pickHit={!!pickHit} pickMiss={!!pickMiss} />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function GameSummaryBody({
+  summary,
+  myPick,
+  pickHit,
+  pickMiss,
+}: {
+  summary: PickGameSummary;
+  myPick: string | null;
+  pickHit: boolean;
+  pickMiss: boolean;
+}) {
+  const qLabels = ["1", "2", "3", "4", "OT"];
+  const maxQ = Math.max(summary.away.quarters.length, summary.home.quarters.length, 4);
+  return (
+    <div className="p-5">
+      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{summary.status}</p>
+      {summary.headline ? (
+        <h2 className="mt-1 font-display text-xl font-bold leading-snug">{summary.headline}</h2>
+      ) : (
+        <h2 className="mt-1 font-display text-xl font-bold leading-snug">
+          {summary.away.name} {summary.away.score} – {summary.home.score} {summary.home.name}
+        </h2>
+      )}
+      {summary.blurb && <p className="mt-2 text-sm leading-snug text-muted-foreground">{summary.blurb}</p>}
+
+      {myPick && (
+        <p
+          className={cn(
+            "mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold text-white",
+            pickHit ? "bg-green-600" : pickMiss ? "bg-red-600" : "bg-primary",
+          )}
+        >
+          {pickMiss ? <X className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+          Your pick: {myPick}
+          {pickHit ? " · hit" : pickMiss ? " · miss" : ""}
+        </p>
+      )}
+
+      <div className="mt-4 overflow-hidden rounded-xl border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-secondary/50 text-muted-foreground">
+              <th className="px-3 py-2 text-left font-semibold">Team</th>
+              {Array.from({ length: maxQ }, (_, i) => (
+                <th key={qLabels[i] ?? i} className="px-1 py-2 text-center font-semibold">
+                  {qLabels[i] ?? i + 1}
+                </th>
+              ))}
+              <th className="px-3 py-2 text-center font-semibold">T</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[summary.away, summary.home].map((t) => (
+              <tr key={t.abbr} className="border-b last:border-0">
+                <td className="px-3 py-2">
+                  <span className="inline-flex items-center gap-2 font-semibold">
+                    <img src={teamLogoUrl(t.abbr)} alt="" className="h-6 w-6 object-contain" />
+                    {t.abbr}
+                  </span>
+                </td>
+                {Array.from({ length: maxQ }, (_, i) => (
+                  <td key={i} className="px-1 py-2 text-center tabular-nums">
+                    {t.quarters[i] ?? "—"}
+                  </td>
+                ))}
+                <td className="px-3 py-2 text-center font-display text-lg font-bold tabular-nums">
+                  {t.score ?? "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {summary.scoring.length > 0 && (
+        <section className="mt-5">
+          <h3 className="mb-2 font-display text-base font-bold">Scoring</h3>
+          <ul className="space-y-2">
+            {summary.scoring.map((p, i) => (
+              <li key={`${p.score}-${i}`} className="grid grid-cols-[2rem_1fr_auto] gap-2 text-sm">
+                <span className="font-semibold text-muted-foreground">
+                  {p.period != null ? `Q${p.period}` : "—"}
+                </span>
+                <span className="leading-snug">{p.text}</span>
+                <span className="tabular-nums text-muted-foreground">{p.score}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {summary.leaders.length > 0 && (
+        <section className="mt-5">
+          <h3 className="mb-2 font-display text-base font-bold">Leaders</h3>
+          <ul className="space-y-1.5">
+            {summary.leaders.map((l) => (
+              <li
+                key={`${l.team}-${l.category}-${l.name}`}
+                className="grid grid-cols-[2.5rem_5.5rem_1fr] gap-2 text-sm"
+              >
+                <span className="font-bold text-muted-foreground">{l.team}</span>
+                <span className="text-muted-foreground">{l.category.replace(/ Yards$/, "")}</span>
+                <span>
+                  <span className="font-semibold">{l.name}</span>{" "}
+                  <span className="text-muted-foreground">{l.value}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }
 

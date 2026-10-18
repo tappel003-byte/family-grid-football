@@ -395,3 +395,114 @@ export const setRival = createServerFn({ method: "POST" })
     if (error) throw new Error("Could not save your rival.");
     return { ok: true };
   });
+
+export type PickGameSummary = {
+  id: string;
+  headline: string | null;
+  blurb: string | null;
+  status: string;
+  home: { abbr: string; name: string; score: number | null; quarters: string[] };
+  away: { abbr: string; name: string; score: number | null; quarters: string[] };
+  scoring: Array<{ text: string; score: string; period: number | null }>;
+  leaders: Array<{ team: string; category: string; name: string; value: string }>;
+};
+
+const summaryCache = new Map<string, { at: number; data: PickGameSummary }>();
+
+type EspnSummary = {
+  article?: { headline?: string; description?: string };
+  header?: {
+    competitions?: Array<{
+      status?: { type?: { description?: string; completed?: boolean } };
+      competitors?: Array<{
+        homeAway?: string;
+        score?: string;
+        team?: { abbreviation?: string; displayName?: string };
+        linescores?: Array<{ displayValue?: string }>;
+      }>;
+    }>;
+  };
+  scoringPlays?: Array<{
+    text?: string;
+    awayScore?: number;
+    homeScore?: number;
+    period?: { number?: number };
+  }>;
+  leaders?: Array<{
+    team?: { abbreviation?: string };
+    leaders?: Array<{
+      displayName?: string;
+      name?: string;
+      leaders?: Array<{ athlete?: { displayName?: string }; displayValue?: string }>;
+    }>;
+  }>;
+};
+
+/** Box score style summary for a locked Pick'em game (ESPN event id). */
+export const getPickGameSummary = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { eventId: string }) => ({
+    eventId: String(d.eventId ?? "").replace(/[^\d]/g, "").slice(0, 20),
+  }))
+  .handler(async ({ data }): Promise<PickGameSummary | null> => {
+    if (!data.eventId) return null;
+    const hit = summaryCache.get(data.eventId);
+    if (hit && Date.now() - hit.at < 60_000) return hit.data;
+
+    let raw: EspnSummary = {};
+    try {
+      const r = await fetch(
+        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${data.eventId}`,
+        { headers: HEADERS },
+      );
+      if (!r.ok) return hit?.data ?? null;
+      raw = (await r.json()) as EspnSummary;
+    } catch {
+      return hit?.data ?? null;
+    }
+
+    const comp = raw.header?.competitions?.[0];
+    const side = (h: "home" | "away") => {
+      const c = comp?.competitors?.find((x) => x.homeAway === h);
+      const abbr = c?.team?.abbreviation;
+      return {
+        abbr: abbr === "WSH" ? "WAS" : (abbr ?? h.toUpperCase()),
+        name: c?.team?.displayName ?? abbr ?? h,
+        score: c?.score != null && c.score !== "" ? Number(c.score) : null,
+        quarters: (c?.linescores ?? []).map((l) => l.displayValue ?? "0"),
+      };
+    };
+    const home = side("home");
+    const away = side("away");
+    const leaders: PickGameSummary["leaders"] = [];
+    for (const block of raw.leaders ?? []) {
+      const team = block.team?.abbreviation === "WSH" ? "WAS" : (block.team?.abbreviation ?? "");
+      for (const cat of (block.leaders ?? []).slice(0, 3)) {
+        const top = cat.leaders?.[0];
+        if (!top?.athlete?.displayName || !top.displayValue) continue;
+        leaders.push({
+          team,
+          category: cat.displayName ?? cat.name ?? "Leader",
+          name: top.athlete.displayName,
+          value: top.displayValue,
+        });
+      }
+    }
+
+    const summary: PickGameSummary = {
+      id: data.eventId,
+      headline: raw.article?.headline?.trim() || null,
+      blurb: raw.article?.description?.trim() || null,
+      status: comp?.status?.type?.description ?? "Final",
+      home,
+      away,
+      scoring: (raw.scoringPlays ?? []).map((p) => ({
+        text: p.text ?? "",
+        score: `${p.awayScore ?? 0}–${p.homeScore ?? 0}`,
+        period: p.period?.number ?? null,
+      })),
+      leaders,
+    };
+    summaryCache.set(data.eventId, { at: Date.now(), data: summary });
+    return summary;
+  });
