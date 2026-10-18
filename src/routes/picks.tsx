@@ -158,14 +158,18 @@ function PicksPage() {
                 locked ? `Open game summary: ${g.away.name} at ${g.home.name}` : undefined
               }
             >
-              <div className="mb-2 flex items-center justify-between text-sm text-muted-foreground">
+              <div className="mb-2 flex items-center justify-between gap-2 text-sm text-muted-foreground">
                 <span>
                   {g.status === "final" ? "Final" : g.status === "live" ? "Live" : time}
                   {g.network && g.status === "scheduled" ? ` · ${g.network}` : ""}
                   {g.overUnder != null && g.status === "scheduled" ? ` · O/U ${g.overUnder}` : ""}
-                  {locked ? " · Tap for summary" : ""}
                 </span>
-                {locked && <Lock className="h-4 w-4" aria-label="Locked" />}
+                {locked && (
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary/15 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-primary">
+                    Tap for summary
+                    <Lock className="h-3.5 w-3.5" aria-hidden />
+                  </span>
+                )}
               </div>
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                 {[g.away, null, g.home].map((t, i) =>
