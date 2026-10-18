@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Check, Lock, X } from "lucide-react";
+import { Check, ChevronRight, Lock, X } from "lucide-react";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -134,6 +134,8 @@ function PicksPage() {
           const openSummary = () => {
             if (locked) setSummaryGame(g);
           };
+          const railLabel =
+            g.status === "live" ? "Follow game" : g.status === "final" ? "Game recap" : "Game summary";
           return (
             <div
               key={g.id}
@@ -151,115 +153,118 @@ function PicksPage() {
                   : undefined
               }
               className={cn(
-                "rounded-2xl border bg-card p-3 shadow-sm",
-                locked && "cursor-pointer transition-colors hover:bg-secondary/40",
+                "overflow-hidden rounded-2xl border bg-card shadow-sm",
+                locked && "cursor-pointer transition-colors hover:border-foreground/20",
               )}
               aria-label={
                 locked ? `Open game summary: ${g.away.name} at ${g.home.name}` : undefined
               }
             >
-              <div className="mb-2 flex items-center justify-between gap-2 text-sm text-muted-foreground">
-                <span>
-                  {g.status === "final" ? "Final" : g.status === "live" ? "Live" : time}
-                  {g.network && g.status === "scheduled" ? ` · ${g.network}` : ""}
-                  {g.overUnder != null && g.status === "scheduled" ? ` · O/U ${g.overUnder}` : ""}
-                </span>
-                {locked && (
-                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary/15 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-primary">
-                    Tap for summary
-                    <Lock className="h-3.5 w-3.5" aria-hidden />
+              <div className="p-3">
+                <div className="mb-2 flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                  <span>
+                    {g.status === "final" ? "Final" : g.status === "live" ? "Live" : time}
+                    {g.network && g.status === "scheduled" ? ` · ${g.network}` : ""}
+                    {g.overUnder != null && g.status === "scheduled" ? ` · O/U ${g.overUnder}` : ""}
                   </span>
-                )}
-              </div>
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                {[g.away, null, g.home].map((t, i) =>
-                  t ? (
-                    (() => {
-                      const final = g.status === "final";
-                      const picked = mine === t.abbr;
-                      const hit = final && picked && !!t.winner;
-                      const miss = final && picked && !t.winner;
-                      return (
-                    <button
-                      key={t.abbr}
-                      type="button"
-                      disabled={locked}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void choose(g, t.abbr);
-                      }}
-                      className={cn(
-                        "relative flex flex-col items-center rounded-xl border-2 p-2 transition-colors",
-                        final
-                          ? picked
-                            ? hit
-                              ? "border-green-600 bg-green-600/10"
-                              : "border-red-600 bg-red-600/10"
-                            : t.winner
-                              ? "border-green-600/40"
-                              : "border-transparent opacity-50"
-                          : picked
-                            ? "border-primary bg-primary/10"
-                            : "border-transparent hover:bg-secondary",
-                        !final && locked && !picked && "opacity-50",
-                      )}
-                    >
-                      {t.score != null && g.status !== "scheduled" && (
-                        <span className={cn("font-display text-2xl tabular-nums leading-none mb-1", t.winner ? "font-black" : "font-semibold")}>
-                          {t.score}
+                  {locked && <Lock className="h-4 w-4 shrink-0" aria-label="Locked" />}
+                </div>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  {[g.away, null, g.home].map((t, i) =>
+                    t ? (
+                      (() => {
+                        const final = g.status === "final";
+                        const picked = mine === t.abbr;
+                        const hit = final && picked && !!t.winner;
+                        const miss = final && picked && !t.winner;
+                        return (
+                      <button
+                        key={t.abbr}
+                        type="button"
+                        disabled={locked}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void choose(g, t.abbr);
+                        }}
+                        className={cn(
+                          "relative flex flex-col items-center rounded-xl border-2 p-2 transition-colors",
+                          final
+                            ? picked
+                              ? hit
+                                ? "border-green-600 bg-green-600/10"
+                                : "border-red-600 bg-red-600/10"
+                              : t.winner
+                                ? "border-green-600/40"
+                                : "border-transparent opacity-50"
+                            : picked
+                              ? "border-primary bg-primary/10"
+                              : "border-transparent hover:bg-secondary",
+                          !final && locked && !picked && "opacity-50",
+                        )}
+                      >
+                        {t.score != null && g.status !== "scheduled" && (
+                          <span className={cn("font-display text-2xl tabular-nums leading-none mb-1", t.winner ? "font-black" : "font-semibold")}>
+                            {t.score}
+                          </span>
+                        )}
+                        <img src={teamLogoUrl(t.abbr)} alt="" className="h-16 w-16 object-contain" />
+                        <span className="mt-1 text-center text-sm font-bold leading-tight">{t.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {[t.record, g.status === "scheduled" ? t.spread : undefined].filter(Boolean).join(" · ")}
                         </span>
-                      )}
-                      <img src={teamLogoUrl(t.abbr)} alt="" className="h-16 w-16 object-contain" />
-                      <span className="mt-1 text-center text-sm font-bold leading-tight">{t.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {[t.record, g.status === "scheduled" ? t.spread : undefined].filter(Boolean).join(" · ")}
-                      </span>
-                      {picked && (
-                        <span
-                          className={cn(
-                            "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold text-white",
-                            hit ? "bg-green-600" : miss ? "bg-red-600" : "bg-primary text-primary-foreground",
-                          )}
-                        >
-                          {miss ? <X className="h-3 w-3" /> : <Check className="h-3 w-3" />} Your pick
-                        </span>
-                      )}
-                    </button>
-                      );
-                    })()
-                  ) : (
-                    g.status === "live" ? (
-                      <span key={`at-${i}`} className="flex flex-col items-center font-display font-bold leading-tight text-destructive tabular-nums">
-                        <span className="text-lg">{g.liveTop ?? "LIVE"}</span>
-                        {g.liveClock && <span className="text-base text-foreground">{g.liveClock}</span>}
-                      </span>
+                        {picked && (
+                          <span
+                            className={cn(
+                              "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold text-white",
+                              hit ? "bg-green-600" : miss ? "bg-red-600" : "bg-primary text-primary-foreground",
+                            )}
+                          >
+                            {miss ? <X className="h-3 w-3" /> : <Check className="h-3 w-3" />} Your pick
+                          </span>
+                        )}
+                      </button>
+                        );
+                      })()
                     ) : (
-                      <span key={`at-${i}`} className="font-display text-lg font-bold text-muted-foreground">
-                        {g.status === "final" ? "FINAL" : "@"}
-                      </span>
-                    )
-                  ),
+                      g.status === "live" ? (
+                        <span key={`at-${i}`} className="flex flex-col items-center font-display font-bold leading-tight text-destructive tabular-nums">
+                          <span className="text-lg">{g.liveTop ?? "LIVE"}</span>
+                          {g.liveClock && <span className="text-base text-foreground">{g.liveClock}</span>}
+                        </span>
+                      ) : (
+                        <span key={`at-${i}`} className="font-display text-lg font-bold text-muted-foreground">
+                          {g.status === "final" ? "FINAL" : "@"}
+                        </span>
+                      )
+                    ),
+                  )}
+                </div>
+                {monday?.id === g.id && (
+                  <div
+                    className="mt-3 flex items-center gap-2 border-t pt-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <label htmlFor="tiebreak" className="text-sm font-semibold">Tiebreaker: total points</label>
+                    <Input
+                      id="tiebreak"
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={200}
+                      disabled={locked}
+                      value={tieText}
+                      onChange={(e) => setTieText(e.target.value)}
+                      onBlur={() => void saveTie()}
+                      className="h-10 w-20 text-base"
+                      placeholder="—"
+                    />
+                  </div>
                 )}
               </div>
-              {monday?.id === g.id && (
-                <div
-                  className="mt-3 flex items-center gap-2 border-t pt-3"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <label htmlFor="tiebreak" className="text-sm font-semibold">Tiebreaker: total points</label>
-                  <Input
-                    id="tiebreak"
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    max={200}
-                    disabled={locked}
-                    value={tieText}
-                    onChange={(e) => setTieText(e.target.value)}
-                    onBlur={() => void saveTie()}
-                    className="h-10 w-20 text-base"
-                    placeholder="—"
-                  />
+              {locked && (
+                <div className="flex items-center justify-between border-t bg-secondary/70 px-3 py-2.5">
+                  <span className="text-sm font-semibold text-foreground">{railLabel}</span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
                 </div>
               )}
             </div>
