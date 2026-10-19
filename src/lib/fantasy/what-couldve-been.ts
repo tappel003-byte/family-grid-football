@@ -4,14 +4,23 @@ import type { SlimPlayer } from "../sleeper.functions";
 
 export type WhatCouldveBeenVerdict = "would_have_won" | "lost_anyway";
 
+export type LineupSwap = {
+  inId: string;
+  outId: string;
+  inName: string;
+  outName: string;
+};
+
 export type WhatCouldveBeen = {
   /** Verdict is locked — safe to show (no remaining ambiguity). */
   ready: boolean;
   actualPts: number;
   bestPts: number;
   oppPts: number;
-  /** Bench players who would move into the starters in the best lineup. */
-  startThese: string[];
+  /** Bench → starter swaps in the best-by-actual lineup. */
+  swaps: LineupSwap[];
+  /** Player ids to highlight (bench who should start + starters they bump). */
+  highlightIds: string[];
   verdict: WhatCouldveBeenVerdict | null;
 };
 
@@ -55,23 +64,54 @@ export function bestStartersByScore(
   }).filter((id): id is string => !!id);
 }
 
+/** Pair each bench upgrade with the starter they bump (prefer same position). */
+export function lineupSwaps(
+  actualIds: string[],
+  bestIds: string[],
+  byId: Map<string, SlimPlayer>,
+): LineupSwap[] {
+  const actualSet = new Set(actualIds);
+  const bestSet = new Set(bestIds);
+  const ins = bestIds.filter((id) => !actualSet.has(id));
+  const outs = actualIds.filter((id) => !bestSet.has(id));
+  const usedOut = new Set<string>();
+  const swaps: LineupSwap[] = [];
+
+  for (const inId of ins) {
+    const inn = byId.get(inId);
+    if (!inn) continue;
+    const samePos = outs.find((id) => {
+      if (usedOut.has(id)) return false;
+      return byId.get(id)?.pos === inn.pos;
+    });
+    const any = outs.find((id) => !usedOut.has(id));
+    const outId = samePos ?? any;
+    if (!outId) continue;
+    const out = byId.get(outId);
+    if (!out) continue;
+    usedOut.add(outId);
+    swaps.push({
+      inId,
+      outId,
+      inName: inn.name,
+      outName: out.name,
+    });
+  }
+  return swaps;
+}
+
 /**
- * Once you're mathematically eliminated (even your remaining starters can't
- * catch their current score), roast the lineup:
+ * Once you're mathematically eliminated, roast the lineup with Start X over Y:
  * - would_have_won: best banked lineup already beats what they have now
  * - lost_anyway: even the optimistic best still loses to their current score
- *
- * Opponent minutes left no longer block "would've won" — if you're already
- * dead and the bench had the points, say so.
+ * Stays quiet with no real swaps (nothing to roast).
  */
 export function whatCouldveBeen(args: {
   team: FantasyTeam;
   opponentPts: number;
-  /** Points the opponent can still add (kept for callers; not required to lock a win). */
   opponentRemaining?: number;
   byId: Map<string, SlimPlayer>;
   scoreFn: ScoreFn;
-  /** Points this player can still add; 0 when their game is done. */
   remainingFn?: ScoreFn;
 }): WhatCouldveBeen {
   const { team, opponentPts, byId, scoreFn } = args;
@@ -91,20 +131,15 @@ export function whatCouldveBeen(args: {
   const bestMax = totalFor(bestByOptimistic, byId, (p) => scoreFn(p) + remainingFn(p));
   const bestPts = bestMin;
 
-  const actualSet = new Set(actualIds);
-  const startThese = bestByActual
-    .filter((id) => !actualSet.has(id))
-    .map((id) => byId.get(id)?.name)
-    .filter((n): n is string => !!n);
+  const swaps = lineupSwaps(actualIds, bestByActual, byId);
+  const highlightIds = [...new Set(swaps.flatMap((s) => [s.inId, s.outId]))];
 
   const myMax = actualPts + actualRem;
   const oppNow = opponentPts;
-
-  // Even at our best remaining finish, we still lose to their current score.
   const clearlyLost = myMax + EPS < oppNow;
 
   let verdict: WhatCouldveBeenVerdict | null = null;
-  if (clearlyLost) {
+  if (clearlyLost && swaps.length > 0) {
     if (bestMin > oppNow + EPS) verdict = "would_have_won";
     else if (bestMax + EPS < oppNow) verdict = "lost_anyway";
   }
@@ -114,7 +149,8 @@ export function whatCouldveBeen(args: {
     actualPts,
     bestPts,
     oppPts: opponentPts,
-    startThese,
+    swaps,
+    highlightIds,
     verdict,
   };
 }
