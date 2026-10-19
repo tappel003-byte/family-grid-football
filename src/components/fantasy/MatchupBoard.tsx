@@ -235,12 +235,14 @@ function Side({
   week,
   league,
   flagged,
+  roasted,
 }: {
   player: SlimPlayer | undefined;
   align: "left" | "right";
   week: number;
   league: League;
   flagged: boolean;
+  roasted?: boolean;
 }) {
   if (!player) {
     return (
@@ -255,7 +257,8 @@ function Side({
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg",
         flagged && "-mx-2 bg-injury-out/15 px-2 py-1",
-        !flagged && isOnField(player, week) && "-mx-2 bg-live/10 px-2 py-1 ring-1 ring-live/50",
+        !flagged && roasted && "-mx-2 bg-primary/10 px-2 py-1 ring-1 ring-primary/45",
+        !flagged && !roasted && isOnField(player, week) && "-mx-2 bg-live/10 px-2 py-1 ring-1 ring-live/50",
         align === "right" && "flex-row-reverse",
       )}
     >
@@ -278,12 +281,14 @@ function MobileSide({
   week,
   league,
   flagged,
+  roasted,
 }: {
   player: SlimPlayer | undefined;
   align: "left" | "right";
   week: number;
   league: League;
   flagged: boolean;
+  roasted?: boolean;
 }) {
   if (!player) {
     return (
@@ -306,7 +311,8 @@ function MobileSide({
         "min-h-36 min-w-0 rounded-md p-2",
         align === "right" && "text-right",
         flagged && "bg-injury-out/15",
-        !flagged && isOnField(player, week) && "bg-live/10 ring-1 ring-live/50",
+        !flagged && roasted && "bg-primary/10 ring-1 ring-primary/45",
+        !flagged && !roasted && isOnField(player, week) && "bg-live/10 ring-1 ring-live/50",
       )}
     >
       <PlayerCardTrigger player={player} week={week} league={league}>
@@ -346,6 +352,27 @@ export function MatchupBoard({
       .filter((p): p is SlimPlayer => !!p && isInactive(p.injury))
       .map((p) => ({ team, player: p })),
   );
+
+  const scoreFn = (player: SlimPlayer) => scoreFor(player, week, league).actual;
+  const remainingFn = (player: SlimPlayer) => playerRemaining(player, week, league);
+  const homeCouldve = whatCouldveBeen({
+    team: homeView,
+    opponentPts: a.actual,
+    opponentRemaining: a.remaining,
+    byId,
+    scoreFn,
+    remainingFn,
+  });
+  const awayCouldve = whatCouldveBeen({
+    team: awayView,
+    opponentPts: h.actual,
+    opponentRemaining: h.remaining,
+    byId,
+    scoreFn,
+    remainingFn,
+  });
+  const homeRoast = new Set(homeCouldve.verdict ? homeCouldve.highlightIds : []);
+  const awayRoast = new Set(awayCouldve.verdict ? awayCouldve.highlightIds : []);
 
   return (
     <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
@@ -448,11 +475,25 @@ export function MatchupBoard({
           const apOut = !!ap && isInactive(ap.injury);
           return (
             <div key={`mobile-${slot}-${i}`} className="grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-stretch gap-1 px-2 py-3">
-               <MobileSide player={hp} align="left" week={week} league={league} flagged={hpOut} />
+               <MobileSide
+                 player={hp}
+                 align="left"
+                 week={week}
+                 league={league}
+                 flagged={hpOut}
+                 roasted={!!hp && homeRoast.has(hp.id)}
+               />
               <div className="flex items-center justify-center border-x border-border/70 bg-secondary/45 px-1">
                 <span className="text-center font-display text-xs font-bold uppercase text-muted-foreground">{slot}</span>
               </div>
-               <MobileSide player={ap} align="right" week={week} league={league} flagged={apOut} />
+               <MobileSide
+                 player={ap}
+                 align="right"
+                 week={week}
+                 league={league}
+                 flagged={apOut}
+                 roasted={!!ap && awayRoast.has(ap.id)}
+               />
             </div>
           );
         })}
@@ -475,6 +516,7 @@ export function MatchupBoard({
                 week={week}
                 league={league}
                 flagged={hpOut}
+                roasted={!!hp && homeRoast.has(hp.id)}
               />
               <div className="text-center font-display text-sm font-bold uppercase tracking-widest text-muted-foreground">
                 {slot}
@@ -485,6 +527,7 @@ export function MatchupBoard({
                 week={week}
                 league={league}
                 flagged={apOut}
+                roasted={!!ap && awayRoast.has(ap.id)}
               />
             </div>
           );
@@ -523,6 +566,7 @@ export function MatchupBoard({
                     align="left"
                     week={week}
                     league={league}
+                    roasted={!!homeBench[i] && homeRoast.has(homeBench[i]!.id)}
                   />
                   <div className="text-center font-display text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:text-xs">
                     BN
@@ -532,6 +576,7 @@ export function MatchupBoard({
                     align="right"
                     week={week}
                     league={league}
+                    roasted={!!awayBench[i] && awayRoast.has(awayBench[i]!.id)}
                   />
                 </div>
               ))}
@@ -540,17 +585,7 @@ export function MatchupBoard({
         );
       })()}
 
-      <WhatCouldveBeenSection
-        home={homeView}
-        away={awayView}
-        homePts={h.actual}
-        awayPts={a.actual}
-        homeRem={h.remaining}
-        awayRem={a.remaining}
-        week={week}
-        league={league}
-        byId={byId}
-      />
+      <WhatCouldveBeenSection home={homeCouldve} away={awayCouldve} byId={byId} />
     </section>
   );
 }
@@ -568,47 +603,17 @@ function playerRemaining(player: SlimPlayer, week: number, league: League): numb
   return Math.max(0, s.projected) * share;
 }
 
-/** Under Bench: one category with two verdicts for the losing side. */
+/** Under Bench: roast with Start X over Y + board highlights. */
 function WhatCouldveBeenSection({
   home,
   away,
-  homePts,
-  awayPts,
-  homeRem,
-  awayRem,
-  week,
-  league,
   byId,
 }: {
-  home: FantasyTeam;
-  away: FantasyTeam;
-  homePts: number;
-  awayPts: number;
-  homeRem: number;
-  awayRem: number;
-  week: number;
-  league: League;
+  home: WhatCouldveBeen;
+  away: WhatCouldveBeen;
   byId: Map<string, SlimPlayer>;
 }) {
-  const scoreFn = (player: SlimPlayer) => scoreFor(player, week, league).actual;
-  const remainingFn = (player: SlimPlayer) => playerRemaining(player, week, league);
-  const homeResult = whatCouldveBeen({
-    team: home,
-    opponentPts: awayPts,
-    opponentRemaining: awayRem,
-    byId,
-    scoreFn,
-    remainingFn,
-  });
-  const awayResult = whatCouldveBeen({
-    team: away,
-    opponentPts: homePts,
-    opponentRemaining: homeRem,
-    byId,
-    scoreFn,
-    remainingFn,
-  });
-  if (!homeResult.verdict && !awayResult.verdict) return null;
+  if (!home.verdict && !away.verdict) return null;
 
   return (
     <>
@@ -618,19 +623,26 @@ function WhatCouldveBeenSection({
         </h3>
       </div>
       <div className="grid grid-cols-2 gap-3 bg-secondary/20 px-3 py-3 sm:gap-6 sm:px-4 sm:py-4">
-        <WhatCouldveBeenSide result={homeResult} align="left" />
-        <WhatCouldveBeenSide result={awayResult} align="right" />
+        <WhatCouldveBeenSide result={home} align="left" byId={byId} />
+        <WhatCouldveBeenSide result={away} align="right" byId={byId} />
       </div>
     </>
   );
 }
 
+function swapLabel(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return parts.length > 1 ? parts[parts.length - 1]! : name;
+}
+
 function WhatCouldveBeenSide({
   result,
   align,
+  byId,
 }: {
   result: WhatCouldveBeen;
   align: "left" | "right";
+  byId: Map<string, SlimPlayer>;
 }) {
   if (!result.verdict) {
     return <div className={cn(align === "right" && "text-right")} />;
@@ -644,18 +656,58 @@ function WhatCouldveBeenSide({
           won ? "text-primary" : "text-muted-foreground",
         )}
       >
-        {won ? "You would've won" : "You would've lost anyway"}
+        {won
+          ? "You didn't start your best lineup — and it cost you the week"
+          : "You didn't start your best lineup, but it didn't matter anyway"}
       </div>
-      {won && result.startThese.length > 0 && (
-        <p className="mt-1 text-sm leading-snug text-foreground">
-          Start {result.startThese.join(", ")}
-        </p>
-      )}
-      <p className="mt-1 text-xs tabular-nums text-muted-foreground sm:text-sm">
+      <ul className={cn("mt-2 space-y-1.5", align === "right" && "flex flex-col items-end")}>
+        {result.swaps.map((swap) => {
+          const inn = byId.get(swap.inId);
+          const out = byId.get(swap.outId);
+          return (
+            <li
+              key={`${swap.inId}-${swap.outId}`}
+              className={cn(
+                "flex max-w-full items-center gap-1.5 text-sm leading-snug text-foreground",
+                align === "right" && "flex-row-reverse",
+              )}
+            >
+              {inn && (
+                <img
+                  src={headshotUrl(inn.id, inn.pos, inn.team)}
+                  alt=""
+                  loading="lazy"
+                  className="h-6 w-6 shrink-0 rounded-full bg-muted object-cover ring-1 ring-primary/50"
+                  onError={(e) => {
+                    e.currentTarget.src = teamLogoUrl(inn.team);
+                  }}
+                />
+              )}
+              <span className="min-w-0">
+                Start <span className="font-semibold">{swapLabel(swap.inName)}</span>
+                {" over "}
+                <span className="font-semibold text-muted-foreground">{swapLabel(swap.outName)}</span>
+              </span>
+              {out && (
+                <img
+                  src={headshotUrl(out.id, out.pos, out.team)}
+                  alt=""
+                  loading="lazy"
+                  className="h-6 w-6 shrink-0 rounded-full bg-muted object-cover opacity-70 ring-1 ring-border"
+                  onError={(e) => {
+                    e.currentTarget.src = teamLogoUrl(out.team);
+                  }}
+                />
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-2 text-xs tabular-nums text-muted-foreground/80">
         {result.actualPts.toFixed(1)}
         <span className="mx-1">→</span>
         {result.bestPts.toFixed(1)}
-        <span className="mx-1 text-muted-foreground/70">vs</span>
+        <span className="mx-1 text-muted-foreground/60">vs</span>
         {result.oppPts.toFixed(1)}
       </p>
     </div>
@@ -668,11 +720,13 @@ function BenchSide({
   align,
   week,
   league,
+  roasted,
 }: {
   player: SlimPlayer | undefined;
   align: "left" | "right";
   week: number;
   league: League;
+  roasted?: boolean;
 }) {
   if (!player) {
     return <div className={cn("min-h-14", align === "right" && "text-right")} />;
@@ -682,8 +736,9 @@ function BenchSide({
     <PlayerCardTrigger player={player} week={week} league={league} className="min-w-0">
       <div
         className={cn(
-          "flex min-w-0 items-center gap-2.5",
+          "flex min-w-0 items-center gap-2.5 rounded-md",
           align === "right" && "flex-row-reverse text-right",
+          roasted && "-mx-1 bg-primary/10 px-1 py-0.5 ring-1 ring-primary/45",
         )}
       >
         <div className="relative shrink-0">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestStartersByScore, whatCouldveBeen } from "./what-couldve-been";
+import { bestStartersByScore, lineupSwaps, whatCouldveBeen } from "./what-couldve-been";
 import type { FantasyTeam } from "./league";
 import type { SlimPlayer } from "../sleeper.functions";
 
@@ -44,8 +44,6 @@ describe("whatCouldveBeen", () => {
     def1: 2,
   };
 
-  // Flex wr3(18) started; bench qb2(25) + rb3(20) would upgrade.
-  // Actual ≈ 63, best ≈ 91.
   const t = team(
     ["qb1", "rb1", "rb2", "wr1", "wr2", "te1", "wr3", "k1", "def1"],
     ["qb2", "rb3"],
@@ -53,16 +51,20 @@ describe("whatCouldveBeen", () => {
 
   const scoreFn = (player: SlimPlayer) => scores[player.id] ?? 0;
 
-  it("says would_have_won when best lineup beats the opponent", () => {
+  it("says would_have_won with Start X over Y swaps", () => {
     const result = whatCouldveBeen({
       team: t,
       opponentPts: 70,
       byId,
       scoreFn,
     });
-    expect(result.ready).toBe(true);
     expect(result.verdict).toBe("would_have_won");
-    expect(result.startThese.length).toBeGreaterThan(0);
+    expect(result.swaps.length).toBeGreaterThan(0);
+    expect(result.swaps.some((s) => s.inName === "Bench QB" && s.outName === "Starter QB")).toBe(
+      true,
+    );
+    expect(result.highlightIds).toContain("qb2");
+    expect(result.highlightIds).toContain("qb1");
   });
 
   it("says lost_anyway when best lineup still loses", () => {
@@ -73,6 +75,7 @@ describe("whatCouldveBeen", () => {
       scoreFn,
     });
     expect(result.verdict).toBe("lost_anyway");
+    expect(result.swaps.length).toBeGreaterThan(0);
   });
 
   it("stays quiet when the team already won", () => {
@@ -85,40 +88,33 @@ describe("whatCouldveBeen", () => {
     expect(result.verdict).toBeNull();
   });
 
-  it("still says would_have_won once you're eliminated even if they have minutes left", () => {
-    // Best ~91 vs their 70 now — you're dead, roast the bench even if they can still score.
+  it("stays quiet when you already started the best lineup", () => {
+    const optimal = team(
+      ["qb2", "rb3", "rb1", "wr3", "wr1", "te1", "rb2", "k1", "def1"],
+      ["qb1", "wr2"],
+    );
     const result = whatCouldveBeen({
-      team: t,
-      opponentPts: 70,
-      opponentRemaining: 30,
-      byId,
-      scoreFn,
-    });
-    expect(result.verdict).toBe("would_have_won");
-    expect(result.ready).toBe(true);
-  });
-
-  it("stays quiet while you can still catch their current score", () => {
-    const result = whatCouldveBeen({
-      team: t,
-      opponentPts: 70,
-      byId,
-      scoreFn,
-      remainingFn: () => 20, // myMax ~83 > 70
-    });
-    expect(result.verdict).toBeNull();
-  });
-
-  it("shows lost_anyway as soon as optimistic best still can't catch up", () => {
-    const left: Record<string, number> = { qb2: 5, rb3: 5 };
-    const result = whatCouldveBeen({
-      team: t,
+      team: optimal,
       opponentPts: 200,
       byId,
       scoreFn,
-      remainingFn: (player) => left[player.id] ?? 0,
     });
-    expect(result.verdict).toBe("lost_anyway");
+    expect(result.swaps).toHaveLength(0);
+    expect(result.verdict).toBeNull();
+  });
+
+  it("pairs upgrades with same-position sitters when possible", () => {
+    const best = bestStartersByScore(t, byId, scoreFn);
+    const swaps = lineupSwaps(
+      t.starters.filter(Boolean) as string[],
+      best,
+      byId,
+    );
+    const qb = swaps.find((s) => s.inId === "qb2");
+    expect(qb?.outId).toBe("qb1");
+    // rb3 enters FLEX and bumps the weakest WR, not an RB slot.
+    const rb = swaps.find((s) => s.inId === "rb3");
+    expect(rb?.outId).toBe("wr2");
   });
 
   it("fills legal starter slots by score", () => {
