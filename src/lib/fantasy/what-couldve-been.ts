@@ -56,14 +56,18 @@ export function bestStartersByScore(
 }
 
 /**
- * As soon as it's obvious: if this team is clearly losing, would the
- * best-by-actual lineup have beaten the opponent — or lost anyway?
- * Stays quiet while remaining games could still flip the answer.
+ * Once you're mathematically eliminated (even your remaining starters can't
+ * catch their current score), roast the lineup:
+ * - would_have_won: best banked lineup already beats what they have now
+ * - lost_anyway: even the optimistic best still loses to their current score
+ *
+ * Opponent minutes left no longer block "would've won" — if you're already
+ * dead and the bench had the points, say so.
  */
 export function whatCouldveBeen(args: {
   team: FantasyTeam;
   opponentPts: number;
-  /** Points the opponent can still add (yet-to-play / in-progress). */
+  /** Points the opponent can still add (kept for callers; not required to lock a win). */
   opponentRemaining?: number;
   byId: Map<string, SlimPlayer>;
   scoreFn: ScoreFn;
@@ -72,13 +76,11 @@ export function whatCouldveBeen(args: {
 }): WhatCouldveBeen {
   const { team, opponentPts, byId, scoreFn } = args;
   const remainingFn = args.remainingFn ?? (() => 0);
-  const oppRem = Math.max(0, args.opponentRemaining ?? 0);
 
   const actualIds = (team.starters.filter(Boolean) as string[]) ?? [];
   const actualPts = totalFor(actualIds, byId, scoreFn);
   const actualRem = totalFor(actualIds, byId, remainingFn);
 
-  // Floor lineup: banked actuals. Ceiling lineup: optimistic (actual + left).
   const bestByActual = bestStartersByScore(team, byId, scoreFn);
   const bestByOptimistic = bestStartersByScore(
     team,
@@ -96,19 +98,15 @@ export function whatCouldveBeen(args: {
     .filter((n): n is string => !!n);
 
   const myMax = actualPts + actualRem;
-  const oppMin = opponentPts;
-  const oppMax = opponentPts + oppRem;
+  const oppNow = opponentPts;
 
   // Even at our best remaining finish, we still lose to their current score.
-  const clearlyLost = myMax + EPS < oppMin;
+  const clearlyLost = myMax + EPS < oppNow;
 
   let verdict: WhatCouldveBeenVerdict | null = null;
   if (clearlyLost) {
-    // Already-banked best lineup beats anything the opponent can still reach.
-    if (bestMin > oppMax + EPS) verdict = "would_have_won";
-    // Even the optimistic best lineup can't catch their current score.
-    else if (bestMax + EPS < oppMin) verdict = "lost_anyway";
-    // Otherwise still a question — leave null.
+    if (bestMin > oppNow + EPS) verdict = "would_have_won";
+    else if (bestMax + EPS < oppNow) verdict = "lost_anyway";
   }
 
   return {

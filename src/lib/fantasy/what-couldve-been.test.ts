@@ -85,8 +85,8 @@ describe("whatCouldveBeen", () => {
     expect(result.verdict).toBeNull();
   });
 
-  it("stays quiet when remaining games could still flip the verdict", () => {
-    // Best is ~91 vs opp 70, but opponent has 30 left — could reach 100.
+  it("still says would_have_won once you're eliminated even if they have minutes left", () => {
+    // Best ~91 vs their 70 now — you're dead, roast the bench even if they can still score.
     const result = whatCouldveBeen({
       team: t,
       opponentPts: 70,
@@ -94,7 +94,18 @@ describe("whatCouldveBeen", () => {
       byId,
       scoreFn,
     });
-    expect(result.ready).toBe(false);
+    expect(result.verdict).toBe("would_have_won");
+    expect(result.ready).toBe(true);
+  });
+
+  it("stays quiet while you can still catch their current score", () => {
+    const result = whatCouldveBeen({
+      team: t,
+      opponentPts: 70,
+      byId,
+      scoreFn,
+      remainingFn: () => 20, // myMax ~83 > 70
+    });
     expect(result.verdict).toBeNull();
   });
 
@@ -108,17 +119,6 @@ describe("whatCouldveBeen", () => {
       remainingFn: (player) => left[player.id] ?? 0,
     });
     expect(result.verdict).toBe("lost_anyway");
-  });
-
-  it("shows would_have_won once banked best beats opponent ceiling", () => {
-    const result = whatCouldveBeen({
-      team: t,
-      opponentPts: 70,
-      opponentRemaining: 5, // opp ceiling 75; best banked ~91
-      byId,
-      scoreFn,
-    });
-    expect(result.verdict).toBe("would_have_won");
   });
 
   it("fills legal starter slots by score", () => {
