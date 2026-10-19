@@ -593,7 +593,14 @@ export function MatchupBoard({
         );
       })()}
 
-      {myCouldve && <WhatCouldveBeenChip result={myCouldve} byId={byId} />}
+      {myCouldve && (
+        <WhatCouldveBeenChip
+          result={myCouldve}
+          byId={byId}
+          week={week}
+          league={league}
+        />
+      )}
     </section>
   );
 }
@@ -616,20 +623,22 @@ function swapLabel(name: string) {
   return parts.length > 1 ? parts[parts.length - 1]! : name;
 }
 
-/** Compact player face + last name — not tied to the matchup columns. */
+/** Compact player face + last name + points — not tied to the matchup columns. */
 function PlayerChip({
   player,
   name,
+  pts,
   muted,
 }: {
   player: SlimPlayer | undefined;
   name: string;
+  pts: number;
   muted?: boolean;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex max-w-[9.5rem] items-center gap-1.5 rounded-full border bg-card px-2 py-1 text-sm font-semibold leading-none",
+        "inline-flex max-w-[11rem] items-center gap-1.5 rounded-full border bg-card px-2 py-1 text-sm font-semibold leading-none",
         muted ? "border-border text-muted-foreground" : "border-primary/40 text-foreground",
       )}
     >
@@ -648,6 +657,7 @@ function PlayerChip({
         />
       ) : null}
       <span className="truncate">{swapLabel(name)}</span>
+      <span className="shrink-0 font-display tabular-nums">{pts.toFixed(1)}</span>
     </span>
   );
 }
@@ -656,12 +666,20 @@ function PlayerChip({
 function WhatCouldveBeenChip({
   result,
   byId,
+  week,
+  league,
 }: {
   result: WhatCouldveBeen;
   byId: Map<string, SlimPlayer>;
+  week: number;
+  league: League;
 }) {
   if (!result.verdict) return null;
   const won = result.verdict === "would_have_won";
+  const ptsFor = (id: string) => {
+    const player = byId.get(id);
+    return player ? scoreFor(player, week, league).actual : 0;
+  };
   return (
     <div className="border-t px-3 py-3 sm:px-4 sm:py-4">
       <div className="rounded-2xl border border-primary/25 bg-primary/5 px-3 py-3 sm:px-4 sm:py-3.5">
@@ -685,9 +703,18 @@ function WhatCouldveBeenChip({
               className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"
             >
               <span className="text-xs font-semibold uppercase tracking-wide">Start</span>
-              <PlayerChip player={byId.get(swap.inId)} name={swap.inName} />
+              <PlayerChip
+                player={byId.get(swap.inId)}
+                name={swap.inName}
+                pts={ptsFor(swap.inId)}
+              />
               <span className="text-xs font-semibold uppercase tracking-wide">over</span>
-              <PlayerChip player={byId.get(swap.outId)} name={swap.outName} muted />
+              <PlayerChip
+                player={byId.get(swap.outId)}
+                name={swap.outName}
+                pts={ptsFor(swap.outId)}
+                muted
+              />
             </li>
           ))}
         </ul>
