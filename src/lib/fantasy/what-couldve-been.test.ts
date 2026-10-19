@@ -109,6 +109,7 @@ describe("whatCouldveBeen", () => {
       t.starters.filter(Boolean) as string[],
       best,
       byId,
+      scoreFn,
     );
     const qb = swaps.find((s) => s.inId === "qb2");
     expect(qb?.outId).toBe("qb1");
@@ -122,5 +123,61 @@ describe("whatCouldveBeen", () => {
     expect(starters).toContain("qb2");
     expect(starters).toContain("rb3");
     expect(starters).not.toContain("qb1");
+  });
+
+  it("never pairs a lower scorer over a higher one (Ferguson/Wilson)", () => {
+    const roster = new Map<string, SlimPlayer>([
+      ["qb", p("qb", "QB", "QB")],
+      ["henry", p("henry", "RB", "Henry")],
+      ["kamara", p("kamara", "RB", "Kamara")],
+      ["rb2", p("rb2", "RB", "RB Two")],
+      ["wr1", p("wr1", "WR", "WR One")],
+      ["wilson", p("wilson", "WR", "Wilson")],
+      ["coleman", p("coleman", "WR", "Coleman")],
+      ["higbee", p("higbee", "TE", "Higbee")],
+      ["ferguson", p("ferguson", "TE", "Ferguson")],
+      ["wasted", p("wasted", "WR", "Wasted")],
+      ["k", p("k", "K", "Kicker")],
+      ["def", p("def", "DEF", "Defense")],
+    ]);
+    const pts: Record<string, number> = {
+      qb: 15,
+      henry: 4.5,
+      kamara: 13.9,
+      rb2: 8,
+      wr1: 10,
+      wilson: 5.2,
+      coleman: 13.9,
+      higbee: 2.2,
+      ferguson: 2.3,
+      wasted: 1.0,
+      k: 5,
+      def: 5,
+    };
+    const score = (player: SlimPlayer) => pts[player.id] ?? 0;
+
+    // Slot order mirrors a TE/WR shuffle the old greedy matcher crossed.
+    const actual = ["qb", "henry", "rb2", "wr1", "wilson", "higbee", "wasted", "k", "def"];
+    const best = ["qb", "kamara", "rb2", "wr1", "coleman", "ferguson", "wasted", "k", "def"];
+    const swaps = lineupSwaps(actual, best, roster, score);
+
+    expect(swaps.some((s) => s.inId === "ferguson" && s.outId === "wilson")).toBe(false);
+    expect(swaps.find((s) => s.inId === "ferguson")?.outId).toBe("higbee");
+    expect(swaps.find((s) => s.inId === "coleman")?.outId).toBe("wilson");
+    expect(swaps.find((s) => s.inId === "kamara")?.outId).toBe("henry");
+    for (const s of swaps) {
+      expect(score(roster.get(s.inId)!)).toBeGreaterThan(score(roster.get(s.outId)!));
+    }
+  });
+
+  it("drops swaps that would lose points even if set-diff pairs them", () => {
+    const roster = new Map<string, SlimPlayer>([
+      ["a", p("a", "WR", "High")],
+      ["b", p("b", "TE", "Low")],
+    ]);
+    const score = (player: SlimPlayer) => (player.id === "a" ? 5.2 : 2.3);
+    // Deliberately crossed: low TE "in", high WR "out"
+    const swaps = lineupSwaps(["a"], ["b"], roster, score);
+    expect(swaps).toHaveLength(0);
   });
 });

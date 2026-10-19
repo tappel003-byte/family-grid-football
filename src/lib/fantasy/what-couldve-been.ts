@@ -64,31 +64,30 @@ export function bestStartersByScore(
   }).filter((id): id is string => !!id);
 }
 
-/** Pair each bench upgrade with the starter they bump (prefer same position). */
+/**
+ * Pair each bench upgrade with the starter they bump.
+ * Slot-aligned first (FLEX/TE shuffles stay honest), then leftover
+ * ins/outs by gain — never "Start X over Y" when X scored less.
+ */
 export function lineupSwaps(
   actualIds: string[],
   bestIds: string[],
   byId: Map<string, SlimPlayer>,
+  scoreFn: ScoreFn,
 ): LineupSwap[] {
   const actualSet = new Set(actualIds);
   const bestSet = new Set(bestIds);
-  const ins = bestIds.filter((id) => !actualSet.has(id));
-  const outs = actualIds.filter((id) => !bestSet.has(id));
+  const usedIn = new Set<string>();
   const usedOut = new Set<string>();
   const swaps: LineupSwap[] = [];
 
-  for (const inId of ins) {
+  const push = (inId: string, outId: string) => {
+    if (usedIn.has(inId) || usedOut.has(outId)) return false;
     const inn = byId.get(inId);
-    if (!inn) continue;
-    const samePos = outs.find((id) => {
-      if (usedOut.has(id)) return false;
-      return byId.get(id)?.pos === inn.pos;
-    });
-    const any = outs.find((id) => !usedOut.has(id));
-    const outId = samePos ?? any;
-    if (!outId) continue;
     const out = byId.get(outId);
-    if (!out) continue;
+    if (!inn || !out) return false;
+    if (scoreFn(inn) <= scoreFn(out) + EPS) return false;
+    usedIn.add(inId);
     usedOut.add(outId);
     swaps.push({
       inId,
@@ -96,7 +95,39 @@ export function lineupSwaps(
       inName: inn.name,
       outName: out.name,
     });
+    return true;
+  };
+
+  // 1) Same slot: new starter took this seat (and the old one left the lineup).
+  const n = Math.min(actualIds.length, bestIds.length);
+  for (let i = 0; i < n; i++) {
+    const outId = actualIds[i]!;
+    const inId = bestIds[i]!;
+    if (outId === inId) continue;
+    if (actualSet.has(inId)) continue; // already started — reshuffle
+    if (bestSet.has(outId)) continue; // still starting elsewhere — reshuffle
+    push(inId, outId);
   }
+
+  // 2) Leftovers: best positive gain, prefer same position.
+  const ins = bestIds.filter((id) => !actualSet.has(id) && !usedIn.has(id));
+  const outs = actualIds.filter((id) => !bestSet.has(id) && !usedOut.has(id));
+  const cands: Array<{ inId: string; outId: string; gain: number; samePos: boolean }> = [];
+  for (const inId of ins) {
+    const inn = byId.get(inId);
+    if (!inn) continue;
+    const inPts = scoreFn(inn);
+    for (const outId of outs) {
+      const out = byId.get(outId);
+      if (!out) continue;
+      const gain = inPts - scoreFn(out);
+      if (gain <= EPS) continue;
+      cands.push({ inId, outId, gain, samePos: inn.pos === out.pos });
+    }
+  }
+  cands.sort((a, b) => Number(b.samePos) - Number(a.samePos) || b.gain - a.gain);
+  for (const c of cands) push(c.inId, c.outId);
+
   return swaps;
 }
 
@@ -131,7 +162,7 @@ export function whatCouldveBeen(args: {
   const bestMax = totalFor(bestByOptimistic, byId, (p) => scoreFn(p) + remainingFn(p));
   const bestPts = bestMin;
 
-  const swaps = lineupSwaps(actualIds, bestByActual, byId);
+  const swaps = lineupSwaps(actualIds, bestByActual, byId, scoreFn);
   const highlightIds = [...new Set(swaps.flatMap((s) => [s.inId, s.outId]))];
 
   const myMax = actualPts + actualRem;
