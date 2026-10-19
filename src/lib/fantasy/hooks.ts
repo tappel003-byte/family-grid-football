@@ -6,6 +6,7 @@ import { hydrateLeague, leagueStatus, setLeague, useLeagueStore } from "./store"
 import { enrichWeekDataInBrowser, getWeekData, type WeekData } from "../nfl.functions";
 import { getMarket } from "../market.functions";
 import { scoreStats, ZERO_STATS, type StatLine } from "./scoring";
+import { withKickoffPointsAllowed } from "./stat-line";
 
 const ZERO: StatLine = ZERO_STATS;
 
@@ -102,8 +103,13 @@ export function scoreFor(player: SlimPlayer, week: number, league: League): Play
     return Number.isFinite(value) ? value : 0;
   };
   const projected = finite(data?.projections[player.id] ?? ZERO);
-  const actual = finite(data?.stats[player.id] ?? ZERO);
-  const game = data?.games[player.team];
+  const game = data?.games[player.team] ?? data?.games[player.id];
+  let actualLine = data?.stats[player.id] ?? ZERO;
+  // Live/final D/ST with no PA row yet = 0 points allowed → shutout bracket (10).
+  if (player.pos === "DEF") {
+    actualLine = withKickoffPointsAllowed(actualLine, game?.status);
+  }
+  const actual = finite(actualLine);
   return {
     projected,
     actual,

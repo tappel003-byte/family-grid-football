@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rawToStatLine } from "./stat-line";
+import { rawToStatLine, withKickoffPointsAllowed } from "./stat-line";
 import { toLine } from "./results.server";
 import {
   ESPN_SCORING,
@@ -50,6 +50,16 @@ describe("points allowed tiers", () => {
   it("NFL example: 17 PA + 3 sacks + 1 INT = 6", () => {
     const line = rawToStatLine({ pts_allow: 17, sack: 3, int: 1 });
     expect(scoreStats(line!, ESPN_SCORING)).toBe(6);
+  });
+  it("live/final D/ST with no PA yet counts as a kickoff shutout (10)", () => {
+    const blank = { ...ZERO_STATS };
+    expect(scoreStats(withKickoffPointsAllowed(blank, "scheduled"), ESPN_SCORING)).toBe(0);
+    expect(scoreStats(withKickoffPointsAllowed(blank, "live"), ESPN_SCORING)).toBe(10);
+    expect(scoreStats(withKickoffPointsAllowed(blank, "final"), ESPN_SCORING)).toBe(10);
+    const mid = rawToStatLine({ pts_allow: 10, sack: 1 })!;
+    expect(scoreStats(withKickoffPointsAllowed(mid, "live"), ESPN_SCORING)).toBe(
+      scoreStats(mid, ESPN_SCORING),
+    );
   });
 });
 

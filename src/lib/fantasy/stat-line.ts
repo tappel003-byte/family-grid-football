@@ -2,6 +2,16 @@ import { ZERO_STATS, type StatLine } from "./scoring";
 
 type RawStats = Record<string, number> | undefined;
 
+const PTS_ALLOW_KEYS = [
+  "ptsAllow0",
+  "ptsAllow1_6",
+  "ptsAllow7_13",
+  "ptsAllow14_20",
+  "ptsAllow21_27",
+  "ptsAllow28_34",
+  "ptsAllow35",
+] as const;
+
 /** Convert Sleeper's raw weekly or season totals into every La Familia scoring field. */
 export function rawToStatLine(raw: RawStats): StatLine | null {
   if (!raw) return null;
@@ -62,4 +72,17 @@ export function pointsAllowedTier(raw: Record<string, number>) {
   else if (pa <= 34) t.ptsAllow28_34 = 1;
   else t.ptsAllow35 = 1;
   return t;
+}
+
+/**
+ * Once a D/ST game is underway, missing points-allowed means 0 allowed so far
+ * (kickoff shutout → 10 on NFL.com). Pregame stays blank; real PA tiers win.
+ */
+export function withKickoffPointsAllowed(
+  line: StatLine,
+  gameStatus: string | undefined,
+): StatLine {
+  if (gameStatus !== "live" && gameStatus !== "final") return line;
+  if (PTS_ALLOW_KEYS.some((key) => (line[key] ?? 0) > 0)) return line;
+  return { ...line, ptsAllow0: 1 };
 }
