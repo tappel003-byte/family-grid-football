@@ -9,6 +9,7 @@ import {
   type WhatCouldveBeen,
 } from "@/lib/fantasy/what-couldve-been";
 import type { SlimPlayer } from "@/lib/sleeper.functions";
+import { useAuth } from "@/lib/auth";
 import { AlertTriangle } from "lucide-react";
 import { PlayerCell, isInactive, isOnField } from "./PlayerCell";
 import { PlayerCardTrigger } from "./PlayerSheet";
@@ -353,26 +354,33 @@ export function MatchupBoard({
       .map((p) => ({ team, player: p })),
   );
 
+  const { user } = useAuth();
+  const mySide: "home" | "away" | null =
+    user && home.userId === user.id ? "home" : user && away.userId === user.id ? "away" : null;
   const scoreFn = (player: SlimPlayer) => scoreFor(player, week, league).actual;
   const remainingFn = (player: SlimPlayer) => playerRemaining(player, week, league);
-  const homeCouldve = whatCouldveBeen({
-    team: homeView,
-    opponentPts: a.actual,
-    opponentRemaining: a.remaining,
-    byId,
-    scoreFn,
-    remainingFn,
-  });
-  const awayCouldve = whatCouldveBeen({
-    team: awayView,
-    opponentPts: h.actual,
-    opponentRemaining: h.remaining,
-    byId,
-    scoreFn,
-    remainingFn,
-  });
-  const homeRoast = new Set(homeCouldve.verdict ? homeCouldve.highlightIds : []);
-  const awayRoast = new Set(awayCouldve.verdict ? awayCouldve.highlightIds : []);
+  // Only roast YOUR lineup — never the opponent's.
+  const myCouldve =
+    mySide === "home"
+      ? whatCouldveBeen({
+          team: homeView,
+          opponentPts: a.actual,
+          opponentRemaining: a.remaining,
+          byId,
+          scoreFn,
+          remainingFn,
+        })
+      : mySide === "away"
+        ? whatCouldveBeen({
+            team: awayView,
+            opponentPts: h.actual,
+            opponentRemaining: h.remaining,
+            byId,
+            scoreFn,
+            remainingFn,
+          })
+        : null;
+  const myRoast = new Set(myCouldve?.verdict ? myCouldve.highlightIds : []);
 
   return (
     <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
@@ -481,7 +489,7 @@ export function MatchupBoard({
                  week={week}
                  league={league}
                  flagged={hpOut}
-                 roasted={!!hp && homeRoast.has(hp.id)}
+                 roasted={mySide === "home" && !!hp && myRoast.has(hp.id)}
                />
               <div className="flex items-center justify-center border-x border-border/70 bg-secondary/45 px-1">
                 <span className="text-center font-display text-xs font-bold uppercase text-muted-foreground">{slot}</span>
@@ -492,7 +500,7 @@ export function MatchupBoard({
                  week={week}
                  league={league}
                  flagged={apOut}
-                 roasted={!!ap && awayRoast.has(ap.id)}
+                 roasted={mySide === "away" && !!ap && myRoast.has(ap.id)}
                />
             </div>
           );
@@ -516,7 +524,7 @@ export function MatchupBoard({
                 week={week}
                 league={league}
                 flagged={hpOut}
-                roasted={!!hp && homeRoast.has(hp.id)}
+                roasted={mySide === "home" && !!hp && myRoast.has(hp.id)}
               />
               <div className="text-center font-display text-sm font-bold uppercase tracking-widest text-muted-foreground">
                 {slot}
@@ -527,7 +535,7 @@ export function MatchupBoard({
                 week={week}
                 league={league}
                 flagged={apOut}
-                roasted={!!ap && awayRoast.has(ap.id)}
+                roasted={mySide === "away" && !!ap && myRoast.has(ap.id)}
               />
             </div>
           );
@@ -566,7 +574,7 @@ export function MatchupBoard({
                     align="left"
                     week={week}
                     league={league}
-                    roasted={!!homeBench[i] && homeRoast.has(homeBench[i]!.id)}
+                    roasted={mySide === "home" && !!homeBench[i] && myRoast.has(homeBench[i]!.id)}
                   />
                   <div className="text-center font-display text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:text-xs">
                     BN
@@ -576,7 +584,7 @@ export function MatchupBoard({
                     align="right"
                     week={week}
                     league={league}
-                    roasted={!!awayBench[i] && awayRoast.has(awayBench[i]!.id)}
+                    roasted={mySide === "away" && !!awayBench[i] && myRoast.has(awayBench[i]!.id)}
                   />
                 </div>
               ))}
@@ -585,7 +593,7 @@ export function MatchupBoard({
         );
       })()}
 
-      <WhatCouldveBeenSection home={homeCouldve} away={awayCouldve} byId={byId} />
+      {myCouldve && <WhatCouldveBeenChip result={myCouldve} byId={byId} />}
     </section>
   );
 }
@@ -603,113 +611,94 @@ function playerRemaining(player: SlimPlayer, week: number, league: League): numb
   return Math.max(0, s.projected) * share;
 }
 
-/** Under Bench: roast with Start X over Y + board highlights. */
-function WhatCouldveBeenSection({
-  home,
-  away,
-  byId,
-}: {
-  home: WhatCouldveBeen;
-  away: WhatCouldveBeen;
-  byId: Map<string, SlimPlayer>;
-}) {
-  if (!home.verdict && !away.verdict) return null;
-
-  return (
-    <>
-      <div className="border-t bg-secondary/50 px-4 py-2">
-        <h3 className="text-center font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          What could&apos;ve been
-        </h3>
-      </div>
-      <div className="grid grid-cols-2 gap-3 bg-secondary/20 px-3 py-3 sm:gap-6 sm:px-4 sm:py-4">
-        <WhatCouldveBeenSide result={home} align="left" byId={byId} />
-        <WhatCouldveBeenSide result={away} align="right" byId={byId} />
-      </div>
-    </>
-  );
-}
-
 function swapLabel(name: string) {
   const parts = name.trim().split(/\s+/);
   return parts.length > 1 ? parts[parts.length - 1]! : name;
 }
 
-function WhatCouldveBeenSide({
+/** Compact player face + last name — not tied to the matchup columns. */
+function PlayerChip({
+  player,
+  name,
+  muted,
+}: {
+  player: SlimPlayer | undefined;
+  name: string;
+  muted?: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex max-w-[9.5rem] items-center gap-1.5 rounded-full border bg-card px-2 py-1 text-sm font-semibold leading-none",
+        muted ? "border-border text-muted-foreground" : "border-primary/40 text-foreground",
+      )}
+    >
+      {player ? (
+        <img
+          src={headshotUrl(player.id, player.pos, player.team)}
+          alt=""
+          loading="lazy"
+          className={cn(
+            "h-6 w-6 shrink-0 rounded-full bg-muted object-cover ring-1",
+            muted ? "ring-border opacity-80" : "ring-primary/50",
+          )}
+          onError={(e) => {
+            e.currentTarget.src = teamLogoUrl(player.team);
+          }}
+        />
+      ) : null}
+      <span className="truncate">{swapLabel(name)}</span>
+    </span>
+  );
+}
+
+/** Your roast only — standalone chip under Bench, not a left/right matchup column. */
+function WhatCouldveBeenChip({
   result,
-  align,
   byId,
 }: {
   result: WhatCouldveBeen;
-  align: "left" | "right";
   byId: Map<string, SlimPlayer>;
 }) {
-  if (!result.verdict) {
-    return <div className={cn(align === "right" && "text-right")} />;
-  }
+  if (!result.verdict) return null;
   const won = result.verdict === "would_have_won";
   return (
-    <div className={cn("min-w-0", align === "right" && "text-right")}>
-      <div
-        className={cn(
-          "font-display text-sm font-bold leading-snug sm:text-base",
-          won ? "text-primary" : "text-muted-foreground",
-        )}
-      >
-        {won
-          ? "You didn't start your best lineup — and it cost you the week"
-          : "You didn't start your best lineup, but it didn't matter anyway"}
-      </div>
-      <ul className={cn("mt-2 space-y-1.5", align === "right" && "flex flex-col items-end")}>
-        {result.swaps.map((swap) => {
-          const inn = byId.get(swap.inId);
-          const out = byId.get(swap.outId);
-          return (
+    <div className="border-t px-3 py-3 sm:px-4 sm:py-4">
+      <div className="rounded-2xl border border-primary/25 bg-primary/5 px-3 py-3 sm:px-4 sm:py-3.5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          What could&apos;ve been
+        </p>
+        <p
+          className={cn(
+            "mt-1 font-display text-sm font-bold leading-snug sm:text-base",
+            won ? "text-primary" : "text-foreground",
+          )}
+        >
+          {won
+            ? "You didn't start your best lineup — and it cost you the week"
+            : "You didn't start your best lineup, but it didn't matter anyway"}
+        </p>
+        <ul className="mt-3 flex flex-col gap-2">
+          {result.swaps.map((swap) => (
             <li
               key={`${swap.inId}-${swap.outId}`}
-              className={cn(
-                "flex max-w-full items-center gap-1.5 text-sm leading-snug text-foreground",
-                align === "right" && "flex-row-reverse",
-              )}
+              className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"
             >
-              {inn && (
-                <img
-                  src={headshotUrl(inn.id, inn.pos, inn.team)}
-                  alt=""
-                  loading="lazy"
-                  className="h-6 w-6 shrink-0 rounded-full bg-muted object-cover ring-1 ring-primary/50"
-                  onError={(e) => {
-                    e.currentTarget.src = teamLogoUrl(inn.team);
-                  }}
-                />
-              )}
-              <span className="min-w-0">
-                Start <span className="font-semibold">{swapLabel(swap.inName)}</span>
-                {" over "}
-                <span className="font-semibold text-muted-foreground">{swapLabel(swap.outName)}</span>
-              </span>
-              {out && (
-                <img
-                  src={headshotUrl(out.id, out.pos, out.team)}
-                  alt=""
-                  loading="lazy"
-                  className="h-6 w-6 shrink-0 rounded-full bg-muted object-cover opacity-70 ring-1 ring-border"
-                  onError={(e) => {
-                    e.currentTarget.src = teamLogoUrl(out.team);
-                  }}
-                />
-              )}
+              <span className="text-xs font-semibold uppercase tracking-wide">Start</span>
+              <PlayerChip player={byId.get(swap.inId)} name={swap.inName} />
+              <span className="text-xs font-semibold uppercase tracking-wide">over</span>
+              <PlayerChip player={byId.get(swap.outId)} name={swap.outName} muted />
             </li>
-          );
-        })}
-      </ul>
-      <p className="mt-2 text-xs tabular-nums text-muted-foreground/80">
-        {result.actualPts.toFixed(1)}
-        <span className="mx-1">→</span>
-        {result.bestPts.toFixed(1)}
-        <span className="mx-1 text-muted-foreground/60">vs</span>
-        {result.oppPts.toFixed(1)}
-      </p>
+          ))}
+        </ul>
+        <p className="mt-2.5 text-xs tabular-nums text-muted-foreground/80">
+          {result.actualPts.toFixed(1)}
+          <span className="mx-1">→</span>
+          {result.bestPts.toFixed(1)}
+          <span className="mx-1 text-muted-foreground/60">vs</span>
+          {result.oppPts.toFixed(1)}
+        </p>
+      </div>
     </div>
   );
 }
