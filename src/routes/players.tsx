@@ -218,6 +218,13 @@ function lastThreeKeys(recentWeeks: number[]): SortKey[] {
   return [...weekSortKeys(recentWeeks), "HOT"];
 }
 
+/** Most recent finished week only — always in the dropdown (does not vanish midweek). */
+function lastWeekKeys(recentWeeks: number[]): SortKey[] {
+  if (!recentWeeks.length) return [];
+  const key = WEEK_SORT_KEYS[recentWeeks.length - 1];
+  return key ? [key] : [];
+}
+
 function sortLabel(key: SortKey, recentWeeks: number[], currentWeek: number): string {
   if (key === "CUR") return `Week ${currentWeek}`;
   const weekIndex = WEEK_SORT_KEYS.indexOf(key as WeekSortKey);
@@ -238,6 +245,7 @@ function sortShort(key: SortKey, recentWeeks: number[], currentWeek: number): st
   return COLUMNS_BASE[key as Exclude<SortKey, WeekSortKey | "CUR">]?.short ?? key;
 }
 
+const LAST_WEEK_LABEL = "Last week";
 const LAST_THREE_LABEL = "Last three weeks";
 const CURRENT_WEEK_LABEL = "Current week";
 
@@ -251,7 +259,9 @@ function buildSortGroups(
   if (showCurrentWeek) {
     groups.push({ label: CURRENT_WEEK_LABEL, keys: ["CUR"] });
   }
+  // Last week stays visible even when Current week hides (pregame midweek).
   groups.push(
+    { label: LAST_WEEK_LABEL, keys: lastWeekKeys(recentWeeks) },
     { label: LAST_THREE_LABEL, keys: lastThreeKeys(recentWeeks) },
     { label: "Ownership", keys: ["OWNED", "STARTED", "RISING"] },
     { label: "Hype", keys: ["ADDS", "DROPS", "PICKUP"] },
@@ -288,6 +298,17 @@ function currentWeekHelp(currentWeek: number): ReadonlyArray<{ short: string; te
     {
       short: `Wk${currentWeek}`,
       text: `Fantasy points scored so far in week ${currentWeek}. Updates as games finish.`,
+    },
+  ];
+}
+
+function lastWeekHelp(recentWeeks: number[]): ReadonlyArray<{ short: string; text: string }> {
+  const weekNum = recentWeeks[recentWeeks.length - 1];
+  if (!weekNum) return [];
+  return [
+    {
+      short: `Wk${weekNum}`,
+      text: `Fantasy points scored in week ${weekNum} (the most recent finished week).`,
     },
   ];
 }
@@ -334,17 +355,19 @@ function StatLegend({
       ? productionHelp()
       : group === CURRENT_WEEK_LABEL
         ? currentWeekHelp(currentWeek)
-        : group === LAST_THREE_LABEL
-          ? lastThreeHelp(recentWeeks)
-          : group === "All"
-            ? [
-                ...productionHelp(),
-                ...(showCurrentWeek ? currentWeekHelp(currentWeek) : []),
-                ...lastThreeHelp(recentWeeks).filter((row) => row.short !== "L3"),
-                ...(GROUP_HELP_BASE["Ownership"] ?? []),
-                ...(GROUP_HELP_BASE["Hype"] ?? []),
-              ]
-            : (GROUP_HELP_BASE[group] ?? productionHelp());
+        : group === LAST_WEEK_LABEL
+          ? lastWeekHelp(recentWeeks)
+          : group === LAST_THREE_LABEL
+            ? lastThreeHelp(recentWeeks)
+            : group === "All"
+              ? [
+                  ...productionHelp(),
+                  ...(showCurrentWeek ? currentWeekHelp(currentWeek) : []),
+                  ...lastThreeHelp(recentWeeks).filter((row) => row.short !== "L3"),
+                  ...(GROUP_HELP_BASE["Ownership"] ?? []),
+                  ...(GROUP_HELP_BASE["Hype"] ?? []),
+                ]
+              : (GROUP_HELP_BASE[group] ?? productionHelp());
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -459,7 +482,7 @@ function PlayersPage() {
   const weekData = useWeekData(week);
   const prevWeekData = useWeekData(Math.max(1, week - 1));
   const prev2WeekData = useWeekData(Math.max(1, week - 2));
-  // Once any game this week is live/final, Current week appears in the dropdown.
+  // Current week only while games are underway; Last week stays in the menu year-round.
   const showCurrentWeek = !isWeekPregame(week, week);
   const trendWindows = useMemo(() => {
     const byWeek = new Map([
