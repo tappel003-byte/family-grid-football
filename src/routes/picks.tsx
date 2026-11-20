@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronRight, Lock, X } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell, LoadingScreen, PageTitle } from "@/components/fantasy/AppShell";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -45,7 +46,8 @@ export const Route = createFileRoute("/picks")({
   notFoundComponent: () => <AppShell>Nothing here.</AppShell>,
 });
 
-const started = (g: PickGame) => g.status !== "scheduled" || Date.parse(g.startsAt) <= Date.now();
+/** Lock when ESPN says the game is underway — not merely when kickoff clock passed. */
+const started = (g: PickGame) => g.status === "live" || g.status === "final";
 
 function PicksPage() {
   const { user } = useAuth();
@@ -64,35 +66,87 @@ function PicksPage() {
   const [err, setErr] = useState("");
   const [tieText, setTieText] = useState("");
   const [summaryGame, setSummaryGame] = useState<PickGame | null>(null);
+  /** Local picks that survive board refetches until the server catches up. */
+  const [draftPicks, setDraftPicks] = useState<Record<string, string>>({});
+  const [savingIds, setSavingIds] = useState<Record<string, boolean>>({});
   useEffect(() => {
     setTieText(data?.myTiebreaker != null ? String(data.myTiebreaker) : "");
   }, [data?.myTiebreaker, data?.week]);
+  // Drop draft entries once the server board matches them.
+  useEffect(() => {
+    if (!data) return;
+    setDraftPicks((draft) => {
+      let changed = false;
+      const next = { ...draft };
+      for (const [gameId, team] of Object.entries(draft)) {
+        if (data.myPicks[gameId] === team) {
+          delete next[gameId];
+          changed = true;
+        }
+      }
+      return changed ? next : draft;
+    });
+  }, [data]);
+  // Clear drafts when switching weeks so last week's taps don't bleed over.
+  useEffect(() => {
+    setDraftPicks({});
+    setSavingIds({});
+  }, [data?.week]);
   const tz = useTimeZone();
+
+  const myPicks = useMemo(
+    () => (data ? { ...data.myPicks, ...draftPicks } : draftPicks),
+    [data, draftPicks],
+  );
 
   if (isLoading || !data) return error ? <p role="alert">{String(error)}</p> : <LoadingScreen label="Loading this week's games…" />;
 
   const choose = async (g: PickGame, team: string) => {
+    if (started(g) || savingIds[g.id]) return;
     setErr("");
-    const previous = data.myPicks[g.id];
-    // Cancel in-flight board refetches so a stale response can't wipe the pick.
-    await qc.cancelQueries({ queryKey: ["picks-board", user?.id] });
+    const previousDraft = draftPicks[g.id];
+    const previousServer = data.myPicks[g.id];
+    setDraftPicks((d) => ({ ...d, [g.id]: team }));
+    setSavingIds((s) => ({ ...s, [g.id]: true }));
     const applyPick = (board: PicksBoard | undefined, next: string | undefined) => {
       if (!board) return board;
-      const myPicks = { ...board.myPicks };
-      if (next) myPicks[g.id] = next;
-      else delete myPicks[g.id];
-      return { ...board, myPicks };
+      const picks = { ...board.myPicks };
+      if (next) picks[g.id] = next;
+      else delete picks[g.id];
+      const games = board.games;
+      const monday = games[games.length - 1] ?? null;
+      const needsTie =
+        board.week >= 5 && !!monday && !started(monday) && board.myTiebreaker == null;
+      const iAmDone =
+        games.length > 0 && games.every((game) => picks[game.id] || started(game)) && !needsTie;
+      return { ...board, myPicks: picks, iAmDone };
     };
     qc.setQueryData<PicksBoard>(key, (b) => applyPick(b, team));
-    // Header pill shares the "now" cache when browsing the current week.
     qc.setQueryData<PicksBoard>(["picks-board", user?.id, "now"], (b) => applyPick(b, team));
     try {
       await pick({ data: { week: data.week, gameId: g.id, team } });
-      void qc.invalidateQueries({ queryKey: ["picks-board", user?.id] });
+      // Soft refresh later — do not wipe the draft if the response lags.
+      window.setTimeout(() => {
+        void qc.invalidateQueries({ queryKey: ["picks-board", user?.id] });
+      }, 1500);
     } catch (e) {
-      qc.setQueryData<PicksBoard>(key, (b) => applyPick(b, previous));
-      qc.setQueryData<PicksBoard>(["picks-board", user?.id, "now"], (b) => applyPick(b, previous));
-      setErr(e instanceof Error ? e.message : "Could not save that pick.");
+      const message = e instanceof Error ? e.message : "Could not save that pick.";
+      setDraftPicks((d) => {
+        const next = { ...d };
+        if (previousDraft) next[g.id] = previousDraft;
+        else delete next[g.id];
+        return next;
+      });
+      qc.setQueryData<PicksBoard>(key, (b) => applyPick(b, previousServer));
+      qc.setQueryData<PicksBoard>(["picks-board", user?.id, "now"], (b) => applyPick(b, previousServer));
+      setErr(message);
+      toast.error(message);
+    } finally {
+      setSavingIds((s) => {
+        const next = { ...s };
+        delete next[g.id];
+        return next;
+      });
     }
   };
   const saveTie = async () => {
@@ -102,13 +156,19 @@ function PicksPage() {
       await tie({ data: { week: data.week, total: Math.round(n) } });
       void qc.invalidateQueries({ queryKey: key });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not save the tiebreaker.");
+      const message = e instanceof Error ? e.message : "Could not save the tiebreaker.";
+      setErr(message);
+      toast.error(message);
     }
   };
 
   const pickable = data.games.filter((g) => !started(g));
-  const made = data.games.filter((g) => data.myPicks[g.id]).length;
+  const made = data.games.filter((g) => myPicks[g.id]).length;
   const monday = data.games.find((g) => g.id === data.mondayGameId);
+  const iAmDone =
+    data.games.length > 0 &&
+    data.games.every((g) => myPicks[g.id] || started(g)) &&
+    !(data.week >= 5 && monday && !started(monday) && data.myTiebreaker == null);
 
   return (
     <>
@@ -117,7 +177,7 @@ function PicksPage() {
         <WeekSelector week={data.week} onChange={setWeek} />
       </div>
 
-      {data.iAmDone ? (
+      {iAmDone ? (
         <div className="mb-5 flex items-center gap-2 rounded-xl bg-primary px-4 py-3 text-lg font-bold text-primary-foreground">
           <Check className="h-6 w-6" /> All picks in! The family notebook is open below.
         </div>
@@ -143,7 +203,8 @@ function PicksPage() {
       <div className="grid gap-3 md:grid-cols-2">
         {data.games.map((g) => {
           const locked = started(g);
-          const mine = data.myPicks[g.id];
+          const mine = myPicks[g.id];
+          const saving = !!savingIds[g.id];
           const time = formatGameTime(g.startsAt, tz);
           const openSummary = () => {
             if (locked) setSummaryGame(g);
@@ -195,7 +256,7 @@ function PicksPage() {
                       <button
                         key={t.abbr}
                         type="button"
-                        disabled={locked}
+                        disabled={locked || saving}
                         onClick={(e) => {
                           e.stopPropagation();
                           void choose(g, t.abbr);
@@ -214,6 +275,7 @@ function PicksPage() {
                               ? "border-primary bg-primary/10"
                               : "border-transparent hover:bg-secondary",
                           !final && locked && !picked && "opacity-50",
+                          saving && "opacity-80",
                         )}
                       >
                         {t.score != null && g.status !== "scheduled" && (
@@ -288,7 +350,7 @@ function PicksPage() {
 
       <GameSummaryDialog
         game={summaryGame}
-        myPick={summaryGame ? data.myPicks[summaryGame.id] ?? null : null}
+        myPick={summaryGame ? myPicks[summaryGame.id] ?? null : null}
         open={!!summaryGame}
         onOpenChange={(open) => {
           if (!open) setSummaryGame(null);

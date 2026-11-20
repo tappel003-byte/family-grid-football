@@ -133,7 +133,8 @@ async function loadGames(season: string, week: number, current: number): Promise
   return games.length ? games : hit?.games ?? [];
 }
 
-const started = (g: PickGame) => g.status !== "scheduled" || Date.parse(g.startsAt) <= Date.now();
+/** Live/final only — family can still pick until ESPN marks the game underway. */
+const started = (g: PickGame) => g.status === "live" || g.status === "final";
 const winnerOf = (g: PickGame) => (g.status !== "final" ? null : g.home.winner ? g.home.abbr : g.away.winner ? g.away.abbr : null);
 /** The last game of the week is the Monday night tiebreaker game. */
 const mondayOf = (games: PickGame[]) => games[games.length - 1] ?? null;
