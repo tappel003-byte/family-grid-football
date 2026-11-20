@@ -25,10 +25,26 @@ export function savedFinal(week: number, slot: number): number | undefined {
   return savedFinals.get(`${week}:${slot}`);
 }
 
+/** Reads every saved weekly score in batches (a single read stops at 1000 rows). */
+async function fetchAllFinals(leagueId: string) {
+  const rows: Array<{ week: number; team_slot: number; points: number }> = [];
+  for (let from = 0; ; from += 1000) {
+    const { data } = await supabase
+      .from("weekly_results")
+      .select("week, team_slot, points")
+      .eq("league_id", leagueId)
+      .order("week")
+      .order("team_slot")
+      .range(from, from + 999);
+    rows.push(...(data ?? []));
+    if (!data || data.length < 1000) return { data: rows };
+  }
+}
+
 async function fetchOverrides(leagueId: string) {
   const [{ data }, { data: finals }] = await Promise.all([
     supabase.from("score_overrides").select("week, team_slot, points").eq("league_id", leagueId),
-    supabase.from("weekly_results").select("week, team_slot, points").eq("league_id", leagueId),
+    fetchAllFinals(leagueId),
   ]);
   const next = new Map<string, number>();
   for (const row of data ?? []) next.set(`${row.week}:${row.team_slot}`, Number(row.points));
