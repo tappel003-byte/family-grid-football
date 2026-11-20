@@ -73,13 +73,27 @@ function PicksPage() {
 
   const choose = async (g: PickGame, team: string) => {
     setErr("");
-    qc.setQueryData<PicksBoard>(key, (b) => (b ? { ...b, myPicks: { ...b.myPicks, [g.id]: team } } : b));
+    const previous = data.myPicks[g.id];
+    // Cancel in-flight board refetches so a stale response can't wipe the pick.
+    await qc.cancelQueries({ queryKey: ["picks-board", user?.id] });
+    const applyPick = (board: PicksBoard | undefined, next: string | undefined) => {
+      if (!board) return board;
+      const myPicks = { ...board.myPicks };
+      if (next) myPicks[g.id] = next;
+      else delete myPicks[g.id];
+      return { ...board, myPicks };
+    };
+    qc.setQueryData<PicksBoard>(key, (b) => applyPick(b, team));
+    // Header pill shares the "now" cache when browsing the current week.
+    qc.setQueryData<PicksBoard>(["picks-board", user?.id, "now"], (b) => applyPick(b, team));
     try {
       await pick({ data: { week: data.week, gameId: g.id, team } });
+      void qc.invalidateQueries({ queryKey: ["picks-board", user?.id] });
     } catch (e) {
+      qc.setQueryData<PicksBoard>(key, (b) => applyPick(b, previous));
+      qc.setQueryData<PicksBoard>(["picks-board", user?.id, "now"], (b) => applyPick(b, previous));
       setErr(e instanceof Error ? e.message : "Could not save that pick.");
     }
-    void qc.invalidateQueries({ queryKey: key });
   };
   const saveTie = async () => {
     const n = Number(tieText);
