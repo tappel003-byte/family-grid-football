@@ -153,6 +153,17 @@ async function familyCurrentWeek(supabaseAdmin: { from: (t: string) => any }, sl
   return Math.max(Number(leagueRow?.current_week ?? 0), Number(sleeperWeek ?? 0), SEASON_START_WEEK);
 }
 
+/** Reads every row (the backend caps a single read at 1000 rows). */
+async function readAll<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<{ data: T[] }> {
+  const out: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await page(from, from + 999);
+    if (error) throw new Error(String((error as { message?: string }).message ?? error));
+    out.push(...(data ?? []));
+    if (!data || data.length < 1000) return { data: out };
+  }
+}
+
 export const getPicksBoard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { week?: number | undefined }) => ({ week: d.week ? Math.min(18, Math.max(1, Math.round(d.week))) : undefined }))
@@ -165,8 +176,8 @@ export const getPicksBoard = createServerFn({ method: "GET" })
     const monday = mondayOf(games);
 
     const [{ data: picks }, { data: ties }, { data: profiles }] = await Promise.all([
-      supabaseAdmin.from("game_picks").select("user_id, week, game_id, team").eq("season", state.season),
-      supabaseAdmin.from("pick_tiebreakers").select("user_id, week, total_points").eq("season", state.season),
+      readAll((f, t) => supabaseAdmin.from("game_picks").select("user_id, week, game_id, team").eq("season", state.season).order("id").range(f, t)),
+      readAll((f, t) => supabaseAdmin.from("pick_tiebreakers").select("user_id, week, total_points").eq("season", state.season).order("id").range(f, t)),
       supabaseAdmin.from("profiles").select("id, display_name, email"),
     ]);
     const nameOf = (id: string) => {
@@ -333,8 +344,8 @@ export const getRivalry = createServerFn({ method: "GET" })
     const state = await seasonState();
     const currentWeek = await familyCurrentWeek(supabaseAdmin, state.week);
     const [{ data: picks }, { data: ties }] = await Promise.all([
-      supabaseAdmin.from("game_picks").select("user_id, week, game_id, team").eq("season", state.season).in("user_id", [me, rivalId]),
-      supabaseAdmin.from("pick_tiebreakers").select("user_id, week, total_points").eq("season", state.season).in("user_id", [me, rivalId]),
+      readAll((f, t) => supabaseAdmin.from("game_picks").select("user_id, week, game_id, team").eq("season", state.season).in("user_id", [me, rivalId]).order("id").range(f, t)),
+      readAll((f, t) => supabaseAdmin.from("pick_tiebreakers").select("user_id, week, total_points").eq("season", state.season).in("user_id", [me, rivalId]).order("id").range(f, t)),
     ]);
     const pickMap = (u: string, w: number) =>
       Object.fromEntries((picks ?? []).filter((p) => p.user_id === u && p.week === w).map((p) => [p.game_id, p.team]));
